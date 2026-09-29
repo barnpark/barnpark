@@ -1,12 +1,43 @@
 <!DOCTYPE html>
-<html lang="th"><head><meta charset="UTF-8">
+<html lang="th">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BARN-PARK</title>
-<style>body{font-family:-apple-system,"Sarabun",sans-serif;background:linear-gradient(135deg,#0d9488,#2563eb);color:#fff;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;text-align:center}
-.c{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:16px;padding:32px 28px;max-width:420px}
-h1{margin:0 0 6px} a{color:#fff}</style></head>
-<body><div class="c">
-<h1>BARN-PARK</h1>
-<p>API กำลังทำงาน ✓ — หน้าเว็บ (login/app/admin/book) กำลังปรับให้เรียก API นี้ในสเต็ปถัดไป</p>
-<p style="opacity:.85;font-size:14px">ทดสอบ API: <a href="/api/health">/api/health</a></p>
-</div></body></html>
+<title>BARN-PARK · ระบบจองที่พักสำหรับที่พักชุมชนและ SME</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .lnav{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .lnav .in{max-width:1140px;margin:0 auto;padding:0 18px;height:62px;display:flex;align-items:center;justify-content:space-between}
+  .hero2{background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;padding:72px 0 82px;text-align:center;position:relative;overflow:hidden}
+  .hero2:before{content:"";position:absolute;width:340px;height:340px;border-radius:50%;background:rgba(255,255,255,.10);top:-140px;left:-90px}
+  .hero2:after{content:"";position:absolute;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.08);bottom:-150px;right:-70px}
+  .hero2 .wrap{position:relative;z-index:1}
+  .hero2 .tag{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;font-weight:700;font-size:13px;letter-spacing:1px;padding:6px 14px;border-radius:999px;margin-bottom:14px}
+  .hero2 h1{font-size:clamp(28px,4.4vw,42px);line-height:1.45;font-weight:800;margin:0 0 14px}
+  .hero2 p{font-size:16px;line-height:1.85;opacity:.95;max-width:560px;margin:0 auto 24px}
+  .cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .sec{padding:52px 0} .sec h2{text-align:center} .lead{text-align:center;color:var(--muted);max-width:600px;margin:0 auto 30px}
+  .svc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+  .scard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px} .scard .ic{font-size:26px;margin-bottom:10px} .scard h3{margin:0 0 6px} .scard p{color:var(--muted);font-size:14px;margin:0 0 10px} .scard .from{font-weight:800;color:var(--brand);font-size:14px}
+</style>
+</head>
+<body>
+<div class="lnav"><div class="in"><div class="logo"><span class="dot">B</span>BARN-PARK</div>
+  <a class="btn ghost sm" href="login.html">เข้าสู่ระบบโรงแรม</a></div></div>
+<div class="hero2"><div class="wrap">
+  <div class="tag">BARN-PARK</div>
+  <h1>BARN-PARK Booking</h1>
+  <p>ระบบจองที่พัก สำหรับที่พักชุมชนและ SME — รับจองตรง กันจองซ้อน พร้อมหน้าเว็บของโรงแรมในตัว</p>
+  <div class="cta"><a class="btn white lg" href="book.html?h=barnbarn">ลองหน้าจองแขก</a>
+    <a class="btn white lg" href="login.html">เข้าสู่ระบบ</a></div>
+</div></div>
+<div class="sec"><div class="wrap"><h2>บริการของเรา</h2><p class="lead">ครบตั้งแต่ระบบหลังบ้านถึงหน้าร้านดิจิทัล</p>
+  <div class="svc">
+    <div class="scard"><div class="ic">🏨</div><h3>ระบบจองที่พัก</h3><p>ปฏิทิน รับจองตรง กันจองซ้อน รายงาน</p><div class="from">เริ่ม ฿800/เดือน</div></div>
+    <div class="scard"><div class="ic">🖼️</div><h3>หน้าเว็บของโรงแรม</h3><p>ปรับสี รูป โลโก้ เอง (รวมในแพ็กเกจ)</p><div class="from">รวมในค่าสมาชิก</div></div>
+    <div class="scard"><div class="ic">🎨</div><h3>Graphic Design</h3><p>โลโก้ โพสต์ เมนู ป้าย</p><div class="from">เริ่ม ฿590/ชิ้น</div></div>
+    <div class="scard"><div class="ic">💬</div><h3>LINE OA</h3><p>ตั้งค่า Rich Menu ข้อความอัตโนมัติ</p><div class="from">เริ่ม ฿3,900</div></div>
+  </div>
+</div></div>
+</body>
+</html>

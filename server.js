@@ -10,6 +10,7 @@ import roomRoutes from "./routes/rooms.js";
 import serviceRoutes from "./routes/services.js";
 import bookingRoutes from "./routes/bookings.js";
 import publicRoutes from "./routes/public.js";
+import setupRoutes from "./routes/setup.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -18,6 +19,7 @@ app.use(express.json({ limit: "2mb" }));
 app.get("/api/health", (_req, res) => res.json({ ok: true, service: "barn-park" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/public", publicRoutes);
+app.use("/api", setupRoutes);
 app.use("/api", hotelRoutes);
 app.use("/api", roomRoutes);
 app.use("/api", serviceRoutes);
