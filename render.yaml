@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: barn-park
+    runtime: node
+    plan: starter          # หรือ free (จะหลับหลังไม่มีคนใช้ 15 นาที)
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: BREVO_SENDER_NAME
+        value: BARN-PARK
+      - key: BREVO_SMS_SENDER
+        value: BARNPARK
+      - key: LINE_CHANNEL_TOKEN
+        sync: false

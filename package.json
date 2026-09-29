@@ -1,0 +1,20 @@
+{
+  "name": "barn-park",
+  "version": "1.0.0",
+  "description": "BARN-PARK — ระบบจองที่พักสำหรับที่พักชุมชนและ SME (Node/Express + MongoDB + Brevo)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node seed.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "express": "^4.19.2",
+    "mongoose": "^8.5.1",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5"
+  }
+}
