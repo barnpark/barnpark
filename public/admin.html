@@ -18,12 +18,24 @@
   <div class="who"><span id="uinfo"></span><button class="btn ghost sm" onclick="API.signOut()">ออกจากระบบ</button></div></div></div>
 <div class="nav"><div class="in" id="nav">
   <button data-v="a-port" class="on" onclick="go('a-port')">🏨 โรงแรมทั้งหมด</button>
+  <button data-v="a-add" onclick="go('a-add')">➕ เพิ่มโรงแรม</button>
   <button data-v="a-detail" onclick="go('a-detail')">🔎 รายละเอียด</button>
   <button data-v="a-ota" onclick="go('a-ota')">🔗 จัดการ OTA</button>
   <button data-v="a-bill" onclick="go('a-bill')">💳 การเงิน</button>
 </div></div>
 <main><div class="wrap">
   <section id="a-port" class="view on"><h1>โรงแรมในระบบ</h1><p class="sub">คลิกโรงแรมเพื่อดู/แก้</p><div class="metrics" id="a-metrics"></div><div class="cards" id="a-cards"></div></section>
+  <section id="a-add" class="view"><h1>เพิ่มโรงแรมใหม่</h1><p class="sub">สร้างโรงแรม + บัญชีเจ้าของ — เจ้าของล็อกอินเข้าใช้แอปของตัวเองได้ทันที</p>
+    <div class="panel"><div class="formgrid">
+      <div><label>ชื่อโรงแรม</label><input id="o-name" placeholder="เช่น ภูวิว เกสต์เฮาส์"></div>
+      <div><label>slug (ใช้ในลิงก์จอง book.html?h=)</label><input id="o-slug" placeholder="เช่น phuview (a-z, ไม่มีเว้นวรรค)"></div>
+      <div><label>ทำเล</label><input id="o-loc" placeholder="เช่น เชียงใหม่"></div>
+      <div><label>อีเมลเจ้าของ (ใช้ล็อกอิน)</label><input id="o-email" placeholder="owner@example.com"></div>
+      <div><label>ตั้งรหัสผ่านเจ้าของ</label><input id="o-pass" type="text" placeholder="ตั้งรหัสให้ แล้วแจ้งเจ้าของ"></div>
+    </div>
+    <button class="btn" style="margin-top:12px" onclick="onboard()">สร้างโรงแรม</button>
+    <p class="note" id="o-result"></p></div>
+  </section>
   <section id="a-detail" class="view"><button class="back" onclick="go('a-port')">‹ กลับหน้ารวม</button><h1 id="d-name">เลือกโรงแรมจากหน้ารวม</h1><p class="sub" id="d-meta"></p><div id="d-alert"></div>
     <div class="panel"><h3>การเชื่อม OTA</h3><div id="d-ota"></div></div>
     <div class="panel"><div style="display:flex;gap:8px;margin-bottom:12px"><h3 style="margin:0">ปฏิทิน</h3><button class="btn ghost sm" onclick="moveWeek(-7)">‹</button><button class="btn ghost sm" onclick="jumpToday()">วันนี้</button><button class="btn ghost sm" onclick="moveWeek(7)">›</button><button class="btn sm" style="margin-left:auto" onclick="newBk('',null)">+ เพิ่มการจอง</button></div>
@@ -78,6 +90,18 @@ function renderOta(){
 function renderBilling(){
   document.getElementById('a-billm').innerHTML=m("🏨 โรงแรม",HOTELS.length)+m("💰 /เดือน",money(HOTELS.reduce((s,h)=>s+(h.planFee||800),0)))+m("📅 /ปี",money(HOTELS.reduce((s,h)=>s+(h.planFee||800),0)*12));
   document.getElementById('a-billtable').innerHTML='<tr><th>โรงแรม</th><th>แพ็กเกจ</th><th>ค่าบริการ/เดือน</th><th>สถานะ</th></tr>'+(HOTELS.length?HOTELS.map(h=>'<tr><td><b>'+esc(h.name)+'</b></td><td>มาตรฐาน</td><td>'+money(h.planFee||800)+'</td><td>'+(h.status==='paused'?'<span class="pill off">พัก</span>':'<span class="pill on">ใช้งาน</span>')+'</td></tr>').join(''):'<tr><td colspan="4" class="empty">—</td></tr>');
+}
+// ---- onboard new hotel ----
+function val(id){return document.getElementById(id).value.trim();}
+async function onboard(){
+  const name=val('o-name'),slug=val('o-slug'),location=val('o-loc'),ownerEmail=val('o-email'),ownerPassword=val('o-pass');
+  if(!name||!slug||!ownerEmail||!ownerPassword){API.toast('กรอกชื่อ, slug, อีเมล, รหัสให้ครบ','err');return;}
+  try{
+    const r=await API.post('/hotels/onboard',{name,slug,location,ownerEmail,ownerPassword});
+    document.getElementById('o-result').textContent='✔ สร้างแล้ว: '+name+' · เจ้าของล็อกอินด้วย '+ownerEmail+' · ลิงก์จอง /book.html?h='+r.hotel.slug;
+    ['o-name','o-slug','o-loc','o-email','o-pass'].forEach(id=>document.getElementById(id).value='');
+    HOTELS=await API.get('/hotels'); renderPortfolio(); renderOta(); renderBilling(); API.toast('เพิ่มโรงแรมแล้ว','ok');
+  }catch(e){API.toast(e.message,'err');}
 }
 // ---- detail ----
 async function openHotel(id){

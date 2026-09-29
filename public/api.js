@@ -48,6 +48,7 @@ window.API = (function () {
   return {
     token, setToken, clear, guard,
     login: (email, password) => req("POST", "/auth/login", { email, password }),
+    verifyOtp: (email, otp) => req("POST", "/auth/verify-otp", { email, otp }),
     me: () => req("GET", "/auth/me"),
     get: (p) => req("GET", p), post: (p, b) => req("POST", p, b), patch: (p, b) => req("PATCH", p, b), del: (p) => req("DELETE", p),
     pubHotel: (slug) => pub("/hotel/" + encodeURIComponent(slug)),

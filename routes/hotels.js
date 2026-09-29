@@ -1,8 +1,29 @@
 import { Router } from "express";
+import bcrypt from "bcryptjs";
 import Hotel from "../models/Hotel.js";
+import User from "../models/User.js";
 import { requireAuth, requireAdmin, canAccessHotel } from "../lib/auth.js";
 
 const r = Router();
+
+// เพิ่มโรงแรมใหม่ + สร้างบัญชีเจ้าของ (admin เท่านั้น)
+r.post("/hotels/onboard", requireAuth, requireAdmin, async (req, res) => {
+  const { name, slug, location, ownerEmail, ownerPassword, ownerName } = req.body || {};
+  if (!name || !slug || !ownerEmail || !ownerPassword)
+    return res.status(400).json({ error: "กรอกชื่อโรงแรม, slug, อีเมลและรหัสเจ้าของให้ครบ" });
+  const s = String(slug).toLowerCase().trim();
+  if (await Hotel.findOne({ slug: s })) return res.status(409).json({ error: "slug นี้ถูกใช้แล้ว" });
+  if (await User.findOne({ email: String(ownerEmail).toLowerCase() })) return res.status(409).json({ error: "อีเมลนี้มีบัญชีแล้ว" });
+  const hotel = await Hotel.create({
+    name, slug: s, location: location || "", status: "onboarding",
+    ota: [{ channel: "agoda", status: 0 }, { channel: "booking", status: 0 }, { channel: "trip", status: 0 }],
+  });
+  await User.create({
+    email: String(ownerEmail).toLowerCase(), role: "owner", name: ownerName || name,
+    hotel: hotel._id, passwordHash: bcrypt.hashSync(ownerPassword, 10),
+  });
+  res.json({ ok: true, hotel });
+});
 
 // list — admin เห็นทุกที่ / staff เห็นเฉพาะของตัวเอง
 r.get("/hotels", requireAuth, async (req, res) => {

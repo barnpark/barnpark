@@ -2,21 +2,47 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import { sign, requireAuth } from "../lib/auth.js";
+import { sendOtp, brevoReady } from "../lib/mailer.js";
 
 const r = Router();
+const genCode = () => String(Math.floor(100000 + Math.random() * 900000));
+const userOut = (u) => ({ id: u._id, email: u.email, role: u.role, hotel: u.hotel, name: u.name });
 
+// ขั้นที่ 1: ตรวจรหัสผ่าน → ส่ง OTP ทางอีเมล (ถ้าตั้ง Brevo แล้ว)
 r.post("/login", async (req, res) => {
   const { email, password } = req.body || {};
   const u = await User.findOne({ email: (email || "").toLowerCase() }).select("+passwordHash");
   if (!u || !u.passwordHash || !bcrypt.compareSync(password || "", u.passwordHash))
     return res.status(401).json({ error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" });
-  res.json({ token: sign(u), user: { id: u._id, email: u.email, role: u.role, hotel: u.hotel, name: u.name } });
+
+  // ยังไม่ได้ตั้ง Brevo → เข้าตรง (ชั่วคราว ก่อนเปิด OTP)
+  if (!brevoReady()) return res.json({ token: sign(u), user: userOut(u) });
+
+  const code = genCode();
+  u.otpHash = bcrypt.hashSync(code, 10);
+  u.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+  await u.save();
+  try { await sendOtp(u.email, code); }
+  catch (e) { return res.status(500).json({ error: "ส่ง OTP ไม่สำเร็จ: " + (e.message || e) }); }
+  res.json({ step: "otp", email: u.email });
+});
+
+// ขั้นที่ 2: ยืนยัน OTP → ออก token
+r.post("/verify-otp", async (req, res) => {
+  const { email, otp } = req.body || {};
+  const u = await User.findOne({ email: (email || "").toLowerCase() }).select("+otpHash");
+  if (!u || !u.otpHash || !u.otpExpires || u.otpExpires < new Date())
+    return res.status(401).json({ error: "รหัสหมดอายุ กรุณาขอรหัสใหม่" });
+  if (!bcrypt.compareSync(otp || "", u.otpHash))
+    return res.status(401).json({ error: "รหัส OTP ไม่ถูกต้อง" });
+  u.otpHash = undefined; u.otpExpires = undefined; await u.save();
+  res.json({ token: sign(u), user: userOut(u) });
 });
 
 r.get("/me", requireAuth, async (req, res) => {
   const u = await User.findById(req.user.id).populate("hotel");
   if (!u) return res.status(404).json({ error: "not found" });
-  res.json({ id: u._id, email: u.email, role: u.role, hotel: u.hotel, name: u.name });
+  res.json(userOut(u));
 });
 
 export default r;
