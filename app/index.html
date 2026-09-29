@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barn Pak · ระบบจองที่พัก + รับทำ Graphic / LINE OA / เว็บไซต์</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .lnav{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .lnav .in{max-width:1140px;margin:0 auto;padding:0 18px;height:62px;display:flex;align-items:center;justify-content:space-between}
+  .lnav .links{display:flex;gap:20px;align-items:center;font-size:14px}
+  .lnav .links a{color:var(--ink)} @media(max-width:640px){.lnav .links a.nolink{display:none}}
+  .hero2{background:linear-gradient(135deg,#4f7d6e,#6b9080);color:#fff;padding:76px 0 82px;text-align:center}
+  .hero2 h1{font-size:clamp(28px,4.4vw,42px);line-height:1.45;font-weight:800;margin:0 auto 18px;max-width:20ch;text-wrap:balance}
+  .hero2 p{font-size:17px;line-height:1.85;opacity:.95;max-width:560px;margin:0 auto 28px}
+  @media(max-width:640px){.hero2{padding:56px 0 62px}.hero2 h1{line-height:1.4}.hero2 p{font-size:15.5px;line-height:1.8}}
+  .hero2 .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn.white{background:#fff;color:var(--brand2)} .btn.white:hover{background:#f0fdfa}
+  .btn.outline{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.7)}
+  .sec{padding:56px 0} .sec.alt{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .sec h2{font-size:28px;text-align:center;margin:0 0 6px} .sec .lead{text-align:center;color:var(--muted);max-width:620px;margin:0 auto 34px}
+  .svc{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+  .scard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 2px 10px rgba(15,23,42,.04)}
+  .scard .ic{width:52px;height:52px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:26px;background:#f0fdfa;margin-bottom:14px}
+  .scard h3{font-size:18px;margin:0 0 6px} .scard p{color:var(--muted);font-size:14px;margin:0 0 12px}
+  .scard .from{font-weight:800;color:var(--brand);font-size:15px}
+  .price{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;align-items:stretch}
+  .pcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column}
+  .pcard.feature{border:2px solid var(--brand);box-shadow:0 12px 30px rgba(13,148,136,.15);position:relative}
+  .pcard .tagpop{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--brand);color:#fff;font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px}
+  .pcard h3{font-size:17px;margin:0 0 2px} .pcard .amt{font-size:30px;font-weight:800;margin:8px 0} .pcard .amt small{font-size:14px;color:var(--muted);font-weight:500}
+  .pcard ul{list-style:none;padding:0;margin:12px 0 20px;font-size:14px} .pcard li{padding:5px 0 5px 24px;position:relative;color:#334155}
+  .pcard li:before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:800}
+  .pcard .btn{margin-top:auto}
+  .pcard .eff{color:var(--brand);font-weight:700;font-size:13px;margin:-4px 0 4px}
+  .psub{font-size:19px;margin:36px 0 4px;padding-top:8px} .psub:first-of-type{margin-top:8px}
+  .pnote{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .addons{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:8px}
+  .ac{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px}
+  .ac .an{font-weight:700;font-size:15px} .ac .ap{color:var(--brand);font-weight:800;font-size:16px;margin:4px 0} .ac .ad{color:var(--muted);font-size:13px}
+  .band{background:linear-gradient(135deg,#3f6459,#4f7d6e);color:#fff;border-radius:20px;padding:40px;text-align:center;margin:0 16px}
+  .band h2{color:#fff} .band p{opacity:.95;max-width:640px;margin:0 auto 22px}
+  .foot{background:#0f172a;color:#cbd5e1;padding:40px 0;font-size:14px}
+  .foot .in{max-width:1140px;margin:0 auto;padding:0 18px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .foot a{color:#5eead4}
+  .contact{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;font-size:15px}
+  .contact a{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 18px;color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+<div class="lnav"><div class="in">
+  <div class="logo"><span class="dot">B</span>Barn Pak</div>
+  <div class="links">
+    <a class="nolink" href="#services">บริการ</a>
+    <a class="nolink" href="#pricing">ราคา</a>
+    <a class="nolink" href="#contact">ติดต่อ</a>
+    <a class="btn ghost sm" href="login.html">เข้าสู่ระบบโรงแรม</a>
+  </div>
+</div></div>
+
+<section class="hero2">
+  <div class="wrap">
+    <h1>ระบบจองที่พัก + งานดิจิทัลครบวงจร<br>สำหรับที่พักชุมชนและ SME</h1>
+    <p>Barn Pak ช่วยที่พักเล็ก ๆ รับจองออนไลน์ กันจองซ้อน พร้อมหน้าเว็บของโรงแรมที่ปรับแต่งเองได้ในตัว — เสริมด้วยงานกราฟิกและ LINE OA ในที่เดียว ราคาเป็นมิตร</p>
+    <div class="cta">
+      <a class="btn white lg" href="#contact">ปรึกษาฟรี</a>
+      <a class="btn outline lg" href="#pricing">ดูราคา</a>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="services"><div class="wrap">
+  <h2>บริการของเรา</h2>
+  <p class="lead">ครบตั้งแต่ระบบหลังบ้าน ไปจนถึงหน้าร้านดิจิทัลที่ลูกค้าเห็น</p>
+  <div class="svc">
+    <div class="scard"><div class="ic">🏨</div><h3>ระบบจองที่พัก Barn Pak</h3><p>ปฏิทินห้องพัก รับจองตรงจากลูกค้า กันจองซ้อน รายงานรายได้ — ใช้ง่าย ไม่ต้องมีความรู้เทคนิค</p><div class="from">เริ่มต้น ฿800 / เดือน · รายปีเหลือ ฿667/เดือน</div></div>
+    <div class="scard"><div class="ic">🖼️</div><h3>หน้าเว็บของโรงแรม <span style="font-size:12px;color:var(--green);font-weight:800">(รวมในแพ็กเกจ)</span></h3><p>ทุกโรงแรมได้หน้าเว็บ/หน้าจองของตัวเอง เลือก template ใส่รูป โลโก้ สี และคำโปรยเองได้ ไม่ต้องจ้างทำเว็บแยก</p><div class="from">รวมในค่าสมาชิกแล้ว</div></div>
+    <div class="scard"><div class="ic">🎨</div><h3>Graphic Design</h3><p>โลโก้ โปสเตอร์ โพสต์โซเชียล เมนู ป้าย — ดีไซน์สวย ตรงกับแบรนด์ของคุณ</p><div class="from">เริ่มต้น ฿590 / ชิ้น</div></div>
+    <div class="scard"><div class="ic">💬</div><h3>LINE OA</h3><p>ตั้งค่า LINE Official Account, Rich Menu, ข้อความอัตโนมัติ ให้ลูกค้าทักและจองได้สะดวก</p><div class="from">เริ่มต้น ฿3,900</div></div>
+  </div>
+</div></section>
+
+<section class="sec alt" id="pricing"><div class="wrap">
+  <h2>แพ็กเกจ & ราคา</h2>
+  <p class="lead">เลือกแบบที่ใช่ ปรับเพิ่มบริการเสริมได้ตลอด — ทักมารับใบเสนอราคาฟรี</p>
+
+  <h3 class="psub">1) ระบบจองที่พัก Barn Pak</h3>
+  <p class="pnote">ปฏิทินห้องพักไม่จำกัด · หน้าจองตรงของโรงแรม · กันจองซ้อน · รายงานรายได้ · ปรับสี/แบรนด์เองได้ — ราคาต่อ 1 โรงแรม</p>
+  <div class="price">
+    <div class="pcard"><h3>รายเดือน</h3><div class="amt">฿800<small> / เดือน</small></div>
+      <ul><li>ยืดหยุ่น ยกเลิกได้ทุกเดือน</li><li>ฟีเจอร์ครบทุกอย่าง</li><li>อัปเดตฟรีตลอด</li></ul>
+      <a class="btn ghost block" href="#contact">เริ่มใช้งาน</a></div>
+    <div class="pcard"><div class="tagpop" style="background:var(--amber)">ประหยัด ฿300</div><h3>ราย 6 เดือน</h3>
+      <div class="amt">฿4,500<small> / 6 เดือน</small></div><div class="eff">เฉลี่ย ฿750 / เดือน</div>
+      <ul><li>ทุกอย่างในแบบรายเดือน</li><li>จ่ายทีเดียว คุ้มกว่า</li><li>เหมาะกับช่วงไฮซีซั่น</li></ul>
+      <a class="btn ghost block" href="#contact">เลือกแพ็กนี้</a></div>
+    <div class="pcard feature"><div class="tagpop">คุ้มสุด · ประหยัด ฿1,600</div><h3>รายปี</h3>
+      <div class="amt">฿8,000<small> / ปี</small></div><div class="eff">เฉลี่ย ฿667 / เดือน</div>
+      <ul><li>ทุกอย่างในแบบรายเดือน</li><li>ถูกที่สุดต่อเดือน</li><li>เหมาะกับที่พักที่เปิดทั้งปี</li></ul>
+      <a class="btn block" href="#contact">เลือกแพ็กนี้</a></div>
+  </div>
+
+  <h3 class="psub">2) บริการเสริมรายเดือน (เพิ่มจากค่าระบบจอง)</h3>
+  <p class="pnote">เลือกเสริมได้ตามต้องการ คิดเพิ่มต่อเดือน</p>
+  <div class="addons">
+    <div class="ac"><div class="an">⭐ QR รีวิว Google</div><div class="ap">+฿150 / เดือน</div><div class="ad">ป้าย QR + ตั้งค่าให้ลูกค้ารีวิวง่าย ดันคะแนนร้าน</div></div>
+    <div class="ac"><div class="an">💬 เชื่อม/แอด LINE ลูกค้า</div><div class="ap">+฿150 / เดือน</div><div class="ad">ปุ่มแอดเพื่อน + แจ้งเตือนการจองทาง LINE</div></div>
+    <div class="ac"><div class="an">📸 โพสต์โซเชียล</div><div class="ap">+฿500 / เดือน</div><div class="ad">ออกแบบโพสต์ให้ 1 ชิ้น/เดือน พร้อมแคปชัน</div></div>
+  </div>
+
+  <h3 class="psub">3) LINE OA (บัญชีทางการ)</h3>
+  <div class="price">
+    <div class="pcard"><h3>เซ็ตอัพครั้งเดียว</h3><div class="amt">฿3,900<small> ครั้งเดียว</small></div>
+      <ul><li>เปิด + ยืนยันบัญชี</li><li>ออกแบบ Rich Menu</li><li>ข้อความต้อนรับอัตโนมัติ</li><li>สอนใช้งาน</li></ul>
+      <a class="btn ghost block" href="#contact">ขอใบเสนอราคา</a></div>
+    <div class="pcard"><h3>ดูแลโปรฯ 1 ครั้ง/เดือน</h3><div class="amt">฿800<small> / เดือน</small></div>
+      <ul><li>อัปเดตโปรโมชัน 1 ครั้ง/เดือน</li><li>ออกแบบภาพ + ข้อความ</li><li>บรอดแคสต์ให้ลูกค้า</li></ul>
+      <a class="btn ghost block" href="#contact">เลือกแพ็กนี้</a></div>
+    <div class="pcard feature"><div class="tagpop">ยอดนิยม</div><h3>ดูแลโปรฯ 2 ครั้ง/เดือน</h3><div class="amt">฿1,500<small> / เดือน</small></div>
+      <ul><li>อัปเดตโปรโมชัน 2 ครั้ง/เดือน</li><li>ออกแบบภาพ + ข้อความ</li><li>บรอดแคสต์ + วิเคราะห์ผล</li></ul>
+      <a class="btn block" href="#contact">เลือกแพ็กนี้</a></div>
+  </div>
+
+  <div class="band" style="margin:36px 0 0"><h2>หน้าเว็บของโรงแรม — รวมในแพ็กเกจแล้ว</h2>
+    <p>ทุกโรงแรมได้หน้าเว็บ/หน้าจองของตัวเอง เลือก template ใส่รูปห้องพัก โปรโมชัน และบริการเสริม (นวด สปา อาหารเช้า กิจกรรม) เองได้ ไม่มีค่าทำเว็บแยก</p>
+  </div>
+
+  <p class="pnote" style="text-align:center;margin-top:24px">* ราคาทั้งหมดยังไม่รวม VAT · ปรับแพ็กเกจตามขอบเขตงานจริงได้</p>
+</div></section>
+
+<section class="sec"><div class="wrap"><div class="band">
+  <h2>เราตั้งใจช่วย SME และที่พักชุมชน</h2>
+  <p>เทคโนโลยีไม่ควรแพงจนธุรกิจเล็กเข้าไม่ถึง — Barn Pak ตั้งราคาแบบไม่หวังกำไรมาก เพื่อให้ทุกที่พักมีระบบจองที่ดีและภาพลักษณ์มืออาชีพ</p>
+  <a class="btn white lg" href="#contact">คุยกับเรา</a>
+</div></div></section>
+
+<section class="sec alt" id="contact"><div class="wrap" style="text-align:center">
+  <h2>ติดต่อ / ปรึกษาฟรี</h2>
+  <p class="lead">ทักมาได้เลย เราช่วยประเมินและแนะนำแพ็กเกจที่เหมาะกับคุณ</p>
+  <div class="contact">
+    <a href="tel:0000000000">📞 โทร 0XX-XXX-XXXX</a>
+    <a href="#">💬 LINE @barnpak</a>
+    <a href="mailto:hello@barnpak.co">✉️ hello@barnpak.co</a>
+  </div>
+  <p class="note" style="margin-top:26px">เป็นโรงแรมที่ใช้งานอยู่แล้ว? <a href="login.html">เข้าสู่ระบบที่นี่ →</a></p>
+</div></section>
+
+<div class="foot"><div class="in">
+  <div><div class="logo" style="color:#fff"><span class="dot">B</span>Barn Pak</div>
+    <div style="margin-top:8px;max-width:320px">ระบบจองที่พัก + งานดิจิทัลสำหรับที่พักชุมชนและ SME</div></div>
+  <div>
+    <div style="font-weight:700;color:#fff;margin-bottom:6px">ลิงก์</div>
+    <div><a href="#services">บริการ</a> · <a href="#pricing">ราคา</a> · <a href="#contact">ติดต่อ</a></div>
+    <div style="margin-top:8px"><a href="login.html">เข้าสู่ระบบโรงแรม</a></div>
+  </div>
+</div></div>
+</body>
+</html>

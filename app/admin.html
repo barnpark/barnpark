@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barn Pak · ผู้ดูแลแพลตฟอร์ม</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+  .hcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:box-shadow .12s,transform .12s}
+  .hcard:hover{box-shadow:0 8px 22px rgba(15,23,42,.1);transform:translateY(-2px)}
+  .hcard h3{margin:0 0 2px;font-size:16px} .hcard .loc{color:var(--muted);font-size:12px;margin-bottom:10px}
+  .hcard .row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
+  .hcard .row .k{color:var(--muted)}
+  .back{background:none;border:none;color:var(--brand);cursor:pointer;font-size:14px;font-family:inherit;padding:0;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="top"><div class="in">
+  <div class="logo"><span class="dot">B</span>Barn Pak <span style="font-weight:600;color:var(--muted);font-size:13px">· ผู้ดูแล</span></div>
+  <div class="who"><span id="uinfo"></span><button class="btn ghost sm" onclick="EB.signOut()">ออกจากระบบ</button></div>
+</div></div>
+<div class="nav"><div class="in" id="nav">
+  <button data-v="a-port" class="on" onclick="go('a-port')">🏨 โรงแรมทั้งหมด</button>
+  <button data-v="a-alerts" onclick="go('a-alerts')">🔔 แจ้งเตือน</button>
+  <button data-v="a-ota" onclick="go('a-ota')">🔗 จัดการ OTA</button>
+  <button data-v="a-bill" onclick="go('a-bill')">💳 การเงิน</button>
+</div></div>
+
+<main><div class="wrap">
+  <section id="a-port" class="view on">
+    <h1>โรงแรมในระบบ</h1><p class="sub">คลิกที่โรงแรมเพื่อดู/แก้รายละเอียด</p>
+    <div class="metrics" id="port-metrics"></div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section id="a-detail" class="view">
+    <button class="back" onclick="go('a-port')">‹ กลับหน้ารวม</button>
+    <h1 id="d-name"></h1><p class="sub" id="d-meta"></p>
+    <div id="d-alert"></div>
+    <div class="metrics" id="d-metrics"></div>
+    <div class="panel"><h3>การเชื่อม OTA</h3><div id="d-ota"></div></div>
+    <div class="panel">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <h3 style="margin:0">ปฏิทิน</h3>
+        <button class="btn ghost sm" onclick="moveWeek(-7)">‹</button>
+        <button class="btn ghost sm" onclick="jumpToday()">วันนี้</button>
+        <button class="btn ghost sm" onclick="moveWeek(7)">›</button>
+        <button class="btn sm" style="margin-left:auto" onclick="newBk('','')">+ เพิ่มการจอง</button>
+      </div>
+      <div class="calwrap"><div id="calbox"></div></div>
+      <div class="legend"><span><i class="c0"></i>จองตรง</span><span><i class="c1"></i>Agoda</span><span><i class="c2"></i>Booking</span><span><i class="c3"></i>Trip</span><span><i class="dupc"></i>จองทับซ้อน</span></div>
+    </div>
+    <div class="panel"><h3>การจองล่าสุด</h3><div style="overflow-x:auto"><table id="d-book"></table></div></div>
+  </section>
+
+  <section id="a-alerts" class="view">
+    <h1>แจ้งเตือน</h1><p class="sub">จองทับซ้อนทั่วทั้งแพลตฟอร์ม</p>
+    <div class="panel"><div id="alertlist"></div></div>
+  </section>
+
+  <section id="a-ota" class="view">
+    <h1>จัดการการเชื่อม OTA</h1>
+    <p class="sub">สถานะการเชื่อม Agoda / Booking.com / Trip.com ของทุกโรงแรม — ผู้ดูแลเป็นผู้ตั้งค่าให้ผ่าน Channex (บัญชี/เงินยังเป็นของโรงแรม)</p>
+    <div class="soon" style="margin-bottom:16px">🔜 การเชื่อมอัตโนมัติผ่าน Channex ยังไม่เปิดใช้งาน — หน้านี้เป็นโครงไว้ก่อน ปุ่มจะทำงานเมื่อสมัคร Channex แล้ว</div>
+    <div class="panel"><div style="overflow-x:auto"><table id="ota-table"></table></div></div>
+  </section>
+
+  <section id="a-bill" class="view">
+    <h1>การเงิน</h1><p class="sub">ค่าบริการเริ่ม ฿800/เดือน (รายปีเหลือ ฿667)</p>
+    <div class="metrics" id="bill-metrics"></div>
+    <div class="panel"><h3>รายโรงแรม</h3><div style="overflow-x:auto"><table id="billtable"></table></div></div>
+  </section>
+</div></main>
+
+<div id="bkModal" class="modal"><div class="modal-card">
+  <div class="modal-head"><h3 id="bk-title">การจอง</h3><button class="x" onclick="closeBk()">✕</button></div>
+  <div id="bk-warn" class="warnbar" style="display:none">⚠️ อาจจองทับซ้อน — ตรวจสอบก่อนบันทึก</div>
+  <div class="mgrid">
+    <div class="field" style="grid-column:1/-1"><label>ชื่อผู้เข้าพัก</label><input id="bk-guest"></div>
+    <div class="field"><label>เบอร์โทร</label><input id="bk-tel"></div>
+    <div class="field"><label>อีเมล</label><input id="bk-email"></div>
+    <div class="field"><label>ประเภทห้อง</label><select id="bk-rt"></select></div>
+    <div class="field"><label>ช่องทาง</label><select id="bk-ch"></select></div>
+    <div class="field"><label>แจ้งเตือนแขกทาง</label><select id="bk-notify"><option value="email">อีเมล</option><option value="sms">SMS</option><option value="line">LINE</option><option value="none">ไม่ส่ง</option></select></div>
+    <div class="field"><label>เช็คอิน</label><input id="bk-in" type="date"></div>
+    <div class="field"><label>เช็คเอาท์</label><input id="bk-out" type="date"></div>
+    <div class="field"><label>จำนวนคน</label><input id="bk-pax" type="number" value="2"></div>
+    <div class="field"><label>เตียงเสริม</label><input id="bk-extra" type="number" value="0"></div>
+    <div class="field"><label>ยอด (฿)</label><input id="bk-amt" type="number" placeholder="อัตโนมัติ"></div>
+    <div class="field" style="grid-column:1/-1"><label>หมายเหตุ</label><input id="bk-note"></div>
+  </div>
+  <div class="modal-foot">
+    <button id="bk-del" class="btn danger" onclick="delBk()">🗑 ลบ</button>
+    <span style="flex:1"></span>
+    <button class="btn ghost" onclick="closeBk()">ยกเลิก</button>
+    <button class="btn" onclick="saveBk()">✔ บันทึก</button>
+  </div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="lib.js"></script>
+<script>
+let HOTELS=[], ALL_RT=[], ALL_BK=[], cur=null, RT=[], BK=[], winStart=new Date(), editId=null, lastRows=[], DEMO=false;
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
+function shortCh(ch){return ({direct:"ตรง",agoda:"Agoda",booking:"Book",trip:"Trip",walkin:"Walk",phone:"โทร",line:"LINE"})[ch]||"อื่น";}
+function m(k,v,a){return '<div class="m'+(a?' alert':'')+'"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';}
+function go(v){document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  document.querySelectorAll('main .view').forEach(x=>x.classList.toggle('on',x.id===v));window.scrollTo(0,0);}
+
+async function boot(){
+  const {data:{session}}=await EB.sb.auth.getSession();
+  if(!session){ startDemo(); return; }
+  const p=await EB.currentProfile();
+  if(!p||p.role!=='admin'){ location.href='app.html'; return; }
+  document.getElementById('uinfo').textContent=p.email;
+  const {data:h}=await EB.sb.from('hotels').select('*').order('created_at');
+  HOTELS=h||[];
+  const {data:rt}=await EB.sb.from('room_types').select('*').order('sort');ALL_RT=rt||[];
+  const since=EB.ymd(EB.addDays(new Date(),-60));
+  const {data:bk}=await EB.sb.from('bookings').select('*').gte('checkout',since);ALL_BK=bk||[];
+  renderPortfolio(); renderAlerts(); renderBilling(); renderOta();
+}
+function hotelStats(hid){
+  const today=EB.ymd(new Date());
+  const rts=ALL_RT.filter(t=>t.hotel_id===hid);const rooms=rts.reduce((s,t)=>s+(t.qty||0),0);
+  const bks=ALL_BK.filter(b=>b.hotel_id===hid&&b.status!=='cancelled');
+  const occ=bks.filter(b=>b.checkin<=today&&b.checkout>today).length;
+  const pct=rooms?Math.round(occ/rooms*100):0;
+  const month=today.slice(0,7);const rev=bks.filter(b=>(b.checkin||'').slice(0,7)===month).reduce((s,b)=>s+Number(b.amount||0),0);
+  const over=overbookCount(rts,bks);
+  return {rooms,pct,rev,over,arr:bks.filter(b=>b.checkin===today).length};
+}
+function overbookCount(rts,bks){
+  let n=0;rts.forEach(t=>{const list=bks.filter(b=>b.room_type_id===t.id).sort((a,b)=>a.checkin<b.checkin?-1:1);
+    const qty=Math.max(1,t.qty||1);const unitEnd=new Array(qty).fill(null);
+    list.forEach(b=>{let u=-1;for(let k=0;k<qty;k++){if(!unitEnd[k]||unitEnd[k]<=b.checkin){u=k;break;}}if(u<0)n++;else unitEnd[u]=b.checkout;});});
+  return n;
+}
+function renderPortfolio(){
+  const totRooms=ALL_RT.reduce((s,t)=>s+(t.qty||0),0);
+  const totOver=HOTELS.reduce((s,h)=>s+hotelStats(h.id).over,0);
+  document.getElementById('port-metrics').innerHTML=
+    m("🏨 โรงแรม",HOTELS.length)+m("🛏️ ห้องรวม",totRooms)+m("💰 รายได้รวม/เดือน (MRR)",EB.money(HOTELS.length*800))+m("⚠️ จองทับซ้อน",totOver,totOver>0);
+  document.getElementById('cards').innerHTML=HOTELS.length?HOTELS.map(h=>{const s=hotelStats(h.id);
+    const st=h.status==='active'?'<span class="pill on">ใช้งาน</span>':h.status==='onboarding'?'<span class="pill pend">กำลังตั้งค่า</span>':'<span class="pill off">พัก</span>';
+    return '<div class="hcard" onclick="openHotel(\''+h.id+'\')"><h3>'+esc(h.name)+'</h3><div class="loc">📍 '+esc(h.location||'')+'</div>'+
+      '<div class="row"><span class="k">เข้าพักวันนี้</span><span>'+s.pct+'%</span></div>'+
+      '<div class="row"><span class="k">ห้อง</span><span>'+s.rooms+'</span></div>'+
+      '<div class="row"><span class="k">รายได้เดือนนี้</span><span>'+EB.money(s.rev)+'</span></div>'+
+      '<div class="row"><span class="k">จองทับซ้อน</span><span>'+(s.over?('⚠️ '+s.over):'—')+'</span></div>'+
+      '<div style="margin-top:10px">'+st+'</div></div>';}).join(''):'<p class="empty">ยังไม่มีโรงแรมในระบบ</p>';
+}
+function renderAlerts(){
+  let html='';
+  HOTELS.forEach(h=>{const rts=ALL_RT.filter(t=>t.hotel_id===h.id);const bks=ALL_BK.filter(b=>b.hotel_id===h.id&&b.status!=='cancelled');
+    if(overbookCount(rts,bks)>0)html+=alertRow('🔴','จองทับซ้อน',esc(h.name)+' · มีห้องถูกจองเกินจำนวน','ดู',()=>openHotel(h.id));});
+  HOTELS.forEach(h=>{if(h.status==='onboarding')html+=alertRow('🟡','กำลังตั้งค่า',esc(h.name)+' · ยังตั้งค่าไม่เสร็จ','ดู',()=>openHotel(h.id));});
+  document.getElementById('alertlist').innerHTML=html||'<p class="empty">ไม่มีแจ้งเตือน 🎉</p>';
+}
+let _cbs=[];
+function alertRow(ic,t,d,btn,cb){const i=_cbs.push(cb)-1;
+  return '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)"><div style="font-size:18px">'+ic+'</div><div style="flex:1"><div style="font-weight:600;font-size:14px">'+t+'</div><div style="font-size:12px;color:var(--muted)">'+d+'</div></div><button class="btn ghost sm" onclick="_cbs['+i+']()">'+btn+'</button></div>';}
+// ----- OTA management -----
+const OTA_CN=['Agoda','Booking.com','Trip.com'];
+function otaPill(s){return s===1?'<span class="pill on">เชื่อมแล้ว</span>':s===2?'<span class="pill err">ขัดข้อง</span>':'<span class="pill off">ยังไม่เชื่อม</span>';}
+function renderOta(){
+  document.getElementById('ota-table').innerHTML='<tr><th>โรงแรม</th><th>Agoda</th><th>Booking.com</th><th>Trip.com</th><th></th></tr>'+
+    (HOTELS.length?HOTELS.map(h=>{const o=h.ota||[0,0,0];
+      return '<tr><td><b>'+esc(h.name)+'</b><br><span style="color:var(--muted);font-size:12px">'+esc(h.location||'')+'</span></td>'+
+        o.map(s=>'<td>'+otaPill(s)+'</td>').join('')+
+        '<td style="white-space:nowrap"><button class="btn ghost sm" onclick="otaManage(\''+h.id+'\')">จัดการ</button> <button class="btn sm" onclick="otaSync(\''+h.id+'\')">ซิงก์</button></td></tr>';}).join(''):'<tr><td colspan="5" class="empty">—</td></tr>');
+}
+function otaManage(id){EB.toast('การตั้งค่าการเชื่อม OTA จะเปิดใช้เมื่อเสียบ Channex (เร็ว ๆ นี้)');}
+function otaSync(id){EB.toast('สั่งซิงก์ได้เมื่อเชื่อม Channex แล้ว');}
+function renderBilling(){
+  document.getElementById('bill-metrics').innerHTML=m("🏨 โรงแรมที่เก็บเงิน",HOTELS.length)+m("💰 รายรับรวม/เดือน",EB.money(HOTELS.length*800))+m("📅 /ปี",EB.money(HOTELS.length*800*12));
+  document.getElementById('billtable').innerHTML='<tr><th>โรงแรม</th><th>แพ็กเกจ</th><th>ค่าบริการ/เดือน</th><th>สถานะ</th></tr>'+
+    (HOTELS.length?HOTELS.map(h=>'<tr><td><b>'+esc(h.name)+'</b></td><td>มาตรฐาน</td><td>'+EB.money(h.plan_fee||800)+'</td><td>'+(h.status==='paused'?'<span class="pill off">พัก</span>':'<span class="pill on">ใช้งาน</span>')+'</td></tr>').join(''):'<tr><td colspan="4" class="empty">—</td></tr>');
+}
+
+// ----- hotel detail (editable) -----
+async function openHotel(id){
+  cur=HOTELS.find(h=>h.id===id);RT=ALL_RT.filter(t=>t.hotel_id===id);
+  if(DEMO){BK=ALL_BK.filter(b=>b.hotel_id===id);}
+  else{const {data:bk}=await EB.sb.from('bookings').select('*').eq('hotel_id',id).gte('checkout',EB.ymd(EB.addDays(new Date(),-60))).order('checkin');BK=bk||[];}
+  const s=hotelStats(id);
+  document.getElementById('d-name').textContent=cur.name;
+  document.getElementById('d-meta').textContent='📍 '+(cur.location||'')+' · '+s.rooms+' ห้อง · เข้าพักวันนี้ '+s.pct+'%';
+  document.getElementById('d-alert').innerHTML=s.over?'<div class="warnbar">⚠️ <b>จองทับซ้อน</b> — มีห้องถูกจองเกินจำนวน โปรดตรวจสอบในปฏิทิน</div>':'';
+  document.getElementById('d-metrics').innerHTML=m("🛏️ เข้าพักวันนี้",s.pct+"%")+m("🚪 เช็คอินวันนี้",s.arr)+m("💰 รายได้เดือนนี้",EB.money(s.rev))+m("⚠️ จองทับซ้อน",s.over,s.over>0);
+  const o=cur.ota||[0,0,0];
+  document.getElementById('d-ota').innerHTML=OTA_CN.map((c,k)=>'<div class="chan"><div class="cn">'+c+'</div><div>'+otaPill(o[k])+'</div><button class="btn ghost sm" onclick="otaManage(\''+cur.id+'\')">จัดการ</button></div>').join('')+'<p class="note">ผู้ดูแลตั้งค่าการเชื่อมให้ผ่าน Channex · บัญชีและเงินยังเป็นของโรงแรม</p>';
+  winStart=new Date();fillChannelSelect();renderCal();renderDBook();go('a-detail');
+}
+function refreshDetail(){ // reload current hotel bookings after edit
+  if(cur)openHotel(cur.id);
+}
+function windowDays(){let a=[];for(let i=0;i<7;i++)a.push(EB.ymd(EB.addDays(winStart,i)));return a;}
+function moveWeek(n){winStart=EB.addDays(winStart,n);renderCal();}
+function jumpToday(){winStart=new Date();renderCal();}
+function layout(){
+  const rows=[];
+  RT.forEach(t=>{const list=BK.filter(b=>b.room_type_id===t.id&&b.status!=='cancelled').sort((x,y)=>x.checkin<y.checkin?-1:1);
+    const qty=Math.max(1,t.qty||1);const unitEnd=new Array(qty).fill(null);const perUnit={};for(let u=0;u<qty;u++)perUnit[u]=[];
+    list.forEach(b=>{let u=-1;for(let k=0;k<qty;k++){if(!unitEnd[k]||unitEnd[k]<=b.checkin){u=k;break;}}if(u<0){u=0;b._over=true;}else b._over=false;unitEnd[u]=b.checkout;perUnit[u].push(b);});
+    for(let u=0;u<qty;u++){const bars=perUnit[u];const laneEnd=[];
+      bars.forEach(b=>{let ln=laneEnd.findIndex(e=>!e||e<=b.checkin);if(ln<0)ln=laneEnd.length;laneEnd[ln]=b.checkout;b._lane=ln;});
+      bars.forEach(b=>{b._dup=bars.some(o=>o!==b&&!(o.checkout<=b.checkin||o.checkin>=b.checkout));});
+      rows.push({type:t,label:t.name+' #'+(u+1),bars,subLanes:Math.max(1,laneEnd.length)});}});
+  lastRows=rows;return rows;
+}
+function barGeom(b,days){const wsEnd=EB.ymd(EB.addDays(winStart,7));if(b.checkout<=days[0]||b.checkin>=wsEnd)return null;
+  const ci=days.indexOf(b.checkin),co=days.indexOf(b.checkout);const s=ci>=0?ci+0.5:0,e=co>=0?co+0.5:7;return {left:s/7*100,width:(e-s)/7*100};}
+function renderCal(){
+  const days=windowDays(),rows=layout(),cols='grid-template-columns:repeat(7,1fr)';
+  let html='<div class="calgrid"><div class="crow head"><div class="lbl">ห้อง</div><div class="days" style="'+cols+'">'+days.map(d=>'<div class="dh">'+EB.thDate(d)+'</div>').join('')+'</div></div>';
+  if(!rows.length)html+='<div class="crow"><div class="lbl">—</div><div class="days" style="'+cols+'"><div style="padding:14px;color:var(--muted)">โรงแรมนี้ยังไม่มีห้อง</div></div></div>';
+  rows.forEach(r=>{html+='<div class="crow"><div class="lbl">'+r.label+'</div><div class="days" style="'+cols+'">';
+    for(let d=0;d<7;d++)html+='<div class="daycell" title="ว่าง — คลิกเพื่อเพิ่ม" onclick="newBk(\''+r.type.id+'\',\''+days[d]+'\')"></div>';
+    r.bars.forEach(b=>{const g=barGeom(b,days);if(!g)return;const top=(b._lane/r.subLanes*100).toFixed(2),h=(100/r.subLanes).toFixed(2);
+      const cls=(b._dup||b._over)?'bar dup':'bar '+EB.chColor(b.channel);
+      html+='<div class="'+cls+'" style="left:'+g.left.toFixed(2)+'%;width:'+g.width.toFixed(2)+'%;top:calc('+top+'% + 2px);height:calc('+h+'% - 4px)" title="'+esc(b.guest_name)+' — คลิกดู/แก้" onclick="event.stopPropagation();editBk(\''+b.id+'\')">'+((b._dup||b._over)?'⚠ ':'')+shortCh(b.channel)+'</div>';});
+    html+='</div></div>';});
+  html+='</div>';document.getElementById('calbox').innerHTML=html;
+}
+function renderDBook(){
+  const rows=BK.slice().sort((a,b)=>a.checkin<b.checkin?-1:1);
+  document.getElementById('d-book').innerHTML='<tr><th>เช็คอิน</th><th>คืน</th><th>แขก</th><th>ห้อง</th><th>ช่องทาง</th><th>ยอด</th><th></th></tr>'+
+    (rows.length?rows.map(b=>'<tr><td>'+EB.thDate(b.checkin)+'</td><td>'+EB.nights(b.checkin,b.checkout)+'</td><td><b>'+esc(b.guest_name)+'</b></td><td>'+(RT.find(t=>t.id===b.room_type_id)||{}).name+'</td><td>'+(EB.CHANNELS[b.channel]||b.channel)+'</td><td>'+EB.money(b.amount)+'</td><td><button class="btn ghost sm" onclick="editBk(\''+b.id+'\')">แก้</button></td></tr>').join(''):'<tr><td colspan="7" class="empty">ยังไม่มีการจอง</td></tr>');
+}
+
+// ----- booking modal (admin edits current hotel) -----
+function fillChannelSelect(){
+  document.getElementById('bk-rt').innerHTML=RT.map(t=>'<option value="'+t.id+'">'+esc(t.name)+' — '+EB.money(t.base_price)+'</option>').join('');
+  document.getElementById('bk-ch').innerHTML=Object.entries(EB.CHANNELS).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('');
+}
+function openModal(){document.getElementById('bkModal').classList.add('on');}
+function closeBk(){document.getElementById('bkModal').classList.remove('on');}
+function newBk(rtId,date){
+  if(!RT.length){EB.toast('โรงแรมนี้ยังไม่มีห้อง','err');return;}
+  editId=null;document.getElementById('bk-title').textContent='ผู้ดูแลเพิ่มการจอง';
+  document.getElementById('bk-guest').value='';document.getElementById('bk-tel').value='';document.getElementById('bk-email').value='';
+  document.getElementById('bk-rt').value=rtId||RT[0].id;document.getElementById('bk-ch').value='direct';document.getElementById('bk-notify').value='email';
+  const din=date||EB.ymd(new Date());document.getElementById('bk-in').value=din;document.getElementById('bk-out').value=EB.ymd(EB.addDays(din,1));
+  document.getElementById('bk-pax').value=2;document.getElementById('bk-extra').value=0;document.getElementById('bk-amt').value='';document.getElementById('bk-note').value='';
+  document.getElementById('bk-del').style.display='none';document.getElementById('bk-warn').style.display='none';openModal();
+}
+function editBk(id){const b=BK.find(x=>x.id===id);if(!b)return;editId=id;
+  document.getElementById('bk-title').textContent='ผู้ดูแลแก้การจอง';
+  document.getElementById('bk-guest').value=b.guest_name||'';document.getElementById('bk-tel').value=b.guest_tel||'';document.getElementById('bk-email').value=b.guest_email||'';
+  document.getElementById('bk-rt').value=b.room_type_id||(RT[0]&&RT[0].id);document.getElementById('bk-ch').value=b.channel||'direct';document.getElementById('bk-notify').value=b.notify_channel||'email';
+  document.getElementById('bk-in').value=b.checkin;document.getElementById('bk-out').value=b.checkout;
+  document.getElementById('bk-pax').value=b.pax||2;document.getElementById('bk-extra').value=b.extra_bed||0;document.getElementById('bk-amt').value=b.amount||'';document.getElementById('bk-note').value=b.note||'';
+  document.getElementById('bk-del').style.display='inline-block';document.getElementById('bk-warn').style.display=b._over?'block':'none';openModal();
+}
+async function saveBk(){
+  const rtId=document.getElementById('bk-rt').value;const t=RT.find(x=>x.id===rtId);
+  const din=document.getElementById('bk-in').value,dout=document.getElementById('bk-out').value;
+  if(!din||!dout||dout<=din){EB.toast('วันที่ไม่ถูกต้อง','err');return;}
+  const nts=EB.nights(din,dout);const eb=+document.getElementById('bk-extra').value||0;
+  let amt=document.getElementById('bk-amt').value;amt=amt!==''?+amt:(t?(Number(t.base_price)+eb*Number(t.extra_bed_price||0))*nts:0);
+  const row={hotel_id:cur.id,room_type_id:rtId,extra_bed:eb,guest_name:document.getElementById('bk-guest').value.trim()||'(ไม่ระบุชื่อ)',
+    guest_tel:document.getElementById('bk-tel').value.trim(),guest_email:document.getElementById('bk-email').value.trim()||null,
+    channel:document.getElementById('bk-ch').value,checkin:din,checkout:dout,pax:+document.getElementById('bk-pax').value||1,amount:amt,status:'confirmed',note:document.getElementById('bk-note').value.trim(),notify_channel:document.getElementById('bk-notify').value};
+  if(DEMO){if(editId){Object.assign(ALL_BK.find(b=>b.id===editId)||{},row);}else{row.id='d'+Date.now();ALL_BK.push(row);}closeBk();EB.toast('บันทึกแล้ว (เดโม)','ok');renderPortfolio();refreshDetail();return;}
+  let error;if(editId){({error}=await EB.sb.from('bookings').update(row).eq('id',editId));}else{({error}=await EB.sb.from('bookings').insert(row));}
+  if(error){EB.toast('บันทึกไม่สำเร็จ: '+error.message,'err');return;}
+  closeBk();EB.toast('บันทึกแล้ว','ok');
+  // refresh caches
+  const since=EB.ymd(EB.addDays(new Date(),-60));const {data:bk}=await EB.sb.from('bookings').select('*').gte('checkout',since);ALL_BK=bk||[];
+  refreshDetail();
+}
+async function delBk(){if(!editId)return;if(!confirm('ลบการจองนี้?'))return;
+  if(DEMO){const i=ALL_BK.findIndex(b=>b.id===editId);if(i>=0)ALL_BK.splice(i,1);closeBk();EB.toast('ลบแล้ว (เดโม)','ok');renderPortfolio();refreshDetail();return;}
+  const {error}=await EB.sb.from('bookings').delete().eq('id',editId);
+  if(error){EB.toast('ลบไม่สำเร็จ: '+error.message,'err');return;}
+  closeBk();EB.toast('ลบแล้ว','ok');
+  const since=EB.ymd(EB.addDays(new Date(),-60));const {data:bk}=await EB.sb.from('bookings').select('*').gte('checkout',since);ALL_BK=bk||[];
+  refreshDetail();
+}
+function startDemo(){
+  DEMO=true;
+  document.getElementById('uinfo').innerHTML='โหมดเดโม · <a href="app.html" style="color:var(--brand);font-weight:600">มุมมองโรงแรม →</a>';
+  HOTELS=[
+    {id:'h1',slug:'yhabitat',name:'เดอะ วาย ฮาบิแทท (เดโม)',location:'กาญจนบุรี',status:'active',plan_fee:800,ota:[1,1,1]},
+    {id:'h2',slug:'rimtharn',name:'ริมธารรีสอร์ท (เดโม)',location:'กาญจนบุรี',status:'active',plan_fee:800,ota:[1,2,0]},
+    {id:'h3',slug:'phuview',name:'ภูวิว เกสต์เฮาส์ (เดโม)',location:'เชียงใหม่',status:'onboarding',plan_fee:800,ota:[0,0,0]}
+  ];
+  ALL_RT=[
+    {id:'h1t1',hotel_id:'h1',name:'Standard',capacity:2,qty:4,base_price:900,sort:1},
+    {id:'h1t2',hotel_id:'h1',name:'Deluxe',capacity:2,qty:3,base_price:1200,sort:2},
+    {id:'h2t1',hotel_id:'h2',name:'Standard',capacity:2,qty:6,base_price:1000,sort:1},
+    {id:'h2t2',hotel_id:'h2',name:'Deluxe',capacity:2,qty:1,base_price:1500,sort:2},
+    {id:'h3t1',hotel_id:'h3',name:'Standard',capacity:2,qty:5,base_price:700,sort:1}
+  ];
+  const base=new Date();const d=n=>EB.ymd(EB.addDays(base,n));
+  ALL_BK=[
+    {id:'a1',hotel_id:'h1',room_type_id:'h1t1',guest_name:'สมหญิง ใจดี',channel:'direct',checkin:d(0),checkout:d(2),pax:2,amount:1800,status:'confirmed'},
+    {id:'a2',hotel_id:'h1',room_type_id:'h1t2',guest_name:'Somchai J.',channel:'agoda',checkin:d(1),checkout:d(4),pax:2,amount:3600,status:'confirmed'},
+    {id:'a3',hotel_id:'h2',room_type_id:'h2t2',guest_name:'คุณวิชัย (Agoda)',channel:'agoda',checkin:d(0),checkout:d(2),pax:2,amount:3000,status:'confirmed'},
+    {id:'a4',hotel_id:'h2',room_type_id:'h2t2',guest_name:'John P. (Booking)',channel:'booking',checkin:d(0),checkout:d(2),pax:2,amount:3000,status:'confirmed'},
+    {id:'a5',hotel_id:'h3',room_type_id:'h3t1',guest_name:'มานี',channel:'direct',checkin:d(1),checkout:d(3),pax:2,amount:1400,status:'confirmed'}
+  ];
+  renderPortfolio();renderAlerts();renderBilling();renderOta();
+  EB.toast('โหมดเดโม — คลิกโรงแรมเพื่อดู/แก้ปฏิทิน (h2 มีจองซ้อนให้ดูตัวอย่าง)');
+}
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เข้าสู่ระบบ · Barn Pak</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  body{display:flex;align-items:center;justify-content:center;min-height:100vh;
+    background:linear-gradient(135deg,#4f7d6e,#6b9080)}
+  .box{background:#fff;border-radius:18px;padding:34px 30px;width:100%;max-width:390px;
+    box-shadow:0 24px 70px rgba(0,0,0,.28);margin:18px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;margin-bottom:4px}
+  .brand .dot{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;display:flex;align-items:center;justify-content:center}
+  .box p.tag{color:var(--muted);font-size:13px;margin:0 0 20px}
+  .box .field{margin-bottom:14px}
+  .err{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:9px;padding:10px 12px;font-size:13px;margin-bottom:12px;display:none}
+</style>
+</head>
+<body>
+  <div class="box">
+    <div class="brand"><span class="dot">B</span>Barn Pak</div>
+    <p class="tag">บ้านพัก · ระบบจัดการการจองสำหรับที่พักชุมชน</p>
+    <div class="err" id="err"></div>
+    <div class="field"><label>อีเมล</label><input id="email" type="email" placeholder="you@example.com" autocomplete="username"></div>
+    <div class="field"><label>รหัสผ่าน</label><input id="pw" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn block lg" id="go" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <p class="note" style="text-align:center;margin-top:14px">ยังไม่มีบัญชี? ติดต่อผู้ดูแลแพลตฟอร์มเพื่อเปิดใช้งานโรงแรมของคุณ</p>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="lib.js"></script>
+<script>
+async function route() {
+  const p = await EB.currentProfile();
+  if (!p) return;
+  location.href = (p.role === "admin") ? "admin.html" : "app.html";
+}
+async function doLogin() {
+  const email = document.getElementById("email").value.trim();
+  const pw = document.getElementById("pw").value;
+  const err = document.getElementById("err");
+  err.style.display = "none";
+  if (!email || !pw) { err.textContent = "กรุณากรอกอีเมลและรหัสผ่าน"; err.style.display = "block"; return; }
+  const btn = document.getElementById("go"); btn.disabled = true; btn.textContent = "กำลังเข้าสู่ระบบ…";
+  const { error } = await EB.sb.auth.signInWithPassword({ email, password: pw });
+  btn.disabled = false; btn.textContent = "เข้าสู่ระบบ";
+  if (error) { err.textContent = "เข้าสู่ระบบไม่สำเร็จ: " + error.message; err.style.display = "block"; return; }
+  route();
+}
+document.getElementById("pw").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+// if already signed in, skip straight in
+EB.sb.auth.getSession().then(({ data }) => { if (data.session) route(); });
+</script>
+</body>
+</html>
