@@ -21,6 +21,7 @@ r.post("/login", async (req, res) => {
   const code = genCode();
   u.otpHash = bcrypt.hashSync(code, 10);
   u.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+  u.otpTries = 0;
   await u.save();
   try { await sendOtp(u.email, code); }
   catch (e) { return res.status(500).json({ error: "ส่ง OTP ไม่สำเร็จ: " + (e.message || e) }); }
@@ -33,9 +34,16 @@ r.post("/verify-otp", async (req, res) => {
   const u = await User.findOne({ email: (email || "").toLowerCase() }).select("+otpHash");
   if (!u || !u.otpHash || !u.otpExpires || u.otpExpires < new Date())
     return res.status(401).json({ error: "รหัสหมดอายุ กรุณาขอรหัสใหม่" });
-  if (!bcrypt.compareSync(otp || "", u.otpHash))
-    return res.status(401).json({ error: "รหัส OTP ไม่ถูกต้อง" });
-  u.otpHash = undefined; u.otpExpires = undefined; await u.save();
+  // กัน brute-force: เกิน 5 ครั้งให้ยกเลิกรหัสนี้ ต้องล็อกอินใหม่
+  if ((u.otpTries || 0) >= 5) {
+    u.otpHash = undefined; u.otpExpires = undefined; u.otpTries = 0; await u.save();
+    return res.status(429).json({ error: "กรอกรหัสผิดหลายครั้ง กรุณาเข้าสู่ระบบใหม่เพื่อขอรหัสอีกครั้ง" });
+  }
+  if (!bcrypt.compareSync(otp || "", u.otpHash)) {
+    u.otpTries = (u.otpTries || 0) + 1; await u.save();
+    return res.status(401).json({ error: "รหัส OTP ไม่ถูกต้อง (เหลืออีก " + Math.max(0, 5 - u.otpTries) + " ครั้ง)" });
+  }
+  u.otpHash = undefined; u.otpExpires = undefined; u.otpTries = 0; await u.save();
   res.json({ token: sign(u), user: userOut(u) });
 });
 

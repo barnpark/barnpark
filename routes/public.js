@@ -13,9 +13,30 @@ r.get("/hotel/:slug", async (req, res) => {
   if (!h) return res.status(404).json({ error: "not found" });
   res.json({
     id: h._id, slug: h.slug, name: h.name, location: h.location, phone: h.phone, lineId: h.lineId,
-    brandColor: h.brandColor, tagline: h.tagline, coverUrl: h.coverUrl, about: h.about,
+    brandColor: h.brandColor, brandColor2: h.brandColor2, accentColor: h.accentColor, accentColor2: h.accentColor2,
+    fontFamily: h.fontFamily, uiStyle: h.uiStyle,
+    tagline: h.tagline, coverUrl: h.coverUrl, about: h.about,
     promoText: h.promoText, promoImage: h.promoImage,
+    promptpayId: h.promptpayId || "", promptpayName: h.promptpayName || h.name,
+    allowGuestCancel: h.allowGuestCancel !== false, cancelDays: h.cancelDays ?? 3,
   });
+});
+
+// แขกยกเลิกการจองเอง (ตรวจด้วยเลขจอง + เบอร์โทร) — ตามนโยบายของโรงแรม
+r.post("/cancel", async (req, res) => {
+  const { slug, ref, tel } = req.body || {};
+  const h = await Hotel.findOne({ slug });
+  if (!h) return res.status(404).json({ error: "ไม่พบที่พัก" });
+  if (h.allowGuestCancel === false) return res.status(403).json({ error: "ที่พักนี้ไม่เปิดให้ยกเลิกออนไลน์ กรุณาติดต่อที่พักโดยตรง" });
+  if (!ref || !tel) return res.status(400).json({ error: "กรุณากรอกเลขการจองและเบอร์โทร" });
+  // ค้นทุกห้องภายใต้เลขจองเดียวกัน (BP-XXXX และ BP-XXXX-1 ...)
+  const bookings = await Booking.find({ hotel: h._id, guestTel: String(tel).trim(), ref: new RegExp("^" + String(ref).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) });
+  if (!bookings.length) return res.status(404).json({ error: "ไม่พบการจองที่ตรงกับข้อมูล" });
+  const days = h.cancelDays ?? 3;
+  const deadline = new Date(bookings[0].checkin); deadline.setDate(deadline.getDate() - days);
+  const late = new Date() > deadline;
+  for (const b of bookings) { b.status = "cancelled"; await b.save(); }
+  res.json({ ok: true, cancelled: bookings.length, freeCancel: !late, cancelDays: days });
 });
 
 // บริการเสริม (สาธารณะ)
@@ -47,7 +68,7 @@ r.get("/availability", async (req, res) => {
 
 // จองตรงจากหน้าแขก — ตรวจห้องว่างฝั่งเซิร์ฟเวอร์ + สร้างหลายห้องได้ + ยิงแจ้งเตือน
 r.post("/book", async (req, res) => {
-  const { slug, roomTypeId, din, dout, name, tel, email, pax, note, notify, rooms = 1, extraBed = 0 } = req.body || {};
+  const { slug, roomTypeId, din, dout, name, tel, email, pax, note, notify, rooms = 1, extraBed = 0, payRef = "", paid = false } = req.body || {};
   const h = await Hotel.findOne({ slug });
   if (!h) return res.status(404).json({ error: "hotel not found" });
   if (!name || !tel) return res.status(400).json({ error: "กรุณากรอกชื่อและเบอร์โทร" });
@@ -56,10 +77,9 @@ r.post("/book", async (req, res) => {
   if (!t) return res.status(404).json({ error: "room not found" });
 
   const want = Math.max(1, +rooms);
-  const booked = await Booking.countDocuments({
-    roomType: t._id, status: { $ne: "cancelled" }, checkin: { $lt: dout }, checkout: { $gt: din },
-  });
-  if (booked + want > t.qty) return res.status(409).json({ error: "no availability" });
+  const overlapQ = { roomType: t._id, status: { $ne: "cancelled" }, checkin: { $lt: dout }, checkout: { $gt: din } };
+  const booked = await Booking.countDocuments(overlapQ);
+  if (booked + want > t.qty) return res.status(409).json({ error: "ห้องช่วงวันดังกล่าวไม่ว่างพอ" });
 
   const nights = Math.max(1, Math.round((new Date(dout) - new Date(din)) / 86400000));
   const per = (t.basePrice + (+extraBed) * (t.extraBedPrice || 0)) * nights;
@@ -70,7 +90,14 @@ r.post("/book", async (req, res) => {
       hotel: h._id, roomType: t._id, guestName: name, guestTel: tel, guestEmail: email || "",
       channel: "direct", checkin: din, checkout: dout, pax: +pax || 1, amount: per, extraBed: +extraBed,
       status: "confirmed", notifyChannel: notify || "email", ref: ref + (i ? "-" + i : ""), note: note || "",
+      payStatus: paid ? "reported" : "unpaid", payMethod: paid ? "promptpay" : "", payRef: payRef || "",
     }));
+  }
+  // ★ กันจองซ้อน (race condition): ตรวจซ้ำหลังบันทึก — ถ้าเกินโควตาให้ถอนคืนแล้วแจ้งเต็ม
+  const confirmedCount = await Booking.countDocuments(overlapQ);
+  if (confirmedCount > t.qty) {
+    await Booking.deleteMany({ _id: { $in: created.map((c) => c._id) } });
+    return res.status(409).json({ error: "ขออภัย ห้องเพิ่งถูกจองพอดี กรุณาเลือกวันหรือห้องใหม่" });
   }
   notifyBooking(created[0]._id).catch((e) => console.error("notify", e));
   res.json({ ok: true, ref, amount: per * want, rooms: want });

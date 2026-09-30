@@ -24,6 +24,37 @@ window.API = (function () {
   function thDate(d) { const x = new Date(d); return x.getDate() + " " + THM[x.getMonth()]; }
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
   function money(n) { return "฿" + Number(n || 0).toLocaleString("en-US"); }
+  // ===== ธีมต่อโรงแรม (สี 4 + ฟอนต์ + สไตล์ UI) =====
+  const THEME_FONTS = {
+    "Sarabun": "Sarabun", "Prompt": "Prompt", "Kanit": "Kanit", "Mitr": "Mitr",
+    "Bai Jamjuree": "Bai+Jamjuree", "IBM Plex Sans Thai": "IBM+Plex+Sans+Thai",
+    "Noto Sans Thai": "Noto+Sans+Thai", "Mali": "Mali", "Chakra Petch": "Chakra+Petch",
+    "Charmonman": "Charmonman", "Sriracha": "Sriracha", "Taviraj": "Taviraj",
+  };
+  const UI_STYLES = {
+    pill:    { label: "โค้งมน (พิลล์)", btn: "999px", card: "18px", input: "10px" },
+    soft:    { label: "นุ่ม",           btn: "14px",  card: "16px", input: "12px" },
+    minimal: { label: "มินิมอล",        btn: "8px",   card: "10px", input: "8px"  },
+    sharp:   { label: "เหลี่ยมคม",      btn: "3px",   card: "5px",  input: "5px"  },
+  };
+  function loadFont(name) {
+    const g = THEME_FONTS[name]; if (!g) return;
+    const id = "gf-" + g; if (document.getElementById(id)) return;
+    const l = document.createElement("link"); l.id = id; l.rel = "stylesheet";
+    l.href = "https://fonts.googleapis.com/css2?family=" + g + ":wght@400;500;600;700;800&display=swap";
+    document.head.appendChild(l);
+  }
+  function applyTheme(h) {
+    if (!h) return;
+    const S = (k, v) => { if (v) document.documentElement.style.setProperty(k, v); };
+    S("--brand", h.brandColor);
+    S("--brand2", h.brandColor2 || h.brandColor);
+    S("--accent", h.accentColor || h.brandColor2 || h.brandColor);
+    S("--accent2", h.accentColor2 || h.accentColor);
+    const st = UI_STYLES[h.uiStyle] || UI_STYLES.pill;
+    S("--btn-radius", st.btn); S("--card-radius", st.card); S("--input-radius", st.input);
+    if (h.fontFamily) { loadFont(h.fontFamily); S("--font", '"' + h.fontFamily + '","Sarabun",sans-serif'); }
+  }
   function applyBrand(c) { if (c) document.documentElement.style.setProperty("--brand", c); }
   const CHAN = { direct:"จองตรง", walkin:"Walk-in", phone:"โทรศัพท์", line:"LINE", agoda:"Agoda", booking:"Booking.com", trip:"Trip.com", other:"อื่น ๆ" };
   function chColor(c){ return ({direct:"c0",agoda:"c1",booking:"c2",trip:"c3"})[c] || "c4"; }
@@ -55,6 +86,24 @@ window.API = (function () {
     pubServices: (slug) => pub("/services/" + encodeURIComponent(slug)),
     pubAvailability: (slug, din, dout) => pub("/availability?slug=" + encodeURIComponent(slug) + "&din=" + din + "&dout=" + dout),
     pubBook: async (b) => { const r = await fetch("/api/public/book", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; },
-    money, ymd, addDays, nights, thDate, esc, applyBrand, CHAN, chColor, shortCh, toast, signOut: () => { clear(); location.href = "login.html"; },
+    pubCancel: async (b) => { const r = await fetch("/api/public/cancel", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; },
+    money, ymd, addDays, nights, thDate, esc, applyBrand, applyTheme, loadFont, THEME_FONTS, UI_STYLES, CHAN, chColor, shortCh, toast, signOut: () => { clear(); location.href = "login.html"; },
+    mountSupport,
   };
+
+  // ===== ปุ่มติดต่อซัพพอร์ตของ BARN-PARK (LINE OA ของแพลตฟอร์ม) =====
+  // 🔧 แก้ลิงก์นี้เป็น LINE OA ของ BARN-PARK: https://line.me/R/ti/p/@<basic id>  หรือ  https://lin.ee/xxxxxxx
+  const SUPPORT_LINE_URL = "https://line.me/R/ti/p/@barnpark";
+  function mountSupport(url) {
+    if (document.getElementById("bp-support")) return;
+    const a = document.createElement("a");
+    a.id = "bp-support";
+    a.href = url || SUPPORT_LINE_URL;
+    a.target = "_blank"; a.rel = "noopener";
+    a.title = "ติดต่อทีมงาน BARN-PARK ทาง LINE";
+    a.innerHTML = '<span style="font-size:20px">💬</span><span>ช่วยเหลือ</span>';
+    a.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:9999;display:flex;align-items:center;gap:8px;background:#06C755;color:#fff;font-family:inherit;font-weight:700;font-size:14px;text-decoration:none;padding:11px 16px;border-radius:999px;box-shadow:0 8px 24px rgba(6,199,85,.4)";
+    document.addEventListener("DOMContentLoaded", () => document.body.appendChild(a));
+    if (document.body) document.body.appendChild(a);
+  }
 })();

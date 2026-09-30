@@ -37,6 +37,29 @@
     <p class="note" id="o-result"></p></div>
   </section>
   <section id="a-detail" class="view"><button class="back" onclick="go('a-port')">‹ กลับหน้ารวม</button><h1 id="d-name">เลือกโรงแรมจากหน้ารวม</h1><p class="sub" id="d-meta"></p><div id="d-alert"></div>
+    <div class="panel" id="d-editwrap" style="display:none"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><h3 style="margin:0">ข้อมูลโรงแรม / ภาพรวมหน้าจอง</h3><a id="d-booklink" class="btn ghost sm" target="_blank" style="margin-left:auto">เปิดหน้าจอง ↗</a></div>
+      <div class="formgrid">
+        <div><label>ชื่อโรงแรม</label><input id="e-name"></div>
+        <div><label>ทำเล</label><input id="e-loc"></div>
+        <div><label>เบอร์โทร</label><input id="e-phone"></div>
+        <div><label>สถานะ</label><select id="e-status"><option value="active">ใช้งาน</option><option value="onboarding">กำลังตั้งค่า</option><option value="paused">พัก</option></select></div>
+        <div><label>ค่าบริการ/เดือน (บาท)</label><input id="e-fee" type="number"></div>
+        <div><label>PromptPay (เบอร์/เลขบัตร)</label><input id="e-pp" placeholder="0812345678"></div>
+        <div><label>สีหลัก 1</label><input id="e-color" type="color" style="height:42px;padding:4px" oninput="prevAdmin()"></div>
+        <div><label>สีหลัก 2</label><input id="e-color2" type="color" style="height:42px;padding:4px" oninput="prevAdmin()"></div>
+        <div><label>สีรอง 1</label><input id="e-a1" type="color" style="height:42px;padding:4px" oninput="prevAdmin()"></div>
+        <div><label>สีรอง 2</label><input id="e-a2" type="color" style="height:42px;padding:4px" oninput="prevAdmin()"></div>
+        <div><label>ฟอนต์</label><select id="e-font" onchange="prevAdmin()"></select></div>
+        <div><label>สไตล์มุม/ปุ่ม</label><select id="e-ui" onchange="prevAdmin()"></select></div>
+        <div><label>ให้แขกยกเลิกออนไลน์</label><select id="e-cancel-allow"><option value="yes">อนุญาต</option><option value="no">ไม่อนุญาต</option></select></div>
+        <div><label>ยกเลิกฟรีก่อนเช็คอิน (วัน)</label><input id="e-cancel-days" type="number" min="0"></div>
+        <div style="grid-column:1/-1"><label>คำโปรย (tagline)</label><input id="e-tagline" placeholder="เช่น ที่พักริมน้ำ บรรยากาศบ้านสวน"></div>
+        <div style="grid-column:1/-1"><label>ลิงก์ภาพหน้าปก (cover URL)</label><input id="e-cover" placeholder="https://..."></div>
+        <div style="grid-column:1/-1"><label>เกี่ยวกับที่พัก (about)</label><textarea id="e-about" rows="3" placeholder="แนะนำที่พักสั้น ๆ"></textarea></div>
+        <div style="grid-column:1/-1"><label>ข้อความโปรโมชัน</label><input id="e-promo" placeholder="เช่น จองตรง ลด 10%"></div>
+        <div style="grid-column:1/-1"><label>ลิงก์ภาพโปรโมชัน</label><input id="e-promoimg" placeholder="https://..."></div>
+      </div>
+      <button class="btn" style="margin-top:12px" onclick="saveHotel()">✔ บันทึกข้อมูลโรงแรม</button></div>
     <div class="panel"><h3>การเชื่อม OTA</h3><div id="d-ota"></div></div>
     <div class="panel"><div style="display:flex;gap:8px;margin-bottom:12px"><h3 style="margin:0">ปฏิทิน</h3><button class="btn ghost sm" onclick="moveWeek(-7)">‹</button><button class="btn ghost sm" onclick="jumpToday()">วันนี้</button><button class="btn ghost sm" onclick="moveWeek(7)">›</button><button class="btn sm" style="margin-left:auto" onclick="newBk('',null)">+ เพิ่มการจอง</button></div>
       <div class="calwrap"><div id="calbox"></div></div>
@@ -77,7 +100,7 @@ async function boot(){
   const me=await API.guard('admin'); if(!me)return;
   document.getElementById('uinfo').textContent=me.email;
   HOTELS=await API.get('/hotels');
-  renderPortfolio(); renderOta(); renderBilling();
+  renderPortfolio(); renderOta(); renderBilling(); API.mountSupport();
 }
 function renderPortfolio(){
   document.getElementById('a-metrics').innerHTML=m("🏨 โรงแรม",HOTELS.length)+m("💰 MRR",money(HOTELS.reduce((s,h)=>s+(h.planFee||800),0)))+m("📅 /ปี",money(HOTELS.reduce((s,h)=>s+(h.planFee||800),0)*12));
@@ -103,6 +126,47 @@ async function onboard(){
     HOTELS=await API.get('/hotels'); renderPortfolio(); renderOta(); renderBilling(); API.toast('เพิ่มโรงแรมแล้ว','ok');
   }catch(e){API.toast(e.message,'err');}
 }
+// ---- edit hotel profile ----
+function fillEdit(){
+  document.getElementById('d-editwrap').style.display='block';
+  const V=(id,v)=>document.getElementById(id).value=(v==null?'':v);
+  V('e-name',cur.name); V('e-loc',cur.location); V('e-phone',cur.phone);
+  document.getElementById('e-status').value=cur.status||'active';
+  V('e-fee',cur.planFee||800);
+  document.getElementById('e-color').value=cur.brandColor||'#0d9488';
+  document.getElementById('e-color2').value=cur.brandColor2||'#2563eb';
+  document.getElementById('e-a1').value=cur.accentColor||'#f59e0b';
+  document.getElementById('e-a2').value=cur.accentColor2||'#ec4899';
+  document.getElementById('e-font').innerHTML=Object.keys(API.THEME_FONTS).map(f=>'<option value="'+f+'"'+((cur.fontFamily||'Sarabun')===f?' selected':'')+'>'+f+'</option>').join('');
+  document.getElementById('e-ui').innerHTML=Object.entries(API.UI_STYLES).map(([k,v])=>'<option value="'+k+'"'+((cur.uiStyle||'pill')===k?' selected':'')+'>'+v.label+'</option>').join('');
+  document.getElementById('e-cancel-allow').value=(cur.allowGuestCancel===false)?'no':'yes';
+  V('e-cancel-days',cur.cancelDays??3);
+  V('e-pp',cur.promptpayId);
+  V('e-tagline',cur.tagline); V('e-cover',cur.coverUrl); V('e-about',cur.about); V('e-promo',cur.promoText); V('e-promoimg',cur.promoImage);
+  const link=document.getElementById('d-booklink'); link.href='book.html?h='+encodeURIComponent(cur.slug);
+}
+function prevAdmin(){ API.applyTheme({brandColor:document.getElementById('e-color').value,brandColor2:document.getElementById('e-color2').value,accentColor:document.getElementById('e-a1').value,accentColor2:document.getElementById('e-a2').value,fontFamily:document.getElementById('e-font').value,uiStyle:document.getElementById('e-ui').value}); }
+async function saveHotel(){
+  const body={
+    name:val('e-name'), location:val('e-loc'), phone:val('e-phone'),
+    status:document.getElementById('e-status').value, planFee:+val('e-fee')||800,
+    brandColor:document.getElementById('e-color').value, brandColor2:document.getElementById('e-color2').value,
+    accentColor:document.getElementById('e-a1').value, accentColor2:document.getElementById('e-a2').value,
+    fontFamily:document.getElementById('e-font').value, uiStyle:document.getElementById('e-ui').value,
+    allowGuestCancel:document.getElementById('e-cancel-allow').value==='yes', cancelDays:+val('e-cancel-days')||0,
+    tagline:val('e-tagline'),
+    coverUrl:val('e-cover'), about:val('e-about'), promoText:val('e-promo'), promoImage:val('e-promoimg'), promptpayId:val('e-pp'),
+  };
+  if(!body.name){API.toast('ต้องมีชื่อโรงแรม','err');return;}
+  try{
+    const updated=await API.patch('/hotels/'+cur._id,body);
+    cur=updated; const i=HOTELS.findIndex(h=>String(h._id)===String(cur._id)); if(i>=0)HOTELS[i]=updated;
+    document.getElementById('d-name').textContent=cur.name;
+    document.getElementById('d-meta').textContent='📍 '+(cur.location||'')+' · '+RT.reduce((s,t)=>s+(t.qty||0),0)+' ห้อง';
+    renderPortfolio(); renderOta(); renderBilling();
+    API.toast('บันทึกข้อมูลโรงแรมแล้ว','ok');
+  }catch(e){API.toast(e.message,'err');}
+}
 // ---- detail ----
 async function openHotel(id){
   cur=HOTELS.find(h=>String(h._id)===String(id));
@@ -111,6 +175,7 @@ async function openHotel(id){
   BK=await API.get('/hotels/'+id+'/bookings?since='+since);
   document.getElementById('d-name').textContent=cur.name;
   document.getElementById('d-meta').textContent='📍 '+(cur.location||'')+' · '+RT.reduce((s,t)=>s+(t.qty||0),0)+' ห้อง';
+  fillEdit();
   const o=otaArr(cur);
   document.getElementById('d-ota').innerHTML=OTA_CN.map((c,k)=>'<div class="chan"><div class="cn">'+c+'</div><div>'+otaPill(o[k])+'</div><button class="btn ghost sm" onclick="API.toast(\'ตั้งค่าเมื่อเสียบ Channex\')">จัดการ</button></div>').join('')+'<p class="note">ผู้ดูแลตั้งค่าให้ผ่าน Channex · บัญชีและเงินเป็นของโรงแรม</p>';
   winStart=new Date(); fillChannelSelect(); renderCal(); renderDBook();

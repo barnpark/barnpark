@@ -13,7 +13,9 @@ const schema = new mongoose.Schema({
   amount:        { type: Number, default: 0 },
   extraBed:      { type: Number, default: 0 },
   status:        { type: String, default: "confirmed" }, // confirmed|pending|cancelled
-  payStatus:     { type: String, default: "" },          // unpaid|deposit|paid
+  payStatus:     { type: String, default: "" },          // ""|unpaid|reported(แขกแจ้งโอน รอตรวจ)|paid|deposit
+  payRef:        String,                                  // เลขอ้างอิง/เวลาโอน ที่แขกกรอกตอนแจ้งชำระ
+  payMethod:     { type: String, default: "" },          // promptpay|cash|transfer|ota
   notifyChannel: { type: String, default: "email" },     // email|sms|line|none
   lineUserId:    String,
   ref:           String,

@@ -9,7 +9,7 @@
   body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0d9488,#2563eb)}
   .box{background:#fff;border-radius:18px;padding:34px 30px;width:100%;max-width:390px;box-shadow:0 24px 70px rgba(0,0,0,.28);margin:18px}
   .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;margin-bottom:4px}
-  .brand .dot{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;display:flex;align-items:center;justify-content:center}
+  .brand .dot{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;display:flex;align-items:center;justify-content:center}
   .err{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:9px;padding:10px 12px;font-size:13px;margin-bottom:12px;display:none}
 </style>
 </head>
@@ -68,6 +68,7 @@ function backToLogin(){ document.getElementById("step2").style.display="none"; d
 document.getElementById("pw").addEventListener("keydown", e => { if(e.key==="Enter") doLogin(); });
 document.getElementById("otp").addEventListener("keydown", e => { if(e.key==="Enter") doVerify(); });
 if(API.token()){ route().catch(()=>{}); }
+API.mountSupport();
 </script>
 </body>
 </html>

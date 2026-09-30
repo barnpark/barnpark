@@ -8,6 +8,7 @@ const schema = new mongoose.Schema({
   name:         String,
   otpHash:      { type: String, select: false }, // รหัส OTP (hash) สำหรับยืนยันตอนล็อกอิน
   otpExpires:   Date,
+  otpTries:     { type: Number, default: 0 },     // นับครั้งที่กรอก OTP ผิด (กัน brute-force)
 }, { timestamps: true });
 
 export default mongoose.model("User", schema);
