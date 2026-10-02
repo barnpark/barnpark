@@ -2,9 +2,22 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import Hotel from "../models/Hotel.js";
 import User from "../models/User.js";
+import RoomType from "../models/RoomType.js";
+import Booking from "../models/Booking.js";
+import Service from "../models/Service.js";
 import { requireAuth, requireAdmin, canAccessHotel } from "../lib/auth.js";
 
 const r = Router();
+
+// สำรองข้อมูลทั้งระบบเป็น JSON (แอดมินเท่านั้น) — กดดาวน์โหลดเก็บไว้เอง
+r.get("/admin/export", requireAuth, requireAdmin, async (_req, res) => {
+  const [hotels, users, rooms, bookings, services] = await Promise.all([
+    Hotel.find().lean(), User.find().select("-passwordHash -otpHash").lean(),
+    RoomType.find().lean(), Booking.find().lean(), Service.find().lean(),
+  ]);
+  res.setHeader("Content-Disposition", 'attachment; filename="barnpark-backup-' + new Date().toISOString().slice(0, 10) + '.json"');
+  res.json({ exportedAt: new Date().toISOString(), hotels, users, rooms, bookings, services });
+});
 
 // เพิ่มโรงแรมใหม่ + สร้างบัญชีเจ้าของ (admin เท่านั้น)
 r.post("/hotels/onboard", requireAuth, requireAdmin, async (req, res) => {

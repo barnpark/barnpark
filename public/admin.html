@@ -66,7 +66,8 @@
       <div class="legend"><span><i class="c0"></i>จองตรง</span><span><i class="c1"></i>Agoda</span><span><i class="c2"></i>Booking</span><span><i class="c3"></i>Trip</span><span><i class="dupc"></i>จองทับซ้อน</span></div></div>
     <div class="panel"><h3>การจองล่าสุด</h3><div style="overflow-x:auto"><table id="d-book"></table></div></div></section>
   <section id="a-ota" class="view"><h1>จัดการการเชื่อม OTA</h1><p class="sub">ผู้ดูแลตั้งค่าให้ผ่าน Channex · บัญชี/เงินเป็นของโรงแรม</p><div class="soon" style="margin-bottom:14px">🔜 การเชื่อมอัตโนมัติผ่าน Channex ยังไม่เปิด — ปุ่มเป็นตัวอย่าง</div><div class="panel"><div style="overflow-x:auto"><table id="a-otatable"></table></div></div></section>
-  <section id="a-bill" class="view"><h1>การเงิน</h1><div class="metrics" id="a-billm"></div><div class="panel"><div style="overflow-x:auto"><table id="a-billtable"></table></div></div></section>
+  <section id="a-bill" class="view"><h1>การเงิน</h1><div class="metrics" id="a-billm"></div><div class="panel"><div style="overflow-x:auto"><table id="a-billtable"></table></div></div>
+    <div class="panel"><h3>สำรองข้อมูล</h3><p class="sub" style="margin-top:0">ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON เก็บไว้ (โรงแรม/ห้อง/การจอง/บริการ) — ควรทำสม่ำเสมอ</p><button class="btn" onclick="downloadBackup()">⬇ ดาวน์โหลดไฟล์สำรอง</button></div></section>
 </div></main>
 <div id="bkModal" class="modal"><div class="modal-card">
   <div class="modal-head"><h3 id="bk-title">การจอง</h3><button class="x" onclick="closeBk()">✕</button></div>
@@ -105,7 +106,9 @@ async function boot(){
 function renderPortfolio(){
   document.getElementById('a-metrics').innerHTML=m("🏨 โรงแรม",HOTELS.length)+m("💰 MRR",money(HOTELS.reduce((s,h)=>s+(h.planFee||800),0)))+m("📅 /ปี",money(HOTELS.reduce((s,h)=>s+(h.planFee||800),0)*12));
   document.getElementById('a-cards').innerHTML=HOTELS.length?HOTELS.map(h=>{const o=otaArr(h);const st=h.status==='active'?'<span class="pill on">ใช้งาน</span>':h.status==='onboarding'?'<span class="pill pend">กำลังตั้งค่า</span>':'<span class="pill off">พัก</span>';
-    return '<div class="hcard" onclick="openHotel(\''+h._id+'\')"><h3>'+esc(h.name)+'</h3><div class="loc">📍 '+esc(h.location||'')+'</div><div class="row"><span class="k">สถานะ</span>'+st+'</div><div class="row"><span class="k">เชื่อม OTA</span><span>'+o.filter(x=>x===1).length+'/3</span></div><div style="margin-top:8px"><button class="btn ghost sm">ดู/แก้ →</button></div></div>';}).join(''):'<p class="empty">ยังไม่มีโรงแรม</p>';
+    const ap=h.approved===false?'<span class="pill err">รออนุมัติ</span>':'<span class="pill on">อนุมัติแล้ว</span>';
+    const apBtn=h.approved===false?'<button class="btn sm" onclick="event.stopPropagation();approveHotel(\''+h._id+'\')">✔ อนุมัติ</button> ':'';
+    return '<div class="hcard" onclick="openHotel(\''+h._id+'\')"><h3>'+esc(h.name)+'</h3><div class="loc">📍 '+esc(h.location||'')+'</div><div class="row"><span class="k">สถานะ</span>'+st+'</div><div class="row"><span class="k">อนุมัติ</span>'+ap+'</div><div class="row"><span class="k">เชื่อม OTA</span><span>'+o.filter(x=>x===1).length+'/3</span></div><div style="margin-top:8px">'+apBtn+'<button class="btn ghost sm">ดู/แก้ →</button></div></div>';}).join(''):'<p class="empty">ยังไม่มีโรงแรม</p>';
 }
 function renderOta(){
   document.getElementById('a-otatable').innerHTML='<tr><th>โรงแรม</th><th>Agoda</th><th>Booking.com</th><th>Trip.com</th><th></th></tr>'+(HOTELS.length?HOTELS.map(h=>{const o=otaArr(h);return '<tr><td><b>'+esc(h.name)+'</b></td>'+o.map(s=>'<td>'+otaPill(s)+'</td>').join('')+'<td><button class="btn ghost sm" onclick="openHotel(\''+h._id+'\')">ดู</button> <button class="btn sm" onclick="API.toast(\'เชื่อมเมื่อเสียบ Channex\')">ซิงก์</button></td></tr>';}).join(''):'<tr><td colspan="5" class="empty">—</td></tr>');
@@ -114,6 +117,8 @@ function renderBilling(){
   document.getElementById('a-billm').innerHTML=m("🏨 โรงแรม",HOTELS.length)+m("💰 /เดือน",money(HOTELS.reduce((s,h)=>s+(h.planFee||800),0)))+m("📅 /ปี",money(HOTELS.reduce((s,h)=>s+(h.planFee||800),0)*12));
   document.getElementById('a-billtable').innerHTML='<tr><th>โรงแรม</th><th>แพ็กเกจ</th><th>ค่าบริการ/เดือน</th><th>สถานะ</th></tr>'+(HOTELS.length?HOTELS.map(h=>'<tr><td><b>'+esc(h.name)+'</b></td><td>มาตรฐาน</td><td>'+money(h.planFee||800)+'</td><td>'+(h.status==='paused'?'<span class="pill off">พัก</span>':'<span class="pill on">ใช้งาน</span>')+'</td></tr>').join(''):'<tr><td colspan="4" class="empty">—</td></tr>');
 }
+async function approveHotel(id){ try{ await API.patch('/hotels/'+id,{approved:true,status:'active'}); API.toast('อนุมัติแล้ว','ok'); HOTELS=await API.get('/hotels'); renderPortfolio(); renderOta(); renderBilling(); }catch(e){API.toast(e.message,'err');} }
+function downloadBackup(){ const t=API.token(); fetch('/api/admin/export',{headers:{authorization:'Bearer '+t}}).then(r=>r.blob()).then(b=>{const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='barnpark-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(u);API.toast('ดาวน์โหลดสำรองข้อมูลแล้ว','ok');}).catch(e=>API.toast('สำรองข้อมูลไม่สำเร็จ','err')); }
 // ---- onboard new hotel ----
 function val(id){return document.getElementById(id).value.trim();}
 async function onboard(){

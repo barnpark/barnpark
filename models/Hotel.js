@@ -24,12 +24,15 @@ const schema = new mongoose.Schema({
   promoText:   String,
   promoImage:  String,
   notifyEmail: String,             // อีเมลรับแจ้งเตือนของโรงแรม
+  notifyLineTo: String,            // LINE userId/groupId ของโรงแรม ที่จะรับแจ้งเตือนเมื่อมีจองใหม่
   promptpayId: String,             // เบอร์พร้อมเพย์ (08x) หรือเลขบัตร ปชช. ของโรงแรม สำหรับสร้าง QR รับเงิน
   promptpayName: String,           // ชื่อบัญชี/ชื่อร้าน แสดงคู่ QR
   status:      { type: String, default: "active" }, // active | onboarding | paused
+  approved:    { type: Boolean, default: true },      // แอดมินอนุมัติเปิดรับจองหรือยัง (สมัครเอง = false)
   planFee:     { type: Number, default: 800 },
   allowGuestCancel: { type: Boolean, default: true }, // ให้แขกยกเลิกเองได้ไหม
   cancelDays:  { type: Number, default: 3 },          // ยกเลิกฟรีก่อนเช็คอินกี่วัน
+  holdHours:   { type: Number, default: 24 },         // ปล่อยห้องที่จองค้างไม่จ่ายอัตโนมัติ (ชม.) · 0 = ปิด
   ota:         { type: [otaSchema], default: [] },
   // ===== ความลับต่อโรงแรม — select:false กันหลุดออก API ปกติ =====
   lineChannelToken:  { type: String, select: false }, // Channel access token ของ LINE OA โรงแรม

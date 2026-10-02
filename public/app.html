@@ -36,6 +36,7 @@
       <div><label>ราคา/คืน</label><input id="nt-price" type="number" value="900"></div>
       <div><label>ราคา OTA</label><input id="nt-ota" type="number" value="1050"></div>
       <div><label>เตียงเสริม/คืน</label><input id="nt-eb" type="number" value="0"></div>
+      <div><label>รูปห้อง</label><label class="btn ghost sm" style="cursor:pointer;margin:0;display:inline-block">เลือกรูป<input type="file" accept="image/*" style="display:none" onchange="pickNewRoomImg(this)"></label> <span id="nt-img-status" class="note" style="margin:0"></span></div>
     </div><button class="btn" style="margin-top:12px" onclick="addRT()">เพิ่มห้อง</button></div></section>
   <section id="v-svc" class="view"><h1>บริการเสริม</h1><p class="sub">นวด สปา อาหารเช้า กิจกรรม ฯลฯ — แสดงบนหน้าจองของแขก</p>
     <div class="panel"><div style="overflow-x:auto"><table id="svctable"></table></div></div>
@@ -73,12 +74,23 @@
         <span style="display:inline-block;background:var(--accent2);color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px">ป้ายสีรอง 2</span>
       </div>
       <button class="btn" style="margin-top:12px" onclick="saveHotel()">บันทึกแบรนด์</button></div>
-    <div class="panel"><h3>เชื่อม LINE OA ของโรงแรม</h3><p class="sub" style="margin-top:0">ใส่ Channel access token จาก LINE Developers Console → Messaging API — ข้อความยืนยันจะส่งจาก OA ของคุณเอง</p>
+    <div class="panel"><h3>เชื่อม LINE OA ของโรงแรม (แจ้งเตือนเมื่อมีจองใหม่)</h3>
+      <p class="sub" style="margin-top:0">รับแจ้งเตือนเข้า LINE ของคุณเองทุกครั้งที่มีลูกค้าจอง — ตั้งค่าตามขั้นตอน</p>
       <div class="formgrid">
         <div><label>LINE OA ID (@...)</label><input id="s-line-id" placeholder="@yourhotel"></div>
-        <div><label>Channel access token</label><input id="s-line-token" type="password" placeholder="วางค่า token"></div>
+        <div><label>Channel access token</label><input id="s-line-token" type="password" placeholder="วางค่า token (จาก Messaging API)"></div>
+        <div><label>Channel secret</label><input id="s-line-secret" type="password" placeholder="วางค่า channel secret"></div>
+        <div><label>LINE ผู้รับแจ้งเตือน (userId/กลุ่ม)</label><input id="s-line-notify" placeholder="Uxxxx… (ดูวิธีได้ด้านล่าง)"></div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;margin-top:12px"><button class="btn" onclick="saveLine()">บันทึกการเชื่อม LINE</button><span id="line-status" class="note" style="margin:0"></span></div></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:12px"><button class="btn" onclick="saveLine()">บันทึกการเชื่อม LINE</button><span id="line-status" class="note" style="margin:0"></span></div>
+      <div class="why" style="margin-top:14px;text-align:left">
+        <b>วิธีเชื่อม (ทำครั้งเดียว):</b><br>
+        1. สร้าง Messaging API channel ที่ developers.line.biz → คัดลอก <b>Channel access token</b> + <b>Channel secret</b> มาวางด้านบน แล้วกดบันทึก<br>
+        2. ในหน้า channel → ช่อง <b>Webhook URL</b> วางลิงก์นี้แล้วเปิด Use webhook:<br>
+        <div style="display:flex;gap:6px;margin:6px 0"><input id="s-line-webhook" readonly style="flex:1;font-size:12px"><button class="btn ghost sm" onclick="copyWebhook()">คัดลอก</button></div>
+        3. เพิ่มเพื่อน OA ของคุณ แล้ว <b>ทักข้อความอะไรก็ได้</b> → บอทจะตอบ <b>userId</b> ของคุณกลับมา<br>
+        4. ก็อป userId นั้นมาวางช่อง "LINE ผู้รับแจ้งเตือน" แล้วกดบันทึกอีกครั้ง — เสร็จ! ต่อไปจะได้รับแจ้งเตือนทุกการจอง
+      </div></div>
     <div class="panel"><h3>รับเงินด้วย PromptPay</h3><p class="sub" style="margin-top:0">ใส่เบอร์พร้อมเพย์ (08x…) หรือเลขบัตรประชาชนของบัญชีรับเงิน — ระบบจะสร้าง QR ให้แขกสแกนจ่ายตอนจองตรง</p>
       <div class="formgrid">
         <div><label>เบอร์/เลขบัตร PromptPay</label><input id="s-pp-id" placeholder="0812345678 หรือ 1234567890123"></div>
@@ -88,7 +100,10 @@
       <div class="formgrid">
         <div><label>ให้แขกยกเลิกออนไลน์</label><select id="s-cancel-allow"><option value="yes">อนุญาต</option><option value="no">ไม่อนุญาต (ติดต่อโรงแรมเท่านั้น)</option></select></div>
         <div><label>ยกเลิกฟรีก่อนเช็คอิน (วัน)</label><input id="s-cancel-days" type="number" value="3" min="0"></div>
-      </div><button class="btn" style="margin-top:12px" onclick="saveHotel()">บันทึกนโยบาย</button></div>
+        <div><label>ปล่อยห้องค้างไม่จ่ายอัตโนมัติ (ชม.)</label><input id="s-hold-hours" type="number" value="24" min="0" placeholder="0 = ปิด"></div>
+      </div>
+      <p class="note" style="margin:6px 0 0">การจองที่เลือก "จ่ายที่โรงแรม/ยังไม่โอน" จะถูกยกเลิกอัตโนมัติถ้าไม่ชำระภายในเวลาที่ตั้ง (ใส่ 0 เพื่อปิด)</p>
+      <button class="btn" style="margin-top:12px" onclick="saveHotel()">บันทึกนโยบาย</button></div>
     <div class="panel"><h3>ข้อมูลโรงแรม</h3><div class="formgrid">
       <div><label>ชื่อโรงแรม</label><input id="s-name"></div><div><label>ทำเล</label><input id="s-loc"></div>
       <div><label>เบอร์โทร</label><input id="s-tel"></div><div><label>อีเมลรับแจ้งเตือน</label><input id="s-notify"></div>
@@ -194,20 +209,42 @@ function renderBook(){
 }
 async function markPaid(id){ try{ await API.patch('/bookings/'+id,{payStatus:'paid'}); const b=BK.find(x=>String(x._id)===String(id)); if(b)b.payStatus='paid'; renderBook(); API.toast('ยืนยันการชำระแล้ว','ok'); }catch(e){API.toast(e.message,'err');} }
 // ---- rooms ----
+function roomThumb(t){
+  const img=t.imageUrl?'<div style="width:72px;height:54px;border-radius:8px;background:url(\''+t.imageUrl+'\') center/cover;border:1px solid var(--line)"></div>':'<div style="width:72px;height:54px;border-radius:8px;background:#f1f5f9;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px">ไม่มีรูป</div>';
+  return '<div style="display:flex;flex-direction:column;gap:4px;align-items:center">'+img+
+    '<label class="btn ghost sm" style="cursor:pointer;margin:0">'+(t.imageUrl?'เปลี่ยนรูป':'เลือกรูป')+'<input type="file" accept="image/*" style="display:none" onchange="uploadRoomImg(\''+t._id+'\',this)"></label>'+
+    (t.imageUrl?'<a href="#" onclick="removeRoomImg(\''+t._id+'\');return false" style="font-size:11px;color:var(--red)">ลบรูป</a>':'')+'</div>';
+}
 function renderRooms(){
-  document.getElementById('roomtable').innerHTML='<tr><th>ชื่อห้อง</th><th>รองรับ</th><th>จำนวน</th><th>ราคา/คืน</th><th>OTA</th><th>เตียงเสริม</th><th></th></tr>'+(RT.length?RT.map(t=>'<tr>'+
+  document.getElementById('roomtable').innerHTML='<tr><th>รูป</th><th>ชื่อห้อง</th><th>รองรับ</th><th>จำนวน</th><th>ราคา/คืน</th><th>OTA</th><th>เตียงเสริม</th><th></th></tr>'+(RT.length?RT.map(t=>'<tr>'+
+    '<td>'+roomThumb(t)+'</td>'+
     '<td><input class="rate" style="max-width:150px" value="'+esc(t.name)+'" id="r-name-'+t._id+'"></td>'+
     '<td><input class="rate" style="max-width:70px" type="number" value="'+(t.capacity||2)+'" id="r-cap-'+t._id+'"></td>'+
     '<td><input class="rate" style="max-width:70px" type="number" value="'+(t.qty||1)+'" id="r-qty-'+t._id+'"></td>'+
     '<td><input class="rate" type="number" value="'+(t.basePrice||0)+'" id="r-price-'+t._id+'"></td>'+
     '<td><input class="rate" type="number" value="'+(t.otaPrice||0)+'" id="r-ota-'+t._id+'"></td>'+
     '<td><input class="rate" style="max-width:90px" type="number" value="'+(t.extraBedPrice||0)+'" id="r-eb-'+t._id+'"></td>'+
-    '<td style="white-space:nowrap"><button class="btn sm" onclick="saveRT(\''+t._id+'\')">บันทึก</button> <button class="btn danger sm" onclick="delRT(\''+t._id+'\')">ลบ</button></td></tr>').join(''):'<tr><td colspan="7" class="empty">ยังไม่มีห้อง</td></tr>');
+    '<td style="white-space:nowrap"><button class="btn sm" onclick="saveRT(\''+t._id+'\')">บันทึก</button> <button class="btn danger sm" onclick="delRT(\''+t._id+'\')">ลบ</button></td></tr>').join(''):'<tr><td colspan="8" class="empty">ยังไม่มีห้อง</td></tr>');
+}
+async function uploadRoomImg(id,input){
+  const f=input.files&&input.files[0]; if(!f)return;
+  try{ API.toast('กำลังอัปโหลดรูป…'); const dataUrl=await API.resizeImage(f,1000,0.82);
+    await API.patch('/rooms/'+id,{imageUrl:dataUrl}); const t=RT.find(x=>String(x._id)===String(id)); if(t)t.imageUrl=dataUrl; renderRooms(); API.toast('อัปโหลดรูปแล้ว','ok');
+  }catch(e){ API.toast(e.message||'อัปโหลดไม่สำเร็จ','err'); }
+}
+async function removeRoomImg(id){
+  try{ await API.patch('/rooms/'+id,{imageUrl:''}); const t=RT.find(x=>String(x._id)===String(id)); if(t)t.imageUrl=''; renderRooms(); API.toast('ลบรูปแล้ว','ok'); }catch(e){API.toast(e.message,'err');}
+}
+let newRoomImg='';
+async function pickNewRoomImg(input){
+  const f=input.files&&input.files[0]; if(!f)return;
+  try{ newRoomImg=await API.resizeImage(f,1000,0.82); document.getElementById('nt-img-status').textContent='✔ เลือกรูปแล้ว'; }
+  catch(e){ newRoomImg=''; document.getElementById('nt-img-status').textContent=e.message||'รูปไม่ถูกต้อง'; }
 }
 async function addRT(){
   const name=document.getElementById('nt-name').value.trim(); if(!name){API.toast('กรอกชื่อห้อง','err');return;}
-  await API.post('/hotels/'+HID+'/rooms',{name,capacity:+document.getElementById('nt-cap').value||2,qty:+document.getElementById('nt-qty').value||1,basePrice:+document.getElementById('nt-price').value||0,otaPrice:+document.getElementById('nt-ota').value||0,extraBedPrice:+document.getElementById('nt-eb').value||0,sort:RT.length+1});
-  document.getElementById('nt-name').value=''; API.toast('เพิ่มห้องแล้ว','ok'); load();
+  await API.post('/hotels/'+HID+'/rooms',{name,capacity:+document.getElementById('nt-cap').value||2,qty:+document.getElementById('nt-qty').value||1,basePrice:+document.getElementById('nt-price').value||0,otaPrice:+document.getElementById('nt-ota').value||0,extraBedPrice:+document.getElementById('nt-eb').value||0,imageUrl:newRoomImg,sort:RT.length+1});
+  document.getElementById('nt-name').value=''; newRoomImg=''; document.getElementById('nt-img-status').textContent=''; API.toast('เพิ่มห้องแล้ว','ok'); load();
 }
 async function saveRT(id){
   await API.patch('/rooms/'+id,{name:document.getElementById('r-name-'+id).value,capacity:+document.getElementById('r-cap-'+id).value,qty:+document.getElementById('r-qty-'+id).value,basePrice:+document.getElementById('r-price-'+id).value,otaPrice:+document.getElementById('r-ota-'+id).value,extraBedPrice:+document.getElementById('r-eb-'+id).value||0});
@@ -299,9 +336,12 @@ async function fillSettings(){
   // นโยบายยกเลิก
   document.getElementById('s-cancel-allow').value=(HOTEL.allowGuestCancel===false)?'no':'yes';
   document.getElementById('s-cancel-days').value=HOTEL.cancelDays??3;
+  document.getElementById('s-hold-hours').value=HOTEL.holdHours??24;
   // PromptPay + LINE + ลิงก์
   const link=location.origin+'/book.html?h='+encodeURIComponent(HOTEL.slug);document.getElementById('booklink').value=link;document.getElementById('bookopen').href=link;
   document.getElementById('s-line-id').value=HOTEL.lineId||'';
+  document.getElementById('s-line-notify').value=HOTEL.notifyLineTo||'';
+  document.getElementById('s-line-webhook').value=location.origin+'/api/line/webhook/'+encodeURIComponent(HOTEL.slug);
   document.getElementById('s-pp-id').value=HOTEL.promptpayId||'';document.getElementById('s-pp-name').value=HOTEL.promptpayName||'';
   try{ const ls=await API.get('/hotels/'+HID+'/line'); document.getElementById('line-status').textContent=ls.connected?'✔ เชื่อม LINE OA แล้ว':'ยังไม่ได้เชื่อม'; }catch{}
 }
@@ -313,17 +353,27 @@ async function saveHotel(){
     tagline:document.getElementById('s-tagline').value.trim(),
     promptpayId:document.getElementById('s-pp-id').value.trim(),promptpayName:document.getElementById('s-pp-name').value.trim(),
     allowGuestCancel:document.getElementById('s-cancel-allow').value==='yes',cancelDays:+document.getElementById('s-cancel-days').value||0,
+    holdHours:+document.getElementById('s-hold-hours').value||0,
+    notifyLineTo:document.getElementById('s-line-notify').value.trim(),
   });
   try{
     const updated=await API.patch('/hotels/'+HID,upd); Object.assign(HOTEL,updated);
     document.getElementById('hotelName').textContent=HOTEL.name; API.applyTheme(HOTEL); API.toast('บันทึกแล้ว','ok');
   }catch(e){API.toast(e.message,'err');}
 }
+function copyWebhook(){const el=document.getElementById('s-line-webhook');el.select();navigator.clipboard.writeText(el.value).then(()=>API.toast('คัดลอก Webhook URL แล้ว','ok'));}
 async function saveLine(){
-  const lineId=document.getElementById('s-line-id').value.trim();const token=document.getElementById('s-line-token').value.trim();
-  const body={lineId}; if(token)body.lineChannelToken=token;
-  await API.patch('/hotels/'+HID+'/line',body); HOTEL.lineId=lineId; document.getElementById('s-line-token').value='';
-  document.getElementById('line-status').textContent='✔ บันทึกการเชื่อม LINE แล้ว'; API.toast('บันทึก LINE OA แล้ว','ok');
+  const lineId=document.getElementById('s-line-id').value.trim();
+  const token=document.getElementById('s-line-token').value.trim();
+  const secret=document.getElementById('s-line-secret').value.trim();
+  const notifyLineTo=document.getElementById('s-line-notify').value.trim();
+  try{
+    const body={lineId}; if(token)body.lineChannelToken=token; if(secret)body.lineChannelSecret=secret;
+    await API.patch('/hotels/'+HID+'/line',body);
+    const updated=await API.patch('/hotels/'+HID,{notifyLineTo}); Object.assign(HOTEL,updated);
+    document.getElementById('s-line-token').value=''; document.getElementById('s-line-secret').value='';
+    document.getElementById('line-status').textContent='✔ บันทึกการเชื่อม LINE แล้ว'; API.toast('บันทึก LINE OA แล้ว','ok');
+  }catch(e){API.toast(e.message,'err');}
 }
 boot();
 </script>

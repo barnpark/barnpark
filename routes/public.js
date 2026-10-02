@@ -19,6 +19,7 @@ r.get("/hotel/:slug", async (req, res) => {
     promoText: h.promoText, promoImage: h.promoImage,
     promptpayId: h.promptpayId || "", promptpayName: h.promptpayName || h.name,
     allowGuestCancel: h.allowGuestCancel !== false, cancelDays: h.cancelDays ?? 3,
+    approved: h.approved !== false,
   });
 });
 
@@ -71,6 +72,7 @@ r.post("/book", async (req, res) => {
   const { slug, roomTypeId, din, dout, name, tel, email, pax, note, notify, rooms = 1, extraBed = 0, payRef = "", paid = false } = req.body || {};
   const h = await Hotel.findOne({ slug });
   if (!h) return res.status(404).json({ error: "hotel not found" });
+  if (h.approved === false) return res.status(403).json({ error: "ที่พักนี้ยังไม่เปิดรับจอง (รอการอนุมัติ)" });
   if (!name || !tel) return res.status(400).json({ error: "กรุณากรอกชื่อและเบอร์โทร" });
   if (!din || !dout || dout <= din) return res.status(400).json({ error: "invalid dates" });
   const t = await RoomType.findOne({ _id: roomTypeId, hotel: h._id });

@@ -1,12 +1,47 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
+import Hotel from "../models/Hotel.js";
 import { sign, requireAuth } from "../lib/auth.js";
 import { sendOtp, brevoReady } from "../lib/mailer.js";
+import { notifyNewHotel } from "../lib/notify.js";
 
 const r = Router();
 const genCode = () => String(Math.floor(100000 + Math.random() * 900000));
 const userOut = (u) => ({ id: u._id, email: u.email, role: u.role, hotel: u.hotel, name: u.name });
+
+const slugify = (s) =>
+  String(s || "").toLowerCase().trim()
+    .replace(/[^a-z0-9ก-๙\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/[ก-๙]/g, "")
+    .replace(/^-+|-+$/g, "");
+
+// ลงทะเบียนที่พักใหม่ด้วยตัวเอง (สาธารณะ) — สร้างโรงแรม (onboarding) + บัญชีเจ้าของ
+r.post("/register", async (req, res) => {
+  const { hotelName, slug, email, password, phone, location } = req.body || {};
+  if (!hotelName || !email || !password)
+    return res.status(400).json({ error: "กรอกชื่อที่พัก อีเมล และรหัสผ่านให้ครบ" });
+  if (String(password).length < 6) return res.status(400).json({ error: "รหัสผ่านอย่างน้อย 6 ตัวอักษร" });
+  const em = String(email).toLowerCase().trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return res.status(400).json({ error: "อีเมลไม่ถูกต้อง" });
+  if (await User.findOne({ email: em })) return res.status(409).json({ error: "อีเมลนี้มีบัญชีแล้ว — ลองเข้าสู่ระบบ" });
+
+  // สร้าง slug ที่ไม่ซ้ำ
+  let base = slugify(slug) || slugify(em.split("@")[0]) || "hotel";
+  let s = base, n = 1;
+  while (await Hotel.findOne({ slug: s })) { n++; s = base + "-" + n; if (n > 50) { s = base + "-" + Date.now().toString(36).slice(-4); break; } }
+
+  const hotel = await Hotel.create({
+    name: hotelName, slug: s, location: location || "", phone: phone || "", status: "onboarding",
+    approved: false, // รอแอดมินอนุมัติก่อนเปิดรับจอง
+    ota: [{ channel: "agoda", status: 0 }, { channel: "booking", status: 0 }, { channel: "trip", status: 0 }],
+  });
+  await User.create({
+    email: em, role: "owner", name: hotelName, hotel: hotel._id,
+    passwordHash: bcrypt.hashSync(String(password), 10),
+  });
+  notifyNewHotel(hotel, em).catch((e) => console.error("notifyNewHotel", e));
+  res.json({ ok: true, email: em, slug: s, bookingUrl: "/book.html?h=" + s });
+});
 
 // ขั้นที่ 1: ตรวจรหัสผ่าน → ส่ง OTP ทางอีเมล (ถ้าตั้ง Brevo แล้ว)
 r.post("/login", async (req, res) => {

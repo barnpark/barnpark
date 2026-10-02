@@ -56,6 +56,29 @@ window.API = (function () {
     if (h.fontFamily) { loadFont(h.fontFamily); S("--font", '"' + h.fontFamily + '","Sarabun",sans-serif'); }
   }
   function applyBrand(c) { if (c) document.documentElement.style.setProperty("--brand", c); }
+
+  // ย่อรูปในเบราว์เซอร์แล้วคืนเป็น data URL (ไม่ต้องใช้ที่เก็บรูปภายนอก)
+  function resizeImage(file, maxW = 1000, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      if (!file) return reject(new Error("ไม่พบไฟล์"));
+      if (!/^image\//.test(file.type)) return reject(new Error("กรุณาเลือกไฟล์รูปภาพ"));
+      const rd = new FileReader();
+      rd.onerror = () => reject(new Error("อ่านไฟล์ไม่สำเร็จ"));
+      rd.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error("ไฟล์รูปเสียหาย"));
+        img.onload = () => {
+          let w = img.width, h = img.height;
+          if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+          const c = document.createElement("canvas"); c.width = w; c.height = h;
+          c.getContext("2d").drawImage(img, 0, 0, w, h);
+          resolve(c.toDataURL("image/jpeg", quality));
+        };
+        img.src = rd.result;
+      };
+      rd.readAsDataURL(file);
+    });
+  }
   const CHAN = { direct:"จองตรง", walkin:"Walk-in", phone:"โทรศัพท์", line:"LINE", agoda:"Agoda", booking:"Booking.com", trip:"Trip.com", other:"อื่น ๆ" };
   function chColor(c){ return ({direct:"c0",agoda:"c1",booking:"c2",trip:"c3"})[c] || "c4"; }
   function shortCh(c){ return ({direct:"ตรง",agoda:"Agoda",booking:"Book",trip:"Trip",walkin:"Walk",phone:"โทร",line:"LINE"})[c] || "อื่น"; }
@@ -79,6 +102,7 @@ window.API = (function () {
   return {
     token, setToken, clear, guard,
     login: (email, password) => req("POST", "/auth/login", { email, password }),
+    register: (body) => req("POST", "/auth/register", body),
     verifyOtp: (email, otp) => req("POST", "/auth/verify-otp", { email, otp }),
     me: () => req("GET", "/auth/me"),
     get: (p) => req("GET", p), post: (p, b) => req("POST", p, b), patch: (p, b) => req("PATCH", p, b), del: (p) => req("DELETE", p),
@@ -87,7 +111,7 @@ window.API = (function () {
     pubAvailability: (slug, din, dout) => pub("/availability?slug=" + encodeURIComponent(slug) + "&din=" + din + "&dout=" + dout),
     pubBook: async (b) => { const r = await fetch("/api/public/book", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; },
     pubCancel: async (b) => { const r = await fetch("/api/public/cancel", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; },
-    money, ymd, addDays, nights, thDate, esc, applyBrand, applyTheme, loadFont, THEME_FONTS, UI_STYLES, CHAN, chColor, shortCh, toast, signOut: () => { clear(); location.href = "login.html"; },
+    money, ymd, addDays, nights, thDate, esc, applyBrand, applyTheme, loadFont, resizeImage, THEME_FONTS, UI_STYLES, CHAN, chColor, shortCh, toast, signOut: () => { clear(); location.href = "login.html"; },
     mountSupport,
   };
 
