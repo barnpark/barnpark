@@ -17,7 +17,7 @@ import lineRoutes from "./routes/line.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-app.use(express.json({ limit: "2mb", verify: (req, _res, buf) => { req.rawBody = buf; } }));
+app.use(express.json({ limit: "12mb", verify: (req, _res, buf) => { req.rawBody = buf; } }));
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, service: "barn-park" }));
 // กัน brute-force ล็อกอิน/OTP และสแปมหน้าจอง

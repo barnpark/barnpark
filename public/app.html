@@ -36,7 +36,7 @@
       <div><label>ราคา/คืน</label><input id="nt-price" type="number" value="900"></div>
       <div><label>ราคา OTA</label><input id="nt-ota" type="number" value="1050"></div>
       <div><label>เตียงเสริม/คืน</label><input id="nt-eb" type="number" value="0"></div>
-      <div><label>รูปห้อง</label><label class="btn ghost sm" style="cursor:pointer;margin:0;display:inline-block">เลือกรูป<input type="file" accept="image/*" style="display:none" onchange="pickNewRoomImg(this)"></label> <span id="nt-img-status" class="note" style="margin:0"></span></div>
+      <div><label>รูปห้อง (สูงสุด 4)</label><label class="btn ghost sm" style="cursor:pointer;margin:0;display:inline-block">เลือกรูป<input type="file" accept="image/*" multiple style="display:none" onchange="pickNewRoomImg(this)"></label> <span id="nt-img-status" class="note" style="margin:0"></span></div>
     </div><button class="btn" style="margin-top:12px" onclick="addRT()">เพิ่มห้อง</button></div></section>
   <section id="v-svc" class="view"><h1>บริการเสริม</h1><p class="sub">นวด สปา อาหารเช้า กิจกรรม ฯลฯ — แสดงบนหน้าจองของแขก</p>
     <div class="panel"><div style="overflow-x:auto"><table id="svctable"></table></div></div>
@@ -209,11 +209,15 @@ function renderBook(){
 }
 async function markPaid(id){ try{ await API.patch('/bookings/'+id,{payStatus:'paid'}); const b=BK.find(x=>String(x._id)===String(id)); if(b)b.payStatus='paid'; renderBook(); API.toast('ยืนยันการชำระแล้ว','ok'); }catch(e){API.toast(e.message,'err');} }
 // ---- rooms ----
+function imgsOf(t){ return (t.images&&t.images.length)?t.images.slice():(t.imageUrl?[t.imageUrl]:[]); }
 function roomThumb(t){
-  const img=t.imageUrl?'<div style="width:72px;height:54px;border-radius:8px;background:url(\''+t.imageUrl+'\') center/cover;border:1px solid var(--line)"></div>':'<div style="width:72px;height:54px;border-radius:8px;background:#f1f5f9;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px">ไม่มีรูป</div>';
-  return '<div style="display:flex;flex-direction:column;gap:4px;align-items:center">'+img+
-    '<label class="btn ghost sm" style="cursor:pointer;margin:0">'+(t.imageUrl?'เปลี่ยนรูป':'เลือกรูป')+'<input type="file" accept="image/*" style="display:none" onchange="uploadRoomImg(\''+t._id+'\',this)"></label>'+
-    (t.imageUrl?'<a href="#" onclick="removeRoomImg(\''+t._id+'\');return false" style="font-size:11px;color:var(--red)">ลบรูป</a>':'')+'</div>';
+  const imgs=imgsOf(t);
+  let html='<div style="display:flex;flex-wrap:wrap;gap:4px;max-width:170px">';
+  imgs.forEach((u,i)=>{ html+='<div style="position:relative;width:52px;height:40px"><div style="width:100%;height:100%;border-radius:6px;background:url(\''+u+'\') center/cover;border:1px solid var(--line)"></div>'+
+    '<a href="#" onclick="removeRoomImg(\''+t._id+'\','+i+');return false" title="ลบรูป" style="position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;width:17px;height:17px;border-radius:50%;font-size:11px;line-height:17px;text-align:center;text-decoration:none">×</a></div>'; });
+  if(imgs.length<4) html+='<label class="btn ghost sm" style="cursor:pointer;margin:0;width:52px;height:40px;display:flex;align-items:center;justify-content:center;padding:0">＋<input type="file" accept="image/*" style="display:none" onchange="addRoomImg(\''+t._id+'\',this)"></label>';
+  html+='</div><div class="note" style="margin:2px 0 0">'+imgs.length+'/4 รูป</div>';
+  return html;
 }
 function renderRooms(){
   document.getElementById('roomtable').innerHTML='<tr><th>รูป</th><th>ชื่อห้อง</th><th>รองรับ</th><th>จำนวน</th><th>ราคา/คืน</th><th>OTA</th><th>เตียงเสริม</th><th></th></tr>'+(RT.length?RT.map(t=>'<tr>'+
@@ -226,25 +230,31 @@ function renderRooms(){
     '<td><input class="rate" style="max-width:90px" type="number" value="'+(t.extraBedPrice||0)+'" id="r-eb-'+t._id+'"></td>'+
     '<td style="white-space:nowrap"><button class="btn sm" onclick="saveRT(\''+t._id+'\')">บันทึก</button> <button class="btn danger sm" onclick="delRT(\''+t._id+'\')">ลบ</button></td></tr>').join(''):'<tr><td colspan="8" class="empty">ยังไม่มีห้อง</td></tr>');
 }
-async function uploadRoomImg(id,input){
+async function addRoomImg(id,input){
   const f=input.files&&input.files[0]; if(!f)return;
+  const t=RT.find(x=>String(x._id)===String(id)); if(!t)return;
+  const imgs=imgsOf(t); if(imgs.length>=4){ API.toast('ใส่รูปได้สูงสุด 4 รูป','err'); return; }
   try{ API.toast('กำลังอัปโหลดรูป…'); const dataUrl=await API.resizeImage(f,1000,0.82);
-    await API.patch('/rooms/'+id,{imageUrl:dataUrl}); const t=RT.find(x=>String(x._id)===String(id)); if(t)t.imageUrl=dataUrl; renderRooms(); API.toast('อัปโหลดรูปแล้ว','ok');
+    imgs.push(dataUrl);
+    await API.patch('/rooms/'+id,{images:imgs,imageUrl:imgs[0]}); t.images=imgs; t.imageUrl=imgs[0]; renderRooms(); API.toast('อัปโหลดรูปแล้ว','ok');
   }catch(e){ API.toast(e.message||'อัปโหลดไม่สำเร็จ','err'); }
 }
-async function removeRoomImg(id){
-  try{ await API.patch('/rooms/'+id,{imageUrl:''}); const t=RT.find(x=>String(x._id)===String(id)); if(t)t.imageUrl=''; renderRooms(); API.toast('ลบรูปแล้ว','ok'); }catch(e){API.toast(e.message,'err');}
+async function removeRoomImg(id,idx){
+  const t=RT.find(x=>String(x._id)===String(id)); if(!t)return;
+  const imgs=imgsOf(t); imgs.splice(idx,1);
+  try{ await API.patch('/rooms/'+id,{images:imgs,imageUrl:imgs[0]||''}); t.images=imgs; t.imageUrl=imgs[0]||''; renderRooms(); API.toast('ลบรูปแล้ว','ok'); }catch(e){API.toast(e.message,'err');}
 }
-let newRoomImg='';
+let newRoomImgs=[];
 async function pickNewRoomImg(input){
-  const f=input.files&&input.files[0]; if(!f)return;
-  try{ newRoomImg=await API.resizeImage(f,1000,0.82); document.getElementById('nt-img-status').textContent='✔ เลือกรูปแล้ว'; }
-  catch(e){ newRoomImg=''; document.getElementById('nt-img-status').textContent=e.message||'รูปไม่ถูกต้อง'; }
+  const files=Array.from(input.files||[]).slice(0,4); if(!files.length)return;
+  try{ newRoomImgs=[]; for(const f of files){ if(newRoomImgs.length>=4)break; newRoomImgs.push(await API.resizeImage(f,1000,0.82)); }
+    document.getElementById('nt-img-status').textContent='✔ เลือก '+newRoomImgs.length+' รูป'; }
+  catch(e){ newRoomImgs=[]; document.getElementById('nt-img-status').textContent=e.message||'รูปไม่ถูกต้อง'; }
 }
 async function addRT(){
   const name=document.getElementById('nt-name').value.trim(); if(!name){API.toast('กรอกชื่อห้อง','err');return;}
-  await API.post('/hotels/'+HID+'/rooms',{name,capacity:+document.getElementById('nt-cap').value||2,qty:+document.getElementById('nt-qty').value||1,basePrice:+document.getElementById('nt-price').value||0,otaPrice:+document.getElementById('nt-ota').value||0,extraBedPrice:+document.getElementById('nt-eb').value||0,imageUrl:newRoomImg,sort:RT.length+1});
-  document.getElementById('nt-name').value=''; newRoomImg=''; document.getElementById('nt-img-status').textContent=''; API.toast('เพิ่มห้องแล้ว','ok'); load();
+  await API.post('/hotels/'+HID+'/rooms',{name,capacity:+document.getElementById('nt-cap').value||2,qty:+document.getElementById('nt-qty').value||1,basePrice:+document.getElementById('nt-price').value||0,otaPrice:+document.getElementById('nt-ota').value||0,extraBedPrice:+document.getElementById('nt-eb').value||0,images:newRoomImgs,imageUrl:newRoomImgs[0]||'',sort:RT.length+1});
+  document.getElementById('nt-name').value=''; newRoomImgs=[]; document.getElementById('nt-img-status').textContent=''; API.toast('เพิ่มห้องแล้ว','ok'); load();
 }
 async function saveRT(id){
   await API.patch('/rooms/'+id,{name:document.getElementById('r-name-'+id).value,capacity:+document.getElementById('r-cap-'+id).value,qty:+document.getElementById('r-qty-'+id).value,basePrice:+document.getElementById('r-price-'+id).value,otaPrice:+document.getElementById('r-ota-'+id).value,extraBedPrice:+document.getElementById('r-eb-'+id).value||0});

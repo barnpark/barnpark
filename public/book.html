@@ -114,10 +114,19 @@ async function gSearch(){
 function renderRooms(){
   if(!AVAIL.length){ document.getElementById("g-rooms").innerHTML='<p class="empty">โรงแรมนี้ยังไม่ได้ตั้งค่าห้องพัก</p>'; return; }
   document.getElementById("g-rooms").innerHTML=AVAIL.map(r=>{const sold=r.available<=0;const save=(r.otaPrice||0)-(r.basePrice||0);
-    return '<div class="room"'+(sold?' style="opacity:.55"':'')+'><div class="pic" style="'+(r.imageUrl?"background-image:url('"+r.imageUrl+"')":"")+'"></div><div class="body"><h3>'+esc(r.name)+'</h3><div class="sub" style="margin:0 0 6px">รับ '+r.capacity+' คน/ห้อง</div>'+
+    const imgs=(r.images&&r.images.length)?r.images:(r.imageUrl?[r.imageUrl]:[]);const pid="rpic-"+r.roomTypeId;
+    const picStyle=imgs.length?"background-image:url('"+imgs[0]+"')":"";
+    const thumbs=imgs.length>1?'<div style="display:flex;gap:5px;margin:0 0 8px">'+imgs.map((u,i)=>'<div onclick="setRoomPic(\''+pid+'\',\''+i+'\',\''+r.roomTypeId+'\')" style="width:40px;height:30px;border-radius:5px;cursor:pointer;background:url(\''+u+'\') center/cover;border:2px solid '+(i===0?'var(--brand)':'transparent')+'" data-i="'+i+'"></div>').join('')+'</div>':'';
+    return '<div class="room"'+(sold?' style="opacity:.55"':'')+'><div class="pic" id="'+pid+'" style="'+picStyle+'"></div><div class="body"><h3>'+esc(r.name)+'</h3><div class="sub" style="margin:0 0 6px">รับ '+r.capacity+' คน/ห้อง</div>'+thumbs+
       (sold?'<div class="left" style="color:var(--red)">เต็มช่วงนี้</div>':'<div class="left">ว่าง '+r.available+' ห้อง</div>')+
       '<div class="foot"><div class="price2">'+(save>0?'<span class="ota">'+money(r.otaPrice)+'</span> ':'')+'<span class="now">'+money(r.basePrice)+'</span> /คืน'+(save>0?'<br><span class="save">จองตรงประหยัด '+money(save)+'/คืน</span>':'')+'</div>'+
       (sold?'<button class="btn" disabled>เต็ม</button>':'<button class="btn" onclick="pick(\''+r.roomTypeId+'\')">เลือก</button>')+'</div></div></div>';}).join("");
+}
+function setRoomPic(pid,i,rtId){
+  const r=AVAIL.find(x=>x.roomTypeId===rtId); if(!r)return;
+  const imgs=(r.images&&r.images.length)?r.images:(r.imageUrl?[r.imageUrl]:[]); const idx=+i;
+  const el=document.getElementById(pid); if(el&&imgs[idx]) el.style.backgroundImage="url('"+imgs[idx]+"')";
+  const room=el&&el.closest(".room"); if(room) room.querySelectorAll("[data-i]").forEach(d=>d.style.borderColor=(+d.dataset.i===idx)?"var(--brand)":"transparent");
 }
 function pick(id){ sel=AVAIL.find(r=>r.roomTypeId===id); const pax=parseInt(document.getElementById("g-pax").value)||2; const av=Math.max(1,sel.available); gRooms=Math.min(Math.max(1,Math.ceil(pax/sel.capacity)),av); gEB=0; renderSum(); window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"}); }
 function renderSum(){

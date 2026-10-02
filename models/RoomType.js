@@ -8,7 +8,8 @@ const schema = new mongoose.Schema({
   basePrice:     { type: Number, default: 0 },
   otaPrice:      { type: Number, default: 0 },
   extraBedPrice: { type: Number, default: 0 },
-  imageUrl:      String,
+  imageUrl:      String,                 // รูปหลัก (เท่ากับ images[0]) — เก็บไว้เพื่อความเข้ากันได้
+  images:        { type: [String], default: [] }, // แกลเลอรีสูงสุด 4 รูป
   sort:          { type: Number, default: 0 },
 }, { timestamps: true });
 

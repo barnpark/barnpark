@@ -61,6 +61,7 @@ r.get("/availability", async (req, res) => {
     out.push({
       roomTypeId: t._id, name: t.name, capacity: t.capacity, basePrice: t.basePrice,
       otaPrice: t.otaPrice, extraBedPrice: t.extraBedPrice, imageUrl: t.imageUrl,
+      images: (t.images && t.images.length) ? t.images : (t.imageUrl ? [t.imageUrl] : []),
       qty: t.qty, available: Math.max(0, t.qty - booked),
     });
   }
