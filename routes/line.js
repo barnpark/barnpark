@@ -40,4 +40,32 @@ r.post("/webhook/:slug", async (req, res) => {
   res.sendStatus(200);
 });
 
+// Webhook ระดับแพลตฟอร์ม (LINE OA ของ BARN-PARK เอง)
+// ตั้งใน channel ของแพลตฟอร์มเป็น: https://<app>.onrender.com/api/line/platform-webhook
+// ทักแชตเข้า OA ของ BARN-PARK แล้วบอทจะตอบ userId กลับมา เอาไปใส่ env ADMIN_LINE_TO
+r.post("/platform-webhook", async (req, res) => {
+  const token = process.env.LINE_CHANNEL_TOKEN || "";
+  const secret = process.env.LINE_CHANNEL_SECRET || "";
+  if (!token) return res.sendStatus(200);
+  if (secret) {
+    const sig = req.get("x-line-signature") || "";
+    const expected = crypto.createHmac("sha256", secret).update(req.rawBody || Buffer.from("")).digest("base64");
+    if (sig !== expected) return res.sendStatus(401);
+  }
+  for (const ev of (req.body && req.body.events) || []) {
+    const uid = ev?.source?.userId, gid = ev?.source?.groupId;
+    if (ev.type === "message" && ev.replyToken) {
+      const msg = (gid ? `groupId: ${gid}` : `userId ของคุณคือ:\n${uid}`) + `\nนำไปใส่ env ADMIN_LINE_TO เพื่อรับแจ้งเตือนเมื่อมีโรงแรมสมัครใหม่`;
+      try {
+        await fetch("https://api.line.me/v2/bot/message/reply", {
+          method: "POST",
+          headers: { authorization: "Bearer " + token, "content-type": "application/json" },
+          body: JSON.stringify({ replyToken: ev.replyToken, messages: [{ type: "text", text: msg }] }),
+        });
+      } catch (e) { console.error("line platform reply", e); }
+    }
+  }
+  res.sendStatus(200);
+});
+
 export default r;

@@ -118,16 +118,19 @@ window.API = (function () {
   // ===== ปุ่มติดต่อซัพพอร์ตของ BARN-PARK (LINE OA ของแพลตฟอร์ม) =====
   // 🔧 แก้ลิงก์นี้เป็น LINE OA ของ BARN-PARK: https://line.me/R/ti/p/@<basic id>  หรือ  https://lin.ee/xxxxxxx
   const SUPPORT_LINE_URL = "https://line.me/R/ti/p/@barnpark";
-  function mountSupport(url) {
+  async function mountSupport(url) {
+    if (document.getElementById("bp-support")) return;
+    let href = url || SUPPORT_LINE_URL;
+    try { const c = await fetch("/api/public/config").then((r) => r.json()); if (c && c.supportLineUrl) href = c.supportLineUrl; } catch {}
     if (document.getElementById("bp-support")) return;
     const a = document.createElement("a");
     a.id = "bp-support";
-    a.href = url || SUPPORT_LINE_URL;
+    a.href = href;
     a.target = "_blank"; a.rel = "noopener";
     a.title = "ติดต่อทีมงาน BARN-PARK ทาง LINE";
     a.innerHTML = '<span style="font-size:20px">💬</span><span>ช่วยเหลือ</span>';
     a.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:9999;display:flex;align-items:center;gap:8px;background:#06C755;color:#fff;font-family:inherit;font-weight:700;font-size:14px;text-decoration:none;padding:11px 16px;border-radius:999px;box-shadow:0 8px 24px rgba(6,199,85,.4)";
-    document.addEventListener("DOMContentLoaded", () => document.body.appendChild(a));
-    if (document.body) document.body.appendChild(a);
+    const add = () => document.body && document.body.appendChild(a);
+    if (document.body) add(); else document.addEventListener("DOMContentLoaded", add);
   }
 })();

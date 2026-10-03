@@ -7,6 +7,11 @@ import { notifyBooking } from "../lib/notify.js";
 
 const r = Router();
 
+// ค่าตั้งสาธารณะของแพลตฟอร์ม (เช่น ลิงก์ LINE ช่วยเหลือของ BARN-PARK) — ตั้งผ่าน env
+r.get("/config", (_req, res) => {
+  res.json({ supportLineUrl: process.env.SUPPORT_LINE_URL || "" });
+});
+
 // ข้อมูลโรงแรมสาธารณะ (ไม่คืน token/secret)
 r.get("/hotel/:slug", async (req, res) => {
   const h = await Hotel.findOne({ slug: req.params.slug });
