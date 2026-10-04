@@ -21,7 +21,8 @@ window.API = (function () {
   function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
   function nights(a, b) { return Math.max(0, Math.round((new Date(b) - new Date(a)) / 86400000)); }
   const THM = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-  function thDate(d) { const x = new Date(d); return x.getDate() + " " + THM[x.getMonth()]; }
+  const ENM = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function thDate(d) { const x = new Date(d); return (localStorage.getItem("bp_lang") === "en") ? (ENM[x.getMonth()] + " " + x.getDate()) : (x.getDate() + " " + THM[x.getMonth()]); }
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
   function money(n) { return "฿" + Number(n || 0).toLocaleString("en-US"); }
   // ===== ธีมต่อโรงแรม (สี 4 + ฟอนต์ + สไตล์ UI) =====
@@ -55,6 +56,36 @@ window.API = (function () {
     S("--btn-radius", st.btn); S("--card-radius", st.card); S("--input-radius", st.input);
     if (h.fontFamily) { loadFont(h.fontFamily); S("--font", '"' + h.fontFamily + '","Sarabun",sans-serif'); }
   }
+  // ===== สองภาษา ไทย/อังกฤษ =====
+  const LANGKEY = "bp_lang";
+  function lang() { return localStorage.getItem(LANGKEY) === "en" ? "en" : "th"; }
+  function setLang(l) { localStorage.setItem(LANGKEY, l === "en" ? "en" : "th"); }
+  function t(th, en) { return lang() === "en" ? (en == null ? th : en) : th; }
+  // สลับข้อความ static ที่มี data-th / data-en (และ placeholder ผ่าน data-th-ph / data-en-ph)
+  function applyI18n(root) {
+    const en = lang() === "en";
+    (root || document).querySelectorAll("[data-th]").forEach((el) => {
+      const v = en ? (el.getAttribute("data-en") || el.getAttribute("data-th")) : el.getAttribute("data-th");
+      el.textContent = v;
+    });
+    (root || document).querySelectorAll("[data-th-ph]").forEach((el) => {
+      el.setAttribute("placeholder", en ? (el.getAttribute("data-en-ph") || el.getAttribute("data-th-ph")) : el.getAttribute("data-th-ph"));
+    });
+    document.documentElement.setAttribute("lang", en ? "en" : "th");
+  }
+  // ปุ่มสลับภาษา (ลอยมุมซ้ายล่าง) — สลับแล้วรีโหลดเพื่อให้ทุกข้อความอัปเดต
+  function mountLangToggle() {
+    if (document.getElementById("bp-lang")) return;
+    const b = document.createElement("button");
+    b.id = "bp-lang";
+    b.textContent = lang() === "en" ? "ไทย" : "EN";
+    b.title = "เปลี่ยนภาษา / Change language";
+    b.style.cssText = "position:fixed;left:18px;bottom:18px;z-index:9999;background:#0f2540;color:#fff;border:none;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;padding:9px 16px;border-radius:999px;box-shadow:0 6px 18px rgba(15,37,64,.3)";
+    b.onclick = () => { setLang(lang() === "en" ? "th" : "en"); location.reload(); };
+    const add = () => document.body && document.body.appendChild(b);
+    if (document.body) add(); else document.addEventListener("DOMContentLoaded", add);
+  }
+
   function applyBrand(c) { if (c) document.documentElement.style.setProperty("--brand", c); }
 
   // ย่อรูปในเบราว์เซอร์แล้วคืนเป็น data URL (ไม่ต้องใช้ที่เก็บรูปภายนอก)
@@ -111,7 +142,7 @@ window.API = (function () {
     pubAvailability: (slug, din, dout) => pub("/availability?slug=" + encodeURIComponent(slug) + "&din=" + din + "&dout=" + dout),
     pubBook: async (b) => { const r = await fetch("/api/public/book", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; },
     pubCancel: async (b) => { const r = await fetch("/api/public/cancel", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; },
-    money, ymd, addDays, nights, thDate, esc, applyBrand, applyTheme, loadFont, resizeImage, THEME_FONTS, UI_STYLES, CHAN, chColor, shortCh, toast, signOut: () => { clear(); location.href = "login.html"; },
+    money, ymd, addDays, nights, thDate, esc, applyBrand, applyTheme, loadFont, resizeImage, lang, setLang, t, applyI18n, mountLangToggle, THEME_FONTS, UI_STYLES, CHAN, chColor, shortCh, toast, signOut: () => { clear(); location.href = "login.html"; },
     mountSupport,
   };
 
