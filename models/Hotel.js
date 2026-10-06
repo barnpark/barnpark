@@ -18,6 +18,7 @@ const schema = new mongoose.Schema({
   accentColor2:{ type: String, default: "#ec4899" }, // สีรอง 2
   fontFamily:  { type: String, default: "Sarabun" }, // ฟอนต์ (Google Fonts รองรับไทย)
   uiStyle:     { type: String, default: "pill" },    // pill | soft | minimal | sharp
+  layout:      { type: String, default: "og" },      // รูปแบบหน้าจอง: og | grid | minimal | fullhero
   tagline:     String,
   coverUrl:    String,
   about:       String,

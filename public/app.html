@@ -64,6 +64,18 @@
       <div class="formgrid">
         <div><label>ฟอนต์</label><select id="s-font" onchange="prevTheme()"></select></div>
         <div><label>สไตล์มุม/ปุ่ม</label><select id="s-ui" onchange="prevTheme()"></select></div>
+        <div><label>รูปแบบหน้าจอง (Layout)</label><select id="s-layout">
+          <option value="og">BARN-PARK (ค่าเริ่มต้น)</option>
+          <option value="grid">แค็ตตาล็อก — กริดการ์ด</option>
+          <option value="minimal">มินิมอล — ภาพใหญ่ เรียบ</option>
+          <option value="fullhero">ภาพเต็มจอ — แบบรีสอร์ต</option>
+          <option value="creative">ครีเอทีฟ — การ์ดเอียงเล่น ๆ</option>
+          <option value="classic">คลาสสิก — กึ่งกลาง มีกรอบ</option>
+          <option value="split">แบ่งครึ่งจอ — กล่องจองซ้าย</option>
+          <option value="simple">เรียบง่าย — คอลัมน์เดียว</option>
+          <option value="immersive">ดื่มด่ำ — hero ใหญ่ ภาพเด่น</option>
+          <option value="bento">เบนโตะ — ไทล์มนแน่น</option>
+        </select></div>
         <div><label>คำโปรย</label><input id="s-tagline"></div>
       </div>
       <div id="theme-preview" style="margin-top:14px;border:1px dashed var(--line);border-radius:var(--card-radius);padding:16px">
@@ -326,7 +338,7 @@ function syncHex(pickerId,val){ const c=normHex(val); if(/^#[0-9a-fA-F]{6}$/.tes
 function themeFromForm(){
   return { brandColor:document.getElementById('s-c1').value, brandColor2:document.getElementById('s-c2').value,
     accentColor:document.getElementById('s-a1').value, accentColor2:document.getElementById('s-a2').value,
-    fontFamily:document.getElementById('s-font').value, uiStyle:document.getElementById('s-ui').value };
+    fontFamily:document.getElementById('s-font').value, uiStyle:document.getElementById('s-ui').value, layout:document.getElementById('s-layout').value };
 }
 function prevTheme(){ // ดูตัวอย่างสด (ยังไม่บันทึก)
   ['s-c1|s-c1x','s-c2|s-c2x','s-a1|s-a1x','s-a2|s-a2x'].forEach(p=>{const[a,b]=p.split('|');document.getElementById(b).value=document.getElementById(a).value;});
@@ -342,6 +354,7 @@ async function fillSettings(){
   // ฟอนต์ + สไตล์
   const fsel=document.getElementById('s-font'); fsel.innerHTML=Object.keys(API.THEME_FONTS).map(f=>'<option value="'+f+'"'+((HOTEL.fontFamily||'Sarabun')===f?' selected':'')+'>'+f+'</option>').join('');
   const usel=document.getElementById('s-ui'); usel.innerHTML=Object.entries(API.UI_STYLES).map(([k,v])=>'<option value="'+k+'"'+((HOTEL.uiStyle||'pill')===k?' selected':'')+'>'+v.label+'</option>').join('');
+  document.getElementById('s-layout').value=HOTEL.layout||'og';
   Object.keys(API.THEME_FONTS).forEach(f=>API.loadFont(f)); // โหลดฟอนต์ล่วงหน้าให้เลือกเห็นผล
   // นโยบายยกเลิก
   document.getElementById('s-cancel-allow').value=(HOTEL.allowGuestCancel===false)?'no':'yes';
