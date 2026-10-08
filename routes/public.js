@@ -19,7 +19,7 @@ r.get("/hotel/:slug", async (req, res) => {
   res.json({
     id: h._id, slug: h.slug, name: h.name, location: h.location, phone: h.phone, lineId: h.lineId,
     brandColor: h.brandColor, brandColor2: h.brandColor2, accentColor: h.accentColor, accentColor2: h.accentColor2,
-    fontFamily: h.fontFamily, uiStyle: h.uiStyle, layout: h.layout || "og",
+    fontFamily: h.fontFamily, uiStyle: h.uiStyle, template: h.template || "rich",
     tagline: h.tagline, coverUrl: h.coverUrl, about: h.about,
     promoText: h.promoText, promoImage: h.promoImage,
     promptpayId: h.promptpayId || "", promptpayName: h.promptpayName || h.name,

@@ -7,92 +7,148 @@
 <link rel="stylesheet" href="style.css">
 <style>
   body{background:#fff}
-  /* nav */
-  .gnav{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
-  .gnav .in{max-width:1080px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
-  .gnav .logo{display:flex;align-items:center;gap:9px;font-family:var(--font);font-weight:800;font-size:17px}
-  .gnav .logo .dot{width:28px;height:28px;border-radius:calc(var(--card-radius)*.45);background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px}
-  .gnav .menu{display:flex;gap:20px;font-size:13.5px;color:var(--muted)} .gnav .menu a{color:inherit;text-decoration:none;cursor:pointer} @media(max-width:640px){.gnav .menu{display:none}}
-  /* hero */
-  .ghero{position:relative;min-height:440px;display:flex;flex-direction:column;justify-content:center;color:#fff;overflow:hidden;background:linear-gradient(135deg,var(--brand),var(--brand2))}
-  .ghero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.42))}
-  .ghero .in{position:relative;z-index:2;max-width:1080px;margin:0 auto;padding:46px 20px 70px;width:100%}
-  .ghero .eyebrow{font-size:12px;letter-spacing:4px;text-transform:uppercase;opacity:.92;margin-bottom:12px}
-  .ghero h1{font-family:var(--font);font-size:clamp(30px,5vw,46px);line-height:1.12;font-weight:800;margin:0 0 12px;text-shadow:0 2px 24px rgba(0,0,0,.25)}
-  .ghero .tag{font-size:15px;opacity:.95;max-width:540px}
-  /* search */
-  .searchbar{position:relative;z-index:30;background:#fff;border:1px solid var(--line);border-radius:var(--card-radius);box-shadow:0 18px 44px rgba(15,23,42,.16);max-width:1000px;margin:-36px auto 0;padding:16px;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end}
-  .searchbar label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+  .wrapx{max-width:1040px;margin:0 auto;padding:0 20px}
+  /* search bar (shared ids, styled per template) */
+  .searchbar{background:#fff;border:1px solid var(--line);border-radius:var(--card-radius);box-shadow:0 16px 40px rgba(15,23,42,.14);padding:16px;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end}
+  .searchbar .f label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
   @media(max-width:720px){.searchbar{grid-template-columns:1fr 1fr}}
-  /* sections */
-  .sec{max-width:1080px;margin:0 auto;padding:54px 20px}
-  .sec.alt{max-width:none;background:color-mix(in srgb,var(--brand) 6%,#fff)}
-  .sec.alt .inner{max-width:1080px;margin:0 auto}
-  .kick{text-align:center;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--brand);font-weight:800;margin-bottom:6px}
-  .sec h2{font-family:var(--font);text-align:center;font-size:26px;margin:0 0 6px}
-  .lead{text-align:center;color:var(--muted);max-width:540px;margin:0 auto 28px;font-size:14px}
-  /* rooms */
+  /* generic room card */
   .rooms{display:grid;grid-template-columns:repeat(3,1fr);gap:18px} @media(max-width:820px){.rooms{grid-template-columns:1fr 1fr}} @media(max-width:560px){.rooms{grid-template-columns:1fr}}
-  .rcard{background:#fff;border:1px solid var(--line);border-radius:var(--card-radius);overflow:hidden;display:flex;flex-direction:column}
-  .rcard .pic{height:170px;background:linear-gradient(135deg,var(--brand),var(--brand2));background-size:cover;background-position:center;position:relative}
-  .rcard .thumbs{position:absolute;left:8px;bottom:8px;display:flex;gap:4px}
-  .rcard .thumbs div{width:28px;height:22px;border-radius:4px;background-size:cover;background-position:center;cursor:pointer;border:2px solid rgba(255,255,255,.7)}
-  .rcard .b{padding:14px 16px;display:flex;flex-direction:column;flex:1}
-  .rcard h3{font-family:var(--font);font-size:16px;margin:0 0 3px} .rcard .cap{color:var(--muted);font-size:12.5px;margin-bottom:8px}
-  .rcard .left{font-size:12px;font-weight:700;margin-bottom:8px} .rcard .left.ok{color:var(--amber)} .rcard .left.no{color:var(--red)}
-  .rcard .foot{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
-  .rcard .pr .now{font-size:19px;font-weight:800} .rcard .pr .ota{font-size:12px;color:var(--muted);text-decoration:line-through} .rcard .pr .save{display:block;color:var(--green);font-size:11px;font-weight:700}
-  /* amenities */
+  .room{background:#fff;border:1px solid var(--line);border-radius:var(--card-radius);overflow:hidden;display:flex;flex-direction:column}
+  .room .pic{height:160px;background:linear-gradient(135deg,var(--brand),var(--brand2));background-size:cover;background-position:center;position:relative}
+  .room .thumbs{position:absolute;left:8px;bottom:8px;display:flex;gap:4px}.room .thumbs div{width:28px;height:22px;border-radius:4px;background-size:cover;background-position:center;cursor:pointer;border:2px solid rgba(255,255,255,.7)}
+  .room .body{padding:14px 16px;display:flex;flex-direction:column;flex:1} .room h3{font-size:16px;margin:0 0 3px} .room .cap{color:var(--muted);font-size:12.5px;margin-bottom:8px}
+  .room .avail{font-size:12px;font-weight:700;margin-bottom:8px;color:var(--amber)} .room .avail.no{color:var(--red)}
+  .room .foot{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
+  .room .now{font-size:19px;font-weight:800} .room .ota{font-size:12px;color:var(--muted);text-decoration:line-through} .room .save{display:block;color:var(--green);font-size:11px;font-weight:700}
+  /* sections */
+  .sec{max-width:1040px;margin:0 auto;padding:50px 20px} .sec.alt{max-width:none;background:color-mix(in srgb,var(--brand) 6%,#fff)} .sec.alt .inner{max-width:1040px;margin:0 auto}
+  .kick{text-align:center;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--brand);font-weight:800;margin-bottom:6px} .sec h2{text-align:center;font-size:25px;margin:0 0 6px;font-family:var(--font)} .lead{text-align:center;color:var(--muted);max-width:540px;margin:0 auto 26px;font-size:14px}
   .amen{display:grid;grid-template-columns:repeat(4,1fr);gap:14px} @media(max-width:640px){.amen{grid-template-columns:1fr 1fr}}
-  .am{background:#fff;border:1px solid var(--line);border-radius:var(--card-radius);padding:18px 14px;text-align:center}
-  .am .ic{font-size:26px;margin-bottom:8px;height:60px;border-radius:12px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center}
-  .am .t{font-weight:700;font-size:14px} .am .d{color:var(--muted);font-size:12.5px;margin-top:3px} .am .p{color:var(--brand);font-weight:800;font-size:13px;margin-top:5px}
-  /* gallery */
-  .gal{display:grid;grid-template-columns:repeat(4,1fr);gap:10px} @media(max-width:640px){.gal{grid-template-columns:1fr 1fr}}
-  .gt{height:120px;border-radius:calc(var(--card-radius)*.7);background-size:cover;background-position:center;background-color:var(--line)}
-  /* benefits + cta */
-  .benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:860px;margin:0 auto} @media(max-width:640px){.benefits{grid-template-columns:1fr}}
-  .ben{background:#fff;border:1px solid var(--line);border-radius:var(--card-radius);padding:20px;text-align:center} .ben .ic{font-size:26px;margin-bottom:8px} .ben .t{font-weight:700;margin-bottom:3px} .ben .d{color:var(--muted);font-size:13px}
-  .cta{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;text-align:center;padding:50px 20px}
-  .cta h2{font-family:var(--font);font-size:26px;margin:0 0 8px} .cta p{opacity:.92;margin-bottom:18px}
-  .cta .btn{background:#fff;color:var(--brand)}
+  .am{background:#fff;border:1px solid var(--line);border-radius:var(--card-radius);padding:18px 14px;text-align:center} .am .ic{font-size:26px;margin-bottom:8px;height:60px;border-radius:12px;background:color-mix(in srgb,var(--brand) 12%,#fff);display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center} .am .t{font-weight:700;font-size:14px} .am .d{color:var(--muted);font-size:12.5px;margin-top:3px} .am .p{color:var(--brand);font-weight:800;font-size:13px;margin-top:5px}
+  .gal{display:grid;grid-template-columns:repeat(4,1fr);gap:10px} @media(max-width:640px){.gal{grid-template-columns:1fr 1fr}} .gt{height:120px;border-radius:calc(var(--card-radius)*.7);background-size:cover;background-position:center;background-color:var(--line)}
+  .benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:860px;margin:0 auto} @media(max-width:640px){.benefits{grid-template-columns:1fr}} .ben{background:#fff;border:1px solid var(--line);border-radius:var(--card-radius);padding:20px;text-align:center} .ben .ic{font-size:26px;margin-bottom:8px} .ben .t{font-weight:700;margin-bottom:3px} .ben .d{color:var(--muted);font-size:13px}
+  .ctaband{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;text-align:center;padding:50px 20px} .ctaband h2{font-family:var(--font);font-size:25px;margin:0 0 14px} .ctaband .btn{background:#fff;color:var(--brand)}
   .gfoot{background:#0f1622;color:#aeb6c2;text-align:center;padding:26px 20px;font-size:13px} .gfoot a{color:#cdd3dd}
-  /* booking modal body reuses summary styles */
-  .srow{display:flex;justify-content:space-between;font-size:14px;padding:7px 0;border-bottom:1px dashed var(--line)} .srow.total{border-bottom:none;border-top:2px solid var(--line);margin-top:6px;padding-top:12px;font-size:18px;font-weight:800}
-  .pay{display:flex;gap:8px;margin:4px 0 8px} .pay .opt{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted)} .pay .opt.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,#fff);color:var(--brand)}
-  .modal-card.wide{max-width:440px}
+  /* nav + hero (used by several) */
+  .gnav{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .gnav .in{max-width:1040px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+  .gnav .logo{display:flex;align-items:center;gap:9px;font-family:var(--font);font-weight:800;font-size:17px} .gnav .logo .dot{width:28px;height:28px;border-radius:calc(var(--card-radius)*.45);background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;display:flex;align-items:center;justify-content:center}
+  .gnav .menu{display:flex;gap:20px;font-size:13.5px;color:var(--muted)} .gnav .menu a{color:inherit;text-decoration:none;cursor:pointer} @media(max-width:640px){.gnav .menu{display:none}}
+  .ghero{position:relative;min-height:360px;display:flex;flex-direction:column;justify-content:center;color:#fff;overflow:hidden;background:linear-gradient(135deg,var(--brand),var(--brand2))}
+  .ghero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.42))}
+  .ghero .in{position:relative;z-index:2;max-width:1040px;margin:0 auto;padding:44px 20px 64px;width:100%}
+  .ghero .eyebrow{font-size:12px;letter-spacing:4px;text-transform:uppercase;opacity:.92;margin-bottom:12px} .ghero h1{font-family:var(--font);font-size:clamp(30px,5vw,44px);font-weight:800;margin:0 0 12px;text-shadow:0 2px 24px rgba(0,0,0,.25)} .ghero .tag{font-size:15px;opacity:.95;max-width:540px}
+  .overlap{margin-top:-34px;position:relative;z-index:30}
+
+  /* ========== RICH (default) ========== */
+  /* uses base nav/hero/overlap search/rooms grid — no extra needed */
+
+  /* ========== EDITORIAL ========== */
+  .tpl-editorial{font-family:var(--font)}
+  .tpl-editorial .ed-top{display:flex;justify-content:center;padding:26px;letter-spacing:6px;font-size:13px;color:var(--muted)}
+  .tpl-editorial .ghero{min-height:420px} .tpl-editorial .ghero .in{align-self:flex-end}
+  .tpl-editorial .searchbar{box-shadow:none;border-radius:0;border:none;border-top:1px solid var(--line);border-bottom:1px solid var(--line);max-width:800px;margin:30px auto}
+  .tpl-editorial .rooms{display:block}
+  .tpl-editorial .room{grid-template-columns:none;display:grid;grid-template-columns:1fr 1fr;align-items:center;border:none;border-radius:0;margin-bottom:10px}
+  .tpl-editorial .room:nth-child(even) .pic{order:2}
+  .tpl-editorial .room .pic{height:300px} .tpl-editorial .room .body{padding:0 50px} .tpl-editorial .room h3{font-size:26px}
+
+  /* ========== MAGAZINE ========== */
+  .tpl-magazine .ghero{min-height:auto;background:transparent;color:var(--ink);overflow:visible}
+  .tpl-magazine .ghero:after{display:none}
+  .tpl-magazine .ghero .in{padding:10px 20px 20px;position:relative}
+  .tpl-magazine .blob{position:absolute;width:280px;height:280px;border-radius:50%;background:var(--accent);opacity:.2;top:-60px;right:-40px;z-index:0}
+  .tpl-magazine .ghero h1{font-size:72px;letter-spacing:-2px;line-height:.9;color:var(--ink);text-shadow:none;position:relative;z-index:1}
+  .tpl-magazine .ghero .eyebrow,.tpl-magazine .ghero .tag{color:var(--muted);position:relative;z-index:1}
+  .tpl-magazine .searchbar{box-shadow:none;border:none;background:transparent;display:flex;gap:10px;flex-wrap:wrap;padding:8px 0}
+  .tpl-magazine .searchbar .f{background:#fff;border:2px solid var(--ink);border-radius:999px;padding:4px 14px}
+  .tpl-magazine #g-rooms{display:block;columns:3;column-gap:16px} @media(max-width:760px){.tpl-magazine #g-rooms{columns:2}} @media(max-width:480px){.tpl-magazine #g-rooms{columns:1}}
+  .tpl-magazine .room{break-inside:avoid;margin-bottom:16px;border-width:2px}
+  .tpl-magazine .room:nth-child(3n+1) .pic{height:220px}
+
+  /* ========== SPLIT ========== */
+  .tpl-split .splitwrap{display:grid;grid-template-columns:360px 1fr;min-height:100vh} @media(max-width:820px){.tpl-split .splitwrap{grid-template-columns:1fr}}
+  .tpl-split .sleft{background:linear-gradient(160deg,var(--brand),var(--brand2));color:#fff;padding:30px 24px}
+  .tpl-split .sleft .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:18px;margin-bottom:12px}
+  .tpl-split .sleft .eyebrow,.tpl-split .sleft .tag{opacity:.92;font-size:14px;margin-bottom:4px}
+  .tpl-split .sleft .searchbar{margin:18px 0;grid-template-columns:1fr;color:var(--ink)}
+  .tpl-split .sleft .ben{background:rgba(255,255,255,.14);border:none;color:#fff;text-align:left;margin-top:12px}
+  .tpl-split .sright{padding:20px} .tpl-split .sright .rooms{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+
+  /* ========== SIMPLE ========== */
+  .tpl-simple .sim-cover{height:180px;background:linear-gradient(135deg,var(--brand),var(--brand2));background-size:cover;background-position:center}
+  .tpl-simple .sim-col{max-width:440px;margin:0 auto;padding:0 18px 40px;text-align:center}
+  .tpl-simple .sim-av{width:90px;height:90px;border-radius:50%;background:#fff;border:5px solid #fff;margin:-46px auto 8px;display:flex;align-items:center;justify-content:center;font-size:38px;box-shadow:0 8px 20px rgba(0,0,0,.12)}
+  .tpl-simple h1{font-size:23px;margin:0 0 4px} .tpl-simple .bio{color:var(--muted);font-size:13.5px;margin-bottom:16px}
+  .tpl-simple .searchbar{grid-template-columns:1fr 1fr;text-align:left} .tpl-simple .searchbar .go{grid-column:1/-1}
+  .tpl-simple .rooms{grid-template-columns:1fr;text-align:left} .tpl-simple .room .pic{height:170px}
+  .tpl-simple .lk{display:block;background:#fff;border:1px solid var(--line);border-radius:var(--card-radius);padding:14px;margin-top:10px;font-weight:700;text-decoration:none;color:var(--ink)}
+
+  /* ========== CATALOG ========== */
+  .tpl-catalog .cat-bar{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:20}
+  .tpl-catalog .cat-bar .logo{font-weight:800;margin-right:auto}
+  .tpl-catalog .cat-bar .searchbar{box-shadow:none;border-radius:999px;padding:4px;display:flex;align-items:center;gap:0}
+  .tpl-catalog .cat-bar .searchbar .f{padding:6px 12px} .tpl-catalog .cat-bar .searchbar .f label{display:none}
+  .tpl-catalog .fil{display:flex;gap:8px;flex-wrap:wrap;max-width:1040px;margin:16px auto 0;padding:0 20px} .tpl-catalog .fil span{border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:12.5px;color:var(--muted)}
+  .tpl-catalog .rooms{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+  .tpl-catalog .room{border-radius:var(--card-radius)} .tpl-catalog .room .pic{border-radius:var(--card-radius) var(--card-radius) 0 0}
+
+  /* ========== CLASSIC ========== */
+  .tpl-classic .cla-nav{display:flex;align-items:center;justify-content:center;gap:22px;padding:18px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+  .tpl-classic .cla-nav .logo{font-family:var(--font);font-size:20px;font-weight:800;margin:0 12px;letter-spacing:1px}
+  .tpl-classic .ghero{background:color-mix(in srgb,var(--brand) 5%,#fff);color:var(--ink);text-align:center;min-height:auto} .tpl-classic .ghero:after{display:none}
+  .tpl-classic .ghero .frame{border:1px solid var(--accent);max-width:620px;margin:0 auto;padding:40px 26px}
+  .tpl-classic .ghero h1{color:var(--ink);text-shadow:none;font-size:38px} .tpl-classic .ghero .eyebrow{color:var(--accent)} .tpl-classic .ghero .tag{color:var(--muted);margin:0 auto}
+  .tpl-classic .hr{color:var(--accent);font-size:22px;margin:8px 0}
+  .tpl-classic h2{text-align:center} .tpl-classic .room{text-align:center;border:1px solid var(--accent)} .tpl-classic .room .foot{flex-direction:column;gap:10px;align-items:center}
+
+  /* ========== BENTO ========== */
+  .tpl-bento{background:color-mix(in srgb,var(--brand) 5%,#eef1f4);padding:16px}
+  .tpl-bento .bento{display:grid;grid-template-columns:repeat(4,1fr);gap:12px} @media(max-width:760px){.tpl-bento .bento{grid-template-columns:repeat(2,1fr)}}
+  .tpl-bento .bt{background:#fff;border-radius:18px;padding:16px;overflow:hidden}
+  .tpl-bento .bhero{grid-column:span 2;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand2));display:flex;flex-direction:column;justify-content:flex-end;min-height:180px}
+  .tpl-bento .bhero h1{font-size:26px;font-weight:800;margin:0;color:#fff;text-shadow:none}
+  .tpl-bento .bsearch{grid-column:span 2} .tpl-bento .bsearch .searchbar{box-shadow:none;border:none;padding:0;grid-template-columns:1fr 1fr}
+  .tpl-bento .brooms{grid-column:1/-1} .tpl-bento .rooms{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))} .tpl-bento .room{border-radius:18px}
+
+  /* ========== FULLSCREEN ========== */
+  .tpl-fullscreen .ghero{min-height:480px;justify-content:center;text-align:center} .tpl-fullscreen .ghero .in{text-align:center} .tpl-fullscreen .ghero .tag{margin:0 auto}
+  .tpl-fullscreen .fs-nav{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;justify-content:space-between;align-items:center;padding:16px 24px;color:#fff;font-weight:700}
+  .tpl-fullscreen .searchbar{border-radius:0;box-shadow:0 6px 20px rgba(15,23,42,.1);position:sticky;top:0;z-index:30;margin:0;max-width:none}
+
+  /* ========== IMMERSIVE ========== */
+  .tpl-immersive{color:#fff}
+  .tpl-immersive .im-nav{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:16px 24px;background:rgba(10,14,20,.5);backdrop-filter:blur(6px);color:#fff;font-weight:700}
+  .tpl-immersive .im-sc{height:360px;position:relative;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px}
+  .tpl-immersive .im-sc:after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.3)} .tpl-immersive .im-cap{position:relative;z-index:2;max-width:560px}
+  .tpl-immersive .im-cap .e{letter-spacing:5px;font-size:12px;text-transform:uppercase;opacity:.9;margin-bottom:12px} .tpl-immersive .im-cap h1{font-size:40px;font-weight:700;margin-bottom:12px;text-shadow:0 2px 24px rgba(0,0,0,.4)} .tpl-immersive .im-cap p{opacity:.95}
+  .tpl-immersive .im-s1{background:linear-gradient(135deg,var(--brand),var(--brand2))} .tpl-immersive .im-s2{background:linear-gradient(135deg,var(--brand2),var(--accent))}
+  .tpl-immersive .im-book{background:#fff;color:var(--ink);padding:40px 20px}
+  .tpl-immersive .im-book .searchbar{max-width:900px;margin:0 auto 28px} .tpl-immersive .rooms{max-width:1000px;margin:0 auto}
+  .tpl-immersive h2{color:var(--ink)}
 </style>
 </head>
 <body>
 <div id="page"></div>
 
-<!-- booking modal (room select → summary/form/payment choice) -->
-<div id="bkModal" class="modal"><div class="modal-card wide">
-  <div class="modal-head"><h3 id="bk-ttl"></h3><button class="x" onclick="closeBk()">✕</button></div>
-  <div id="g-sum"></div>
+<div id="bkModal" class="modal"><div class="modal-card" style="max-width:440px">
+  <div class="modal-head"><h3 id="bk-ttl"></h3><button class="x" onclick="closeBk()">✕</button></div><div id="g-sum"></div>
 </div></div>
-<!-- payment QR modal -->
 <div id="payModal" class="modal"><div class="modal-card" style="max-width:380px">
   <div class="modal-head"><h3 id="pay-ttl"></h3><button class="x" onclick="closePay()">✕</button></div>
-  <div style="text-align:center">
-    <div class="srow total" style="border-top:none;margin:0 0 10px;padding-top:0"><span id="pay-amt-l"></span><span id="pay-amt"></span></div>
-    <div id="pay-qrbox"><div id="pay-scan" style="font-size:13px;color:var(--muted);margin-bottom:6px"></div>
-      <div id="pay-qr" style="display:flex;justify-content:center;padding:10px;background:#fff;border:1px solid var(--line);border-radius:12px;width:fit-content;margin:0 auto"></div>
-      <p class="note" id="pay-name" style="margin-top:8px"></p></div>
+  <div style="text-align:center"><div class="srow total" style="border-top:none;margin:0 0 10px;padding-top:0"><span id="pay-amt-l"></span><span id="pay-amt"></span></div>
+    <div id="pay-qrbox"><div id="pay-scan" style="font-size:13px;color:var(--muted);margin-bottom:6px"></div><div id="pay-qr" style="display:flex;justify-content:center;padding:10px;background:#fff;border:1px solid var(--line);border-radius:12px;width:fit-content;margin:0 auto"></div><p class="note" id="pay-name" style="margin-top:8px"></p></div>
     <div id="pay-noqr" class="note" style="display:none;text-align:left;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:10px;border-radius:10px"></div>
     <div class="field" style="text-align:left;margin-top:12px"><label id="pay-ref-l"></label><input id="pay-ref"></div>
-    <button class="btn block lg" id="pay-done" onclick="reportPaid()"></button>
-    <p class="note" id="pay-note"></p>
-  </div>
+    <button class="btn block lg" id="pay-done" onclick="reportPaid()"></button><p class="note" id="pay-note"></p></div>
 </div></div>
-<!-- cancel modal -->
 <div id="cancelModal" class="modal"><div class="modal-card" style="max-width:380px">
   <div class="modal-head"><h3 id="cx-ttl"></h3><button class="x" onclick="closeCancel()">✕</button></div>
   <p class="sub" id="cancel-policy" style="margin-top:0"></p>
   <div class="field"><label id="cx-ref-l"></label><input id="cx-ref" placeholder="BP-XXXXXX"></div>
   <div class="field"><label id="cx-tel-l"></label><input id="cx-tel" placeholder="08x-xxx-xxxx"></div>
-  <button class="btn block lg" id="cx-do" onclick="doCancel()"></button>
-  <p class="note" id="cx-msg"></p>
+  <button class="btn block lg" id="cx-do" onclick="doCancel()"></button><p class="note" id="cx-msg"></p>
 </div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -106,98 +162,91 @@ function uNight(n){ return n+" "+T("คืน", n>1?"nights":"night"); }
 function uRoom(n){ return n+" "+T("ห้อง", n>1?"rooms":"room"); }
 function uPax(n){ return n+" "+T("คน", n>1?"guests":"guest"); }
 function paxOpts(){ let o=""; for(let i=1;i<=6;i++) o+='<option value="'+i+'"'+(i===2?' selected':'')+'>'+uPax(i)+'</option>'; return o; }
-function scrollTo(id){ const e=document.getElementById(id); if(e) e.scrollIntoView({behavior:"smooth"}); }
+function scrollToSearch(){ const e=document.querySelector(".searchbar"); if(e) e.scrollIntoView({behavior:"smooth",block:"center"}); }
+function scrollToId(id){ const e=document.getElementById(id); if(e) e.scrollIntoView({behavior:"smooth"}); }
 
-function shell(){ return ''+
-  '<div class="gnav"><div class="in"><div class="logo"><span class="dot">B</span><span id="g-name"></span></div>'+
-    '<div class="menu"><a onclick="scrollTo(\'sec-rooms\')">'+T("ห้องพัก","Rooms")+'</a><a onclick="scrollTo(\'sec-amen\')">'+T("บริการ","Services")+'</a><a onclick="scrollTo(\'sec-gal\')">'+T("แกลเลอรี","Gallery")+'</a></div>'+
-    '<button class="btn sm" onclick="scrollTo(\'searchbar\')">'+T("จองเลย","Book")+'</button></div></div>'+
-  '<div class="ghero" id="ghero"><div class="in"><div class="eyebrow" id="g-eyebrow"></div><h1 id="g-h1"></h1><div class="tag" id="g-tag"></div></div></div>'+
-  '<div style="max-width:1000px;margin:0 auto;padding:0 20px"><div class="searchbar" id="searchbar">'+
-    '<div><label>'+T("เช็คอิน","Check-in")+'</label><input id="g-din" type="date" onchange="gSearch()"></div>'+
-    '<div><label>'+T("เช็คเอาท์","Check-out")+'</label><input id="g-dout" type="date" onchange="gSearch()"></div>'+
-    '<div><label>'+T("ผู้เข้าพัก","Guests")+'</label><select id="g-pax" onchange="gSearch()">'+paxOpts()+'</select></div>'+
-    '<button class="btn" onclick="gSearch()">'+T("ค้นหาห้องว่าง","Search")+'</button></div></div>'+
-  '<div id="g-promo" style="max-width:1000px;margin:18px auto 0;padding:0 20px;display:none"></div>'+
-  '<div class="sec" id="sec-rooms"><div class="kick">rooms &amp; rates</div><h2>'+T("ห้องพักของเรา","Our rooms")+'</h2><p class="lead" id="g-note2"></p><div class="rooms" id="g-rooms"></div></div>'+
-  '<div class="sec alt" id="sec-amen" style="display:none"><div class="inner"><div class="kick">experience</div><h2>'+T("บริการเสริม","Extra services")+'</h2><p class="lead"></p><div class="amen" id="g-amen"></div></div></div>'+
+// shared fragments
+function fSearchFields(){ return '<div class="f"><label>'+T("เช็คอิน","Check-in")+'</label><input id="g-din" type="date" onchange="gSearch()"></div>'+
+  '<div class="f"><label>'+T("เช็คเอาท์","Check-out")+'</label><input id="g-dout" type="date" onchange="gSearch()"></div>'+
+  '<div class="f"><label>'+T("ผู้เข้าพัก","Guests")+'</label><select id="g-pax" onchange="gSearch()">'+paxOpts()+'</select></div>'; }
+function fSearchBtn(){ return '<button class="btn go" onclick="gSearch()">'+T("ค้นหาห้องว่าง","Search")+'</button>'; }
+function fSearch(){ return '<div class="searchbar">'+fSearchFields()+fSearchBtn()+'</div>'; }
+function fRoomsSec(){ return '<div class="sec" id="sec-rooms"><div class="kick">rooms &amp; rates</div><h2>'+T("ห้องพักของเรา","Our rooms")+'</h2><p class="lead" id="g-note2"></p><div class="rooms" id="g-rooms"></div></div>'; }
+function fRoomsPlain(){ return '<p class="lead" id="g-note2" style="margin:10px 0"></p><div class="rooms" id="g-rooms"></div>'; }
+function fExtras(){ return '<div class="sec alt" id="sec-amen" style="display:none"><div class="inner"><div class="kick">experience</div><h2>'+T("บริการเสริม","Services")+'</h2><p class="lead"></p><div class="amen" id="g-amen"></div></div></div>'+
   '<div class="sec" id="sec-gal" style="display:none"><div class="kick">gallery</div><h2>'+T("บรรยากาศที่พัก","Our space")+'</h2><p class="lead"></p><div class="gal" id="g-gal"></div></div>'+
   '<div class="sec"><div class="kick">why book direct</div><h2>'+T("ทำไมจองตรงกับเรา","Why book direct")+'</h2><p class="lead"></p><div class="benefits" id="g-benefits"></div></div>'+
-  '<div class="cta"><h2>'+T("พร้อมพักผ่อนแล้วหรือยัง?","Ready for a getaway?")+'</h2><p>'+T("ว่างช่วงนี้ไม่กี่ห้อง — จองตรงรับราคาดีที่สุด","A few rooms left — book direct for the best price")+'</p><button class="btn lg" onclick="scrollTo(\'searchbar\')">'+T("จองที่พัก →","Book now →")+'</button></div>'+
-  '<div class="gfoot" id="footer"></div>';
-}
+  '<div class="ctaband"><h2>'+T("พร้อมพักผ่อนแล้วหรือยัง?","Ready for a getaway?")+'</h2><button class="btn lg" onclick="scrollToSearch()">'+T("จองที่พัก →","Book now →")+'</button></div>'; }
+function fFoot(){ return '<div class="gfoot" id="footer"></div>'; }
+function fNav(){ return '<div class="gnav"><div class="in"><div class="logo"><span class="dot">B</span><span id="g-name"></span></div><div class="menu"><a onclick="scrollToId(\'sec-rooms\')">'+T("ห้องพัก","Rooms")+'</a><a onclick="scrollToId(\'sec-amen\')">'+T("บริการ","Services")+'</a></div><button class="btn sm" onclick="scrollToSearch()">'+T("จองเลย","Book")+'</button></div></div>'; }
+function fHero(){ return '<div class="ghero" id="ghero"><div class="in"><div class="eyebrow" id="g-eyebrow"></div><h1 id="g-h1"></h1><div class="tag" id="g-tag"></div></div></div>'; }
+
+// 10 templates
+const TPL={
+ rich:()=> fNav()+fHero()+'<div class="wrapx overlap">'+fSearch()+'</div>'+fRoomsSec()+fExtras()+fFoot(),
+ editorial:()=> '<div class="ed-top"><span id="g-name"></span></div>'+fHero()+'<div class="wrapx">'+fSearch()+'</div><div class="sec">'+fRoomsPlain()+'</div>'+fFoot(),
+ magazine:()=> fNav()+fHero()+'<div class="wrapx">'+fSearch()+'</div><div class="sec">'+fRoomsPlain()+'</div>'+fFoot(),
+ split:()=> '<div class="splitwrap"><div class="sleft"><div class="logo"><span class="dot" style="width:28px;height:28px;border-radius:9px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center">B</span><span id="g-name"></span></div><div class="eyebrow" id="g-eyebrow"></div><div class="tag" id="g-tag"></div>'+fSearch()+'<div class="benefits" id="g-benefits" style="display:block"></div></div><div class="sright">'+fRoomsPlain()+'</div></div>'+fFoot(),
+ simple:()=> '<div class="sim-cover" id="ghero"></div><div class="sim-col"><div class="sim-av">🏡</div><h1 id="g-name"></h1><div class="bio"><span id="g-eyebrow"></span> <span id="g-tag"></span></div>'+fSearch()+fRoomsPlain()+'<a class="lk" href="privacy.html" target="_blank">📄 '+T("นโยบายความเป็นส่วนตัว","Privacy policy")+'</a></div>'+fFoot(),
+ catalog:()=> '<div class="cat-bar"><span class="logo" id="g-name"></span>'+fSearch()+'</div><div class="fil"><span>'+T("ทั้งหมด","All")+'</span><span>'+T("ราคาต่ำ-สูง","Price")+'</span><span>'+T("ว่างวันนี้","Available")+'</span></div><div class="sec">'+fRoomsPlain()+'</div>'+fExtras()+fFoot(),
+ classic:()=> '<div class="cla-nav"><span>'+T("ห้องพัก","Rooms")+'</span><span class="logo" id="g-name"></span><span>'+T("ติดต่อ","Contact")+'</span></div><div class="ghero" id="ghero"><div class="in" style="padding:0"><div class="frame"><div class="eyebrow" id="g-eyebrow"></div><h1 id="g-h1"></h1><div class="hr">❧</div><div class="tag" id="g-tag"></div></div></div></div><div class="wrapx" style="margin-top:20px">'+fSearch()+'</div>'+fRoomsSec()+fExtras()+fFoot(),
+ bento:()=> '<div class="tpl-bento-wrap"><div class="bento"><div class="bt bhero"><div class="eyebrow" id="g-eyebrow" style="opacity:.9"></div><h1 id="g-h1"></h1><div class="tag" id="g-tag" style="opacity:.9"></div></div><div class="bt bsearch">'+fSearch()+'</div><div class="bt brooms">'+fRoomsPlain()+'</div></div></div>'+fExtras()+fFoot(),
+ fullscreen:()=> '<div class="ghero" id="ghero"><div class="fs-nav"><b id="g-name"></b><span>'+T("จองเลย","Book")+'</span></div><div class="in"><div class="eyebrow" id="g-eyebrow"></div><h1 id="g-h1"></h1><div class="tag" id="g-tag"></div></div></div>'+fSearch()+'<div class="sec">'+fRoomsPlain()+'</div>'+fExtras()+fFoot(),
+ immersive:()=> '<div class="im-nav"><b id="g-name"></b><span>'+T("จองเลย","Book")+'</span></div><div class="im-sc im-s1" id="ghero"><div class="im-cap"><div class="e" id="g-eyebrow"></div><h1 id="g-h1"></h1><div id="g-tag"></div></div></div><div class="im-sc im-s2"><div class="im-cap"><div class="e">'+T("บทที่สอง","chapter two")+'</div><h1>'+T("พักผ่อนอย่างแท้จริง","Truly unwind")+'</h1></div></div><div class="im-book"><h2 style="text-align:center">'+T("เลือกห้องพัก","Choose a room")+'</h2>'+fSearch()+fRoomsPlain()+'</div>'+fFoot(),
+};
 
 async function boot(){
-  const page=document.getElementById("page");
-  API.mountLangToggle();
+  const page=document.getElementById("page"); API.mountLangToggle();
   if(!slug){ page.innerHTML='<div class="sec"><p class="empty">'+T("ลิงก์ไม่ถูกต้อง (ขาด ?h=ชื่อโรงแรม)","Invalid link (missing ?h=slug)")+'</p></div>'; return; }
   try { HOTEL=await API.pubHotel(slug); } catch { page.innerHTML='<div class="sec"><p class="empty">'+T("ไม่พบโรงแรมนี้","Property not found")+'</p></div>'; return; }
-  API.applyTheme(HOTEL);
-  document.title=T("จองที่พัก","Book a stay")+" · "+HOTEL.name;
-  if(HOTEL.approved===false){ page.innerHTML='<div class="sec"><div class="panel" style="text-align:center;max-width:520px;margin:30px auto"><h2>'+T("ยังไม่เปิดรับจอง","Not open for booking yet")+'</h2><p class="sub">'+T("ที่พักนี้กำลังรอการอนุมัติจากทีมงาน BARN-PARK","This property is awaiting approval from the BARN-PARK team.")+'</p></div></div>'; return; }
-  page.innerHTML=shell();
+  API.applyTheme(HOTEL); document.title=T("จองที่พัก","Book a stay")+" · "+HOTEL.name;
+  if(HOTEL.approved===false){ page.innerHTML='<div class="sec"><div class="panel" style="text-align:center;max-width:520px;margin:30px auto"><h2>'+T("ยังไม่เปิดรับจอง","Not open yet")+'</h2><p class="sub">'+T("ที่พักนี้กำลังรอการอนุมัติจากทีมงาน BARN-PARK","Awaiting approval from the BARN-PARK team.")+'</p></div></div>'; return; }
+  const tpl=(TPL[HOTEL.template]?HOTEL.template:"rich");
+  page.className="tpl-"+tpl; page.innerHTML=TPL[tpl]();
   // header
-  document.getElementById("g-name").textContent=HOTEL.name;
-  document.getElementById("g-h1").textContent=HOTEL.name;
-  document.getElementById("g-eyebrow").textContent=(HOTEL.location?("📍 "+HOTEL.location):"")+(HOTEL.location&&HOTEL.tagline?"  ·  ":"");
-  document.getElementById("g-tag").textContent=HOTEL.tagline||"";
-  if(HOTEL.coverUrl) document.getElementById("ghero").style.background="linear-gradient(135deg,var(--brand),var(--brand2)), url("+HOTEL.coverUrl+") center/cover";
-  if(HOTEL.coverUrl) document.getElementById("ghero").style.backgroundBlendMode="multiply";
-  // promo
-  if(HOTEL.promoText||HOTEL.promoImage){ const p=document.getElementById("g-promo"); p.style.display="block";
-    p.innerHTML='<div style="display:flex;gap:12px;align-items:center;background:#fff;border:1px solid var(--line);border-left:5px solid var(--brand);border-radius:var(--card-radius);padding:12px 14px">'+(HOTEL.promoImage?'<div style="width:90px;height:60px;border-radius:8px;background:url('+HOTEL.promoImage+') center/cover;flex:none"></div>':'')+'<div style="font-weight:700">🎉 '+esc(HOTEL.promoText||T("โปรโมชันพิเศษ","Special offer"))+'</div></div>'; }
-  // benefits (honest, no fake reviews)
-  const cd=(HOTEL.cancelDays==null?3:HOTEL.cancelDays);
-  document.getElementById("g-benefits").innerHTML=
-    '<div class="ben"><div class="ic">💚</div><div class="t">'+T("ราคาดีที่สุด","Best price")+'</div><div class="d">'+T("จองตรงไม่ผ่านคนกลาง","Direct, no middleman")+'</div></div>'+
-    (HOTEL.allowGuestCancel!==false?'<div class="ben"><div class="ic">🗓️</div><div class="t">'+T("ยกเลิกฟรี","Free cancellation")+'</div><div class="d">'+T("ก่อนเช็คอิน "+cd+" วัน","Up to "+cd+" days before")+'</div></div>':'<div class="ben"><div class="ic">✅</div><div class="t">'+T("ยืนยันทันที","Instant confirm")+'</div><div class="d">'+T("รู้ผลการจองทันที","Know right away")+'</div></div>')+
-    '<div class="ben"><div class="ic">💬</div><div class="t">'+T("คุยกับที่พักตรง ๆ","Talk to the host")+'</div><div class="d">'+T("สอบถามได้ก่อนเข้าพัก","Ask before you stay")+'</div></div>';
-  // footer
-  document.getElementById("footer").innerHTML=esc(HOTEL.name)+(HOTEL.phone?(" · "+T("โทร","Tel")+" "+esc(HOTEL.phone)):"")+(HOTEL.lineId?(" · LINE "+esc(HOTEL.lineId)):"")+" · "+T("ขับเคลื่อนโดย","Powered by")+" BARN-PARK · "+(HOTEL.allowGuestCancel!==false?'<a href="#" onclick="openCancel();return false">'+T("ยกเลิกการจอง","Cancel a booking")+'</a> · ':'')+'<a href="privacy.html" target="_blank">'+T("นโยบายความเป็นส่วนตัว","Privacy")+'</a>';
-  // modals static text
+  const setTxt=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
+  setTxt("g-name",HOTEL.name); setTxt("g-h1",HOTEL.name);
+  setTxt("g-eyebrow",(HOTEL.location?("📍 "+HOTEL.location):"")); setTxt("g-tag",HOTEL.tagline||"");
+  const gh=document.getElementById("ghero"); if(gh && HOTEL.coverUrl && tpl!=="magazine" && tpl!=="classic"){ gh.style.background="linear-gradient(135deg,var(--brand),var(--brand2)), url("+HOTEL.coverUrl+") center/cover"; gh.style.backgroundBlendMode="multiply"; }
+  renderBenefits();
+  const foot=document.getElementById("footer"); if(foot) foot.innerHTML=esc(HOTEL.name)+(HOTEL.phone?(" · "+T("โทร","Tel")+" "+esc(HOTEL.phone)):"")+(HOTEL.lineId?(" · LINE "+esc(HOTEL.lineId)):"")+" · "+T("ขับเคลื่อนโดย","Powered by")+" BARN-PARK · "+(HOTEL.allowGuestCancel!==false?'<a href="#" onclick="openCancel();return false">'+T("ยกเลิกการจอง","Cancel")+'</a> · ':'')+'<a href="privacy.html" target="_blank">'+T("นโยบาย","Privacy")+'</a>';
   setModalText();
-  // services → amenities
-  try{ SVC=await API.pubServices(slug); }catch{ SVC=[]; }
-  renderAmen();
-  // dates + search
+  try{ SVC=await API.pubServices(slug); }catch{ SVC=[]; } renderAmen();
   const t=new Date(); document.getElementById("g-din").value=API.ymd(API.addDays(t,1)); document.getElementById("g-dout").value=API.ymd(API.addDays(t,3));
   gSearch();
 }
-function renderAmen(){
-  const sec=document.getElementById("sec-amen"); if(!SVC.length){ sec.style.display="none"; return; }
-  sec.style.display="block";
-  document.getElementById("g-amen").innerHTML=SVC.map(s=>'<div class="am"><div class="ic" style="'+(s.imageUrl?"background-image:url('"+s.imageUrl+"')":"background:color-mix(in srgb,var(--brand) 12%,#fff)")+'">'+(s.imageUrl?"":"🛎️")+'</div><div class="t">'+esc(s.name)+'</div>'+(s.description?'<div class="d">'+esc(s.description)+'</div>':'')+(s.price!=null?'<div class="p">'+money(s.price)+'</div>':'')+'</div>').join("");
+function renderBenefits(){ const b=document.getElementById("g-benefits"); if(!b) return; const cd=(HOTEL.cancelDays==null?3:HOTEL.cancelDays);
+  b.innerHTML='<div class="ben"><div class="ic">💚</div><div class="t">'+T("ราคาดีที่สุด","Best price")+'</div><div class="d">'+T("จองตรงไม่ผ่านคนกลาง","Direct, no middleman")+'</div></div>'+
+    (HOTEL.allowGuestCancel!==false?'<div class="ben"><div class="ic">🗓️</div><div class="t">'+T("ยกเลิกฟรี","Free cancel")+'</div><div class="d">'+T("ก่อนเช็คอิน "+cd+" วัน","Up to "+cd+" days before")+'</div></div>':'<div class="ben"><div class="ic">✅</div><div class="t">'+T("ยืนยันทันที","Instant")+'</div><div class="d">'+T("รู้ผลทันที","Know right away")+'</div></div>')+
+    '<div class="ben"><div class="ic">💬</div><div class="t">'+T("คุยกับที่พักตรง ๆ","Talk to host")+'</div><div class="d">'+T("สอบถามก่อนเข้าพัก","Ask before you stay")+'</div></div>';
 }
-function renderGallery(){
-  const sec=document.getElementById("sec-gal"); const imgs=[]; AVAIL.forEach(r=>{ (r.images||[]).forEach(u=>{ if(u&&imgs.length<8) imgs.push(u); }); if(r.imageUrl&&!(r.images&&r.images.length)&&imgs.length<8) imgs.push(r.imageUrl); });
-  if(!imgs.length){ sec.style.display="none"; return; }
-  sec.style.display="block";
-  document.getElementById("g-gal").innerHTML=imgs.slice(0,8).map(u=>'<div class="gt" style="background-image:url(\''+u+'\')"></div>').join("");
-}
+function renderAmen(){ const sec=document.getElementById("sec-amen"); if(!sec) return; if(!SVC.length){ sec.style.display="none"; return; } sec.style.display="block";
+  document.getElementById("g-amen").innerHTML=SVC.map(s=>'<div class="am"><div class="ic" style="'+(s.imageUrl?"background-image:url('"+s.imageUrl+"')":"")+'">'+(s.imageUrl?"":"🛎️")+'</div><div class="t">'+esc(s.name)+'</div>'+(s.description?'<div class="d">'+esc(s.description)+'</div>':'')+(s.price!=null?'<div class="p">'+money(s.price)+'</div>':'')+'</div>').join(""); }
+function renderGallery(){ const sec=document.getElementById("sec-gal"); if(!sec) return; const imgs=[]; AVAIL.forEach(r=>{ (r.images||[]).forEach(u=>{ if(u&&imgs.length<8) imgs.push(u); }); if(r.imageUrl&&!(r.images&&r.images.length)&&imgs.length<8) imgs.push(r.imageUrl); });
+  if(!imgs.length){ sec.style.display="none"; return; } sec.style.display="block"; document.getElementById("g-gal").innerHTML=imgs.slice(0,8).map(u=>'<div class="gt" style="background-image:url(\''+u+'\')"></div>').join(""); }
 async function gSearch(){
-  const din=document.getElementById("g-din").value, dout=document.getElementById("g-dout").value;
-  gN=API.nights(din,dout);
-  if(gN<1){ document.getElementById("g-note2").textContent=T("กรุณาเลือกวันเช็คเอาท์ให้หลังเช็คอิน","Please pick a check-out date after check-in"); return; }
-  document.getElementById("g-note2").textContent=uNight(gN)+" · "+uPax(paxNum());
+  const din=document.getElementById("g-din").value, dout=document.getElementById("g-dout").value; gN=API.nights(din,dout);
+  const note=document.getElementById("g-note2");
+  if(gN<1){ if(note)note.textContent=T("กรุณาเลือกวันเช็คเอาท์ให้หลังเช็คอิน","Pick a check-out after check-in"); return; }
+  if(note)note.textContent=uNight(gN)+" · "+uPax(paxNum());
   document.getElementById("g-rooms").innerHTML='<p class="empty" style="grid-column:1/-1">'+T("กำลังตรวจห้องว่าง…","Checking availability…")+'</p>';
   try { AVAIL=await API.pubAvailability(slug,din,dout); } catch(e){ document.getElementById("g-rooms").innerHTML='<p class="empty" style="grid-column:1/-1">'+T("โหลดห้องไม่สำเร็จ","Couldn't load rooms")+'</p>'; return; }
   renderRooms(); renderGallery();
 }
 function renderRooms(){
-  if(!AVAIL.length){ document.getElementById("g-rooms").innerHTML='<p class="empty" style="grid-column:1/-1">'+T("โรงแรมนี้ยังไม่ได้ตั้งค่าห้องพัก","This property hasn't set up rooms yet")+'</p>'; return; }
+  if(!AVAIL.length){ document.getElementById("g-rooms").innerHTML='<p class="empty" style="grid-column:1/-1">'+T("โรงแรมนี้ยังไม่ได้ตั้งค่าห้องพัก","No rooms set up yet")+'</p>'; return; }
   document.getElementById("g-rooms").innerHTML=AVAIL.map(r=>{const sold=r.available<=0;const save=(r.otaPrice||0)-(r.basePrice||0);
     const imgs=(r.images&&r.images.length)?r.images:(r.imageUrl?[r.imageUrl]:[]);const pid="rpic-"+r.roomTypeId;
     const pic=imgs.length?"background-image:url('"+imgs[0]+"')":"";
     const thumbs=imgs.length>1?'<div class="thumbs">'+imgs.map((u,i)=>'<div onclick="setRoomPic(\''+pid+'\',\''+i+'\',\''+r.roomTypeId+'\')" style="background-image:url(\''+u+'\');border-color:'+(i===0?'#fff':'rgba(255,255,255,.4)')+'" data-i="'+i+'"></div>').join('')+'</div>':'';
-    return '<div class="rcard"><div class="pic" id="'+pid+'" style="'+pic+'">'+thumbs+'</div><div class="b"><h3>'+esc(r.name)+'</h3><div class="cap">'+T("รับ "+r.capacity+" คน/ห้อง","Up to "+r.capacity+" guests/room")+'</div>'+
-      (sold?'<div class="left no">'+T("เต็มช่วงนี้","Sold out")+'</div>':'<div class="left ok">'+T("ว่าง "+r.available+" ห้อง",r.available+" left")+'</div>')+
-      '<div class="foot"><div class="pr">'+(save>0?'<span class="ota">'+money(r.otaPrice)+'</span> ':'')+'<span class="now">'+money(r.basePrice)+'</span> <span style="font-size:12px;color:var(--muted)">'+T("/คืน","/night")+'</span>'+(save>0?'<span class="save">'+T("ประหยัด "+money(save),"Save "+money(save))+'</span>':'')+'</div>'+
+    return '<div class="room"><div class="pic" id="'+pid+'" style="'+pic+'">'+thumbs+'</div><div class="body"><h3>'+esc(r.name)+'</h3><div class="cap">'+T("รับ "+r.capacity+" คน/ห้อง","Up to "+r.capacity+" guests")+'</div>'+
+      (sold?'<div class="avail no">'+T("เต็มช่วงนี้","Sold out")+'</div>':'<div class="avail">'+T("ว่าง "+r.available+" ห้อง",r.available+" left")+'</div>')+
+      '<div class="foot"><div>'+(save>0?'<span class="ota">'+money(r.otaPrice)+'</span> ':'')+'<span class="now">'+money(r.basePrice)+'</span> <span style="font-size:12px;color:var(--muted)">'+T("/คืน","/night")+'</span>'+(save>0?'<span class="save">'+T("ประหยัด "+money(save),"Save "+money(save))+'</span>':'')+'</div>'+
       (sold?'<button class="btn" disabled>'+T("เต็ม","Full")+'</button>':'<button class="btn" onclick="pick(\''+r.roomTypeId+'\')">'+T("เลือก","Select")+'</button>')+'</div></div></div>';}).join("");
 }
 function setRoomPic(pid,i,rtId){ const r=AVAIL.find(x=>x.roomTypeId===rtId); if(!r)return; const imgs=(r.images&&r.images.length)?r.images:(r.imageUrl?[r.imageUrl]:[]); const idx=+i;
   const el=document.getElementById(pid); if(el&&imgs[idx]) el.style.backgroundImage="url('"+imgs[idx]+"')";
-  const card=el&&el.closest(".rcard"); if(card) card.querySelectorAll("[data-i]").forEach(d=>d.style.borderColor=(+d.dataset.i===idx)?"#fff":"rgba(255,255,255,.4)");
-}
+  const card=el&&el.closest(".room"); if(card) card.querySelectorAll("[data-i]").forEach(d=>d.style.borderColor=(+d.dataset.i===idx)?"#fff":"rgba(255,255,255,.4)"); }
 function pick(id){ sel=AVAIL.find(r=>r.roomTypeId===id); const pax=paxNum(); const av=Math.max(1,sel.available); gRooms=Math.min(Math.max(1,Math.ceil(pax/sel.capacity)),av); gEB=0;
   document.getElementById("bk-ttl").textContent=sel.name; renderSum(); document.getElementById("bkModal").classList.add("on"); }
 function closeBk(){ document.getElementById("bkModal").classList.remove("on"); }
@@ -215,8 +264,8 @@ function renderSum(){
     '<div class="field"><label>'+T("เบอร์โทร","Phone")+'</label><input id="g-tel" placeholder="08x-xxx-xxxx"></div>'+
     '<div class="field"><label>'+T("อีเมล","Email")+'</label><input id="g-mail"></div>'+
     '<label style="font-size:12px;font-weight:700;color:var(--muted)">'+T("รับการยืนยันทาง","Confirmation via")+'</label><div class="pay" id="g-npay"><div class="opt on" data-n="email" onclick="setN(this)">'+T("อีเมล","Email")+'</div><div class="opt" data-n="sms" onclick="setN(this)">SMS</div><div class="opt" data-n="line" onclick="setN(this)">LINE</div></div>'+
-    '<label style="font-size:12px;font-weight:700;color:var(--muted)">'+T("ชำระเงิน","Payment")+'</label><div class="pay"><div class="opt on" data-p="promptpay" onclick="setP(this)">PromptPay</div><div class="opt" data-p="transfer" onclick="setP(this)">'+T("โอน","Transfer")+'</div><div class="opt" data-p="hotel" onclick="setP(this)">'+T("จ่ายที่โรงแรม","Pay at property")+'</div></div>'+
-    '<label style="display:flex;gap:8px;align-items:flex-start;font-weight:400;color:var(--muted);font-size:12px;margin-top:10px"><input type="checkbox" id="g-consent" style="width:auto;margin-top:2px"><span>'+T("ยินยอมให้ที่พักเก็บและใช้ข้อมูลการจองตาม ","I consent to the property using my booking details per the ")+'<a href="privacy.html" target="_blank">'+T("นโยบายความเป็นส่วนตัว","privacy policy")+'</a></span></label>'+
+    '<label style="font-size:12px;font-weight:700;color:var(--muted)">'+T("ชำระเงิน","Payment")+'</label><div class="pay"><div class="opt on" data-p="promptpay" onclick="setP(this)">PromptPay</div><div class="opt" data-p="transfer" onclick="setP(this)">'+T("โอน","Transfer")+'</div><div class="opt" data-p="hotel" onclick="setP(this)">'+T("จ่ายที่โรงแรม","Pay later")+'</div></div>'+
+    '<label style="display:flex;gap:8px;align-items:flex-start;font-weight:400;color:var(--muted);font-size:12px;margin-top:10px"><input type="checkbox" id="g-consent" style="width:auto;margin-top:2px"><span>'+T("ยินยอมให้ที่พักเก็บและใช้ข้อมูลการจองตาม ","I consent per the ")+'<a href="privacy.html" target="_blank">'+T("นโยบายความเป็นส่วนตัว","privacy policy")+'</a></span></label>'+
     '<button class="btn block lg" id="g-confirm" style="margin-top:10px" onclick="confirmBk()">'+T("ยืนยันการจอง","Confirm booking")+'</button></div>';
   recalc();
 }
@@ -224,74 +273,54 @@ function recalc(){ if(!sel)return; const q=+(document.getElementById("g-qty")||{
   const ebP=Number(sel.extraBedPrice||0), per=(Number(sel.basePrice)+eb*ebP)*gN, total=per*q;
   const l=document.getElementById("g-line"); if(l)l.textContent=money(sel.basePrice)+(eb>0?(" + "+T("เตียง","bed")+" "+money(eb*ebP)):"")+" × "+uNight(gN)+" × "+uRoom(q);
   const tt=document.getElementById("g-total"); if(tt)tt.textContent=money(total);
-  const bt=document.getElementById("g-confirm"); if(bt)bt.textContent=T("ยืนยันการจอง","Confirm booking")+" · "+money(total);
-}
+  const bt=document.getElementById("g-confirm"); if(bt)bt.textContent=T("ยืนยันการจอง","Confirm booking")+" · "+money(total); }
 function setN(el){ document.querySelectorAll("#g-npay .opt").forEach(o=>o.classList.remove("on")); el.classList.add("on"); gNotify=el.dataset.n; }
 function setP(el){ el.parentElement.querySelectorAll(".opt").forEach(o=>o.classList.remove("on")); el.classList.add("on"); gPay=el.dataset.p; }
-// PromptPay QR
 function ppCrc16(s){ let c=0xFFFF; for(let i=0;i<s.length;i++){ c^=s.charCodeAt(i)<<8; for(let j=0;j<8;j++){ c=(c&0x8000)?((c<<1)^0x1021):(c<<1); c&=0xFFFF; } } return c.toString(16).toUpperCase().padStart(4,"0"); }
 function ppField(id,val){ return id+String(val.length).padStart(2,"0")+val; }
 function promptPayPayload(target, amount){ const id=String(target||"").replace(/[^0-9]/g,""); if(!id) return "";
-  let acc=ppField("00","A000000677010114");
-  if(id.length>=15) acc+=ppField("03",id); else if(id.length>=13) acc+=ppField("02",id); else acc+=ppField("01",("0000000000000"+id.replace(/^0/,"66")).slice(-13));
+  let acc=ppField("00","A000000677010114"); if(id.length>=15) acc+=ppField("03",id); else if(id.length>=13) acc+=ppField("02",id); else acc+=ppField("01",("0000000000000"+id.replace(/^0/,"66")).slice(-13));
   let p=ppField("00","01")+ppField("01",amount?"12":"11")+ppField("29",acc)+ppField("53","764")+ppField("58","TH"); if(amount) p+=ppField("54",Number(amount).toFixed(2)); p+="6304"; return p+ppCrc16(p); }
 function curTotal(){ const q=+(document.getElementById("g-qty")||{}).value||1; const ebEl=document.getElementById("g-eb"); const eb=ebEl?+ebEl.value:0; return (Number(sel.basePrice)+eb*Number(sel.extraBedPrice||0))*gN*q; }
-async function confirmBk(){
-  const name=(document.getElementById("g-gname")||{}).value||"", tel=(document.getElementById("g-tel")||{}).value||"";
-  if(!name.trim()){ API.toast(T("กรุณากรอกชื่อ","Please enter your name"),"err"); return; }
-  if(!tel.trim()){ API.toast(T("กรุณากรอกเบอร์","Please enter your phone"),"err"); return; }
-  const consent=document.getElementById("g-consent"); if(consent && !consent.checked){ API.toast(T("กรุณายินยอมนโยบายความเป็นส่วนตัวก่อนจอง","Please accept the privacy policy to continue"),"err"); return; }
-  if(gPay==="hotel"){ submitBooking(false,""); return; }
-  openPay();
-}
+async function confirmBk(){ const name=(document.getElementById("g-gname")||{}).value||"", tel=(document.getElementById("g-tel")||{}).value||"";
+  if(!name.trim()){ API.toast(T("กรุณากรอกชื่อ","Enter your name"),"err"); return; } if(!tel.trim()){ API.toast(T("กรุณากรอกเบอร์","Enter your phone"),"err"); return; }
+  const consent=document.getElementById("g-consent"); if(consent && !consent.checked){ API.toast(T("กรุณายินยอมนโยบายความเป็นส่วนตัวก่อนจอง","Please accept the privacy policy"),"err"); return; }
+  if(gPay==="hotel"){ submitBooking(false,""); return; } openPay(); }
 function openPay(){ const total=curTotal(); document.getElementById("pay-amt").textContent=money(total); document.getElementById("pay-ref").value="";
   const qrbox=document.getElementById("pay-qr"), noqr=document.getElementById("pay-noqr"), qrwrap=document.getElementById("pay-qrbox"); qrbox.innerHTML="";
   const payload=promptPayPayload(HOTEL.promptpayId,total);
   if(payload && window.QRCode){ qrwrap.style.display="block"; noqr.style.display="none"; new QRCode(qrbox,{text:payload,width:200,height:200,correctLevel:QRCode.CorrectLevel.M}); document.getElementById("pay-name").textContent=(HOTEL.promptpayName||HOTEL.name)+" · PromptPay"; }
-  else { qrwrap.style.display="none"; noqr.style.display="block"; }
-  document.getElementById("payModal").classList.add("on");
-}
+  else { qrwrap.style.display="none"; noqr.style.display="block"; } document.getElementById("payModal").classList.add("on"); }
 function closePay(){ document.getElementById("payModal").classList.remove("on"); }
 function reportPaid(){ submitBooking(true, (document.getElementById("pay-ref").value||"").trim()); }
-async function submitBooking(paid, payRef){
-  const name=(document.getElementById("g-gname")||{}).value||"", tel=(document.getElementById("g-tel")||{}).value||"";
+async function submitBooking(paid, payRef){ const name=(document.getElementById("g-gname")||{}).value||"", tel=(document.getElementById("g-tel")||{}).value||"";
   const btns=[document.getElementById("g-confirm"),document.getElementById("pay-done")].filter(Boolean); btns.forEach(b=>{b.disabled=true;});
-  try {
-    const res=await API.pubBook({ slug, roomTypeId:sel.roomTypeId, din:document.getElementById("g-din").value, dout:document.getElementById("g-dout").value,
-      name:name.trim(), tel:tel.trim(), email:(document.getElementById("g-mail").value||"").trim(), pax:paxNum(), notify:gNotify, rooms:gRooms, extraBed:gEB, paid, payRef });
-    closePay(); closeBk();
-    API.toast((paid?T("แจ้งชำระแล้ว! ","Payment reported! "):T("จองสำเร็จ! ","Booked! "))+T("หมายเลข ","No. ")+res.ref+" · "+T("รวม ","Total ")+money(res.amount),"ok");
-    setTimeout(()=>gSearch(), 900);
+  try { const res=await API.pubBook({ slug, roomTypeId:sel.roomTypeId, din:document.getElementById("g-din").value, dout:document.getElementById("g-dout").value, name:name.trim(), tel:tel.trim(), email:(document.getElementById("g-mail").value||"").trim(), pax:paxNum(), notify:gNotify, rooms:gRooms, extraBed:gEB, paid, payRef });
+    closePay(); closeBk(); API.toast((paid?T("แจ้งชำระแล้ว! ","Payment reported! "):T("จองสำเร็จ! ","Booked! "))+T("หมายเลข ","No. ")+res.ref+" · "+T("รวม ","Total ")+money(res.amount),"ok"); setTimeout(()=>gSearch(), 900);
   } catch(e){ API.toast(T("จองไม่สำเร็จ: ","Booking failed: ")+e.message,"err"); }
-  btns.forEach(b=>{b.disabled=false;}); const c=document.getElementById("g-confirm"); if(c)c.textContent=T("ยืนยันการจอง","Confirm booking");
-}
+  btns.forEach(b=>{b.disabled=false;}); const c=document.getElementById("g-confirm"); if(c)c.textContent=T("ยืนยันการจอง","Confirm booking"); }
 function openCancel(){ document.getElementById("cx-msg").textContent=""; document.getElementById("cancelModal").classList.add("on"); }
 function closeCancel(){ document.getElementById("cancelModal").classList.remove("on"); }
-async function doCancel(){
-  const ref=document.getElementById("cx-ref").value.trim(), tel=document.getElementById("cx-tel").value.trim();
-  if(!ref||!tel){ document.getElementById("cx-msg").textContent=T("กรุณากรอกเลขการจองและเบอร์โทร","Please enter booking no. and phone"); return; }
+async function doCancel(){ const ref=document.getElementById("cx-ref").value.trim(), tel=document.getElementById("cx-tel").value.trim();
+  if(!ref||!tel){ document.getElementById("cx-msg").textContent=T("กรุณากรอกเลขการจองและเบอร์โทร","Enter booking no. and phone"); return; }
   const b=document.getElementById("cx-do"); b.disabled=true; b.textContent=T("กำลังยกเลิก…","Cancelling…");
-  try{ const r=await API.pubCancel({ slug, ref, tel });
-    document.getElementById("cx-msg").textContent="✔ "+T("ยกเลิกแล้ว "+r.cancelled+" ห้อง","Cancelled "+uRoom(r.cancelled))+(r.freeCancel?T(" (ยกเลิกฟรี)"," (free)"):T(" (เลยกำหนดยกเลิกฟรี)"," (past free window)"));
-    API.toast(T("ยกเลิกการจองแล้ว","Booking cancelled"),"ok"); setTimeout(()=>{closeCancel();gSearch();},1600);
-  }catch(e){ document.getElementById("cx-msg").textContent="✗ "+e.message; }
-  b.disabled=false; b.textContent=T("ยืนยันการยกเลิก","Confirm cancellation");
-}
+  try{ const r=await API.pubCancel({ slug, ref, tel }); document.getElementById("cx-msg").textContent="✔ "+T("ยกเลิกแล้ว "+r.cancelled+" ห้อง","Cancelled "+uRoom(r.cancelled))+(r.freeCancel?T(" (ยกเลิกฟรี)"," (free)"):T(" (เลยกำหนด)"," (late)")); API.toast(T("ยกเลิกการจองแล้ว","Cancelled"),"ok"); setTimeout(()=>{closeCancel();gSearch();},1600);
+  }catch(e){ document.getElementById("cx-msg").textContent="✗ "+e.message; } b.disabled=false; b.textContent=T("ยืนยันการยกเลิก","Confirm cancellation"); }
 function setModalText(){
   document.getElementById("pay-ttl").textContent=T("ชำระเงินเพื่อยืนยัน","Pay to confirm");
   document.getElementById("pay-amt-l").textContent=T("ยอดชำระ","Amount");
   document.getElementById("pay-scan").textContent=T("สแกนจ่ายด้วยแอปธนาคาร (PromptPay)","Scan to pay (PromptPay)");
-  document.getElementById("pay-noqr").textContent=T("โรงแรมยังไม่ได้ตั้งค่า PromptPay — ติดต่อโรงแรมเพื่อรับเลขบัญชี แล้วแจ้งชำระด้านล่าง","This property hasn't set up PromptPay — contact them for details, then report below.");
+  document.getElementById("pay-noqr").textContent=T("โรงแรมยังไม่ได้ตั้งค่า PromptPay — ติดต่อโรงแรมเพื่อรับเลขบัญชี แล้วแจ้งชำระด้านล่าง","Property hasn't set up PromptPay — contact them, then report below.");
   document.getElementById("pay-ref-l").textContent=T("เลขอ้างอิง/เวลาโอน (ถ้ามี)","Transfer ref / time (optional)");
-  document.getElementById("pay-ref").placeholder=T("เช่น 14:32 หรือ 4 ตัวท้าย","e.g. 14:32 or last 4 digits");
-  document.getElementById("pay-done").textContent=T("โอนแล้ว · แจ้งชำระเงิน","Paid · Report payment");
+  document.getElementById("pay-ref").placeholder=T("เช่น 14:32 หรือ 4 ตัวท้าย","e.g. 14:32 or last 4");
+  document.getElementById("pay-done").textContent=T("โอนแล้ว · แจ้งชำระเงิน","Paid · Report");
   document.getElementById("pay-note").textContent=T("โรงแรมจะตรวจสอบยอดและยืนยันให้อีกครั้ง","The property will verify and confirm.");
   document.getElementById("cx-ttl").textContent=T("ยกเลิกการจอง","Cancel booking");
   document.getElementById("cx-ref-l").textContent=T("เลขการจอง (เช่น BP-XXXXXX)","Booking no. (e.g. BP-XXXXXX)");
   document.getElementById("cx-tel-l").textContent=T("เบอร์โทรที่ใช้จอง","Phone used to book");
   document.getElementById("cx-do").textContent=T("ยืนยันการยกเลิก","Confirm cancellation");
   const cd=(HOTEL.cancelDays==null?3:HOTEL.cancelDays);
-  document.getElementById("cancel-policy").textContent=T("ยกเลิกฟรีก่อนเช็คอินอย่างน้อย "+cd+" วัน · หลังจากนั้นขึ้นกับนโยบายที่พัก","Free cancellation at least "+cd+" days before check-in · after that per property policy.");
+  document.getElementById("cancel-policy").textContent=T("ยกเลิกฟรีก่อนเช็คอินอย่างน้อย "+cd+" วัน · หลังจากนั้นขึ้นกับนโยบายที่พัก","Free cancellation at least "+cd+" days before check-in.");
 }
 boot();
 </script>

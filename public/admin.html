@@ -45,7 +45,8 @@
         <div><label>สถานะ</label><select id="e-status"><option value="active">ใช้งาน</option><option value="onboarding">กำลังตั้งค่า</option><option value="paused">พัก</option></select></div>
         <div><label>ค่าบริการ/เดือน (บาท)</label><input id="e-fee" type="number"></div>
         <div><label>PromptPay (เบอร์/เลขบัตร)</label><input id="e-pp" placeholder="0812345678"></div>
-        <div style="grid-column:1/-1"><label>🎨 สไตล์สำเร็จรูป (10 ลุค)</label><select id="e-preset" onchange="applyPresetAdmin(this.value)"><option value="">— เลือกสไตล์ —</option></select></div>
+        <div><label>🧱 เทมเพลตหน้า</label><select id="e-template"><option value="rich">Rich</option><option value="editorial">Editorial</option><option value="magazine">Magazine</option><option value="split">Split-screen</option><option value="simple">Simple</option><option value="catalog">Catalog</option><option value="classic">Classic</option><option value="bento">Bento</option><option value="fullscreen">Full-screen</option><option value="immersive">Immersive</option></select></div>
+        <div><label>🎨 ชุดสี/ฟอนต์ (10 สไตล์)</label><select id="e-preset" onchange="applyPresetAdmin(this.value)"><option value="">— เลือกสไตล์ —</option></select></div>
         <div><label>สีหลัก 1</label><input id="e-color" type="color" style="height:42px;padding:4px" oninput="prevAdmin()"></div>
         <div><label>สีหลัก 2</label><input id="e-color2" type="color" style="height:42px;padding:4px" oninput="prevAdmin()"></div>
         <div><label>สีรอง 1</label><input id="e-a1" type="color" style="height:42px;padding:4px" oninput="prevAdmin()"></div>
@@ -143,6 +144,7 @@ function fillEdit(){
   document.getElementById('e-color2').value=cur.brandColor2||'#2563eb';
   document.getElementById('e-a1').value=cur.accentColor||'#f59e0b';
   document.getElementById('e-a2').value=cur.accentColor2||'#ec4899';
+  document.getElementById('e-template').value=cur.template||'rich';
   document.getElementById('e-preset').innerHTML='<option value="">— เลือกสไตล์ —</option>'+API.STYLE_PRESETS.map(p=>'<option value="'+p.key+'">'+p.name+'</option>').join('');
   document.getElementById('e-font').innerHTML=Object.keys(API.THEME_FONTS).map(f=>'<option value="'+f+'"'+((cur.fontFamily||'Sarabun')===f?' selected':'')+'>'+f+'</option>').join('');
   document.getElementById('e-ui').innerHTML=Object.entries(API.UI_STYLES).map(([k,v])=>'<option value="'+k+'"'+((cur.uiStyle||'pill')===k?' selected':'')+'>'+v.label+'</option>').join('');
@@ -165,6 +167,7 @@ async function saveHotel(){
     brandColor:document.getElementById('e-color').value, brandColor2:document.getElementById('e-color2').value,
     accentColor:document.getElementById('e-a1').value, accentColor2:document.getElementById('e-a2').value,
     fontFamily:document.getElementById('e-font').value, uiStyle:document.getElementById('e-ui').value,
+    template:document.getElementById('e-template').value,
     allowGuestCancel:document.getElementById('e-cancel-allow').value==='yes', cancelDays:+val('e-cancel-days')||0,
     tagline:val('e-tagline'),
     coverUrl:val('e-cover'), about:val('e-about'), promoText:val('e-promo'), promoImage:val('e-promoimg'), promptpayId:val('e-pp'),
