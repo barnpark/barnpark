@@ -86,6 +86,20 @@ window.API = (function () {
     if (document.body) add(); else document.addEventListener("DOMContentLoaded", add);
   }
 
+  // 10 สไตล์สำเร็จรูป (กดเลือกแล้วเซ็ต สี4 + ฟอนต์ + สไตล์มุม ให้ทันที — ปรับต่อเองได้)
+  const STYLE_PRESETS = [
+    { key: "organic",  name: "Warm Organic · อบอุ่นธรรมชาติ", brandColor: "#6b7a4f", brandColor2: "#9aa86b", accentColor: "#c57b4e", accentColor2: "#caa23e", fontFamily: "Mitr",         uiStyle: "pill" },
+    { key: "zen",      name: "Zen Minimal · สงบมินิมอล",      brandColor: "#8a8172", brandColor2: "#b8ad99", accentColor: "#a98f6b", accentColor2: "#6f6757", fontFamily: "Taviraj",      uiStyle: "minimal" },
+    { key: "playful",  name: "Playful · สนุกสีสด",            brandColor: "#ff4d6d", brandColor2: "#ffb13d", accentColor: "#7c4dff", accentColor2: "#ffd23f", fontFamily: "Kanit",        uiStyle: "pill" },
+    { key: "heritage", name: "Heritage · คลาสสิกหรู",         brandColor: "#0f3d2e", brandColor2: "#1c5a44", accentColor: "#c8a24b", accentColor2: "#0a2b20", fontFamily: "Taviraj",      uiStyle: "sharp" },
+    { key: "wellness", name: "Wellness · สดชื่นสปา",          brandColor: "#2b8ca6", brandColor2: "#56c1d6", accentColor: "#7fd1b9", accentColor2: "#14506b", fontFamily: "Prompt",       uiStyle: "soft" },
+    { key: "luxe",     name: "Luxe Gold · หรูทอง",            brandColor: "#1f2430", brandColor2: "#3a4150", accentColor: "#d4af37", accentColor2: "#e8c766", fontFamily: "Chakra Petch", uiStyle: "sharp" },
+    { key: "tropical", name: "Tropical · เขตร้อนสดใส",        brandColor: "#0bc5b4", brandColor2: "#36d1a0", accentColor: "#ff6f5e", accentColor2: "#ffd23f", fontFamily: "Bai Jamjuree", uiStyle: "pill" },
+    { key: "scandi",   name: "Scandinavian · นอร์ดิก",        brandColor: "#8a9a86", brandColor2: "#a7b5a0", accentColor: "#c98a6b", accentColor2: "#2c3330", fontFamily: "Sarabun",      uiStyle: "soft" },
+    { key: "ryokan",   name: "Japanese Ryokan · ญี่ปุ่น",     brandColor: "#35495e", brandColor2: "#5a6e82", accentColor: "#a6563f", accentColor2: "#2e2b28", fontFamily: "Taviraj",      uiStyle: "minimal" },
+    { key: "boho",     name: "Bohemian · โบโฮฟาร์มสเตย์",     brandColor: "#b5533b", brandColor2: "#d98b5f", accentColor: "#caa23e", accentColor2: "#f3d9a4", fontFamily: "Mali",         uiStyle: "pill" },
+  ];
+
   function applyBrand(c) { if (c) document.documentElement.style.setProperty("--brand", c); }
 
   // ย่อรูปในเบราว์เซอร์แล้วคืนเป็น data URL (ไม่ต้องใช้ที่เก็บรูปภายนอก)
@@ -142,7 +156,7 @@ window.API = (function () {
     pubAvailability: (slug, din, dout) => pub("/availability?slug=" + encodeURIComponent(slug) + "&din=" + din + "&dout=" + dout),
     pubBook: async (b) => { const r = await fetch("/api/public/book", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; },
     pubCancel: async (b) => { const r = await fetch("/api/public/cancel", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; },
-    money, ymd, addDays, nights, thDate, esc, applyBrand, applyTheme, loadFont, resizeImage, lang, setLang, t, applyI18n, mountLangToggle, THEME_FONTS, UI_STYLES, CHAN, chColor, shortCh, toast, signOut: () => { clear(); location.href = "login.html"; },
+    money, ymd, addDays, nights, thDate, esc, applyBrand, applyTheme, loadFont, resizeImage, lang, setLang, t, applyI18n, mountLangToggle, THEME_FONTS, UI_STYLES, STYLE_PRESETS, CHAN, chColor, shortCh, toast, signOut: () => { clear(); location.href = "login.html"; },
     mountSupport,
   };
 

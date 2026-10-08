@@ -45,13 +45,13 @@
         <div><label>สถานะ</label><select id="e-status"><option value="active">ใช้งาน</option><option value="onboarding">กำลังตั้งค่า</option><option value="paused">พัก</option></select></div>
         <div><label>ค่าบริการ/เดือน (บาท)</label><input id="e-fee" type="number"></div>
         <div><label>PromptPay (เบอร์/เลขบัตร)</label><input id="e-pp" placeholder="0812345678"></div>
+        <div style="grid-column:1/-1"><label>🎨 สไตล์สำเร็จรูป (10 ลุค)</label><select id="e-preset" onchange="applyPresetAdmin(this.value)"><option value="">— เลือกสไตล์ —</option></select></div>
         <div><label>สีหลัก 1</label><input id="e-color" type="color" style="height:42px;padding:4px" oninput="prevAdmin()"></div>
         <div><label>สีหลัก 2</label><input id="e-color2" type="color" style="height:42px;padding:4px" oninput="prevAdmin()"></div>
         <div><label>สีรอง 1</label><input id="e-a1" type="color" style="height:42px;padding:4px" oninput="prevAdmin()"></div>
         <div><label>สีรอง 2</label><input id="e-a2" type="color" style="height:42px;padding:4px" oninput="prevAdmin()"></div>
         <div><label>ฟอนต์</label><select id="e-font" onchange="prevAdmin()"></select></div>
         <div><label>สไตล์มุม/ปุ่ม</label><select id="e-ui" onchange="prevAdmin()"></select></div>
-        <div><label>รูปแบบหน้าจอง (Layout)</label><select id="e-layout"><option value="og">BARN-PARK</option><option value="grid">แค็ตตาล็อก</option><option value="minimal">มินิมอล</option><option value="fullhero">ภาพเต็มจอ</option><option value="creative">ครีเอทีฟ</option><option value="classic">คลาสสิก</option><option value="split">แบ่งครึ่งจอ</option><option value="simple">เรียบง่าย</option><option value="immersive">ดื่มด่ำ</option><option value="bento">เบนโตะ</option></select></div>
         <div><label>ให้แขกยกเลิกออนไลน์</label><select id="e-cancel-allow"><option value="yes">อนุญาต</option><option value="no">ไม่อนุญาต</option></select></div>
         <div><label>ยกเลิกฟรีก่อนเช็คอิน (วัน)</label><input id="e-cancel-days" type="number" min="0"></div>
         <div style="grid-column:1/-1"><label>คำโปรย (tagline)</label><input id="e-tagline" placeholder="เช่น ที่พักริมน้ำ บรรยากาศบ้านสวน"></div>
@@ -143,9 +143,9 @@ function fillEdit(){
   document.getElementById('e-color2').value=cur.brandColor2||'#2563eb';
   document.getElementById('e-a1').value=cur.accentColor||'#f59e0b';
   document.getElementById('e-a2').value=cur.accentColor2||'#ec4899';
+  document.getElementById('e-preset').innerHTML='<option value="">— เลือกสไตล์ —</option>'+API.STYLE_PRESETS.map(p=>'<option value="'+p.key+'">'+p.name+'</option>').join('');
   document.getElementById('e-font').innerHTML=Object.keys(API.THEME_FONTS).map(f=>'<option value="'+f+'"'+((cur.fontFamily||'Sarabun')===f?' selected':'')+'>'+f+'</option>').join('');
   document.getElementById('e-ui').innerHTML=Object.entries(API.UI_STYLES).map(([k,v])=>'<option value="'+k+'"'+((cur.uiStyle||'pill')===k?' selected':'')+'>'+v.label+'</option>').join('');
-  document.getElementById('e-layout').value=cur.layout||'og';
   document.getElementById('e-cancel-allow').value=(cur.allowGuestCancel===false)?'no':'yes';
   V('e-cancel-days',cur.cancelDays??3);
   V('e-pp',cur.promptpayId);
@@ -153,13 +153,18 @@ function fillEdit(){
   const link=document.getElementById('d-booklink'); link.href='book.html?h='+encodeURIComponent(cur.slug);
 }
 function prevAdmin(){ API.applyTheme({brandColor:document.getElementById('e-color').value,brandColor2:document.getElementById('e-color2').value,accentColor:document.getElementById('e-a1').value,accentColor2:document.getElementById('e-a2').value,fontFamily:document.getElementById('e-font').value,uiStyle:document.getElementById('e-ui').value}); }
+function applyPresetAdmin(k){ const p=(API.STYLE_PRESETS||[]).find(x=>x.key===k); if(!p)return;
+  document.getElementById('e-color').value=p.brandColor; document.getElementById('e-color2').value=p.brandColor2;
+  document.getElementById('e-a1').value=p.accentColor; document.getElementById('e-a2').value=p.accentColor2;
+  document.getElementById('e-font').value=p.fontFamily; document.getElementById('e-ui').value=p.uiStyle; prevAdmin();
+}
 async function saveHotel(){
   const body={
     name:val('e-name'), location:val('e-loc'), phone:val('e-phone'),
     status:document.getElementById('e-status').value, planFee:+val('e-fee')||800,
     brandColor:document.getElementById('e-color').value, brandColor2:document.getElementById('e-color2').value,
     accentColor:document.getElementById('e-a1').value, accentColor2:document.getElementById('e-a2').value,
-    fontFamily:document.getElementById('e-font').value, uiStyle:document.getElementById('e-ui').value, layout:document.getElementById('e-layout').value,
+    fontFamily:document.getElementById('e-font').value, uiStyle:document.getElementById('e-ui').value,
     allowGuestCancel:document.getElementById('e-cancel-allow').value==='yes', cancelDays:+val('e-cancel-days')||0,
     tagline:val('e-tagline'),
     coverUrl:val('e-cover'), about:val('e-about'), promoText:val('e-promo'), promoImage:val('e-promoimg'), promptpayId:val('e-pp'),

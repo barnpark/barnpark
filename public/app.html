@@ -50,7 +50,8 @@
   <section id="v-set" class="view"><h1>ตั้งค่า</h1>
     <div class="panel"><h3>ลิงก์จองตรงสำหรับแขก</h3><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input id="booklink" readonly style="flex:1;min-width:220px"><button class="btn ghost" onclick="copyLink()">คัดลอก</button><a id="bookopen" class="btn" target="_blank">เปิดดู</a></div></div>
     <div class="panel"><h3>ปรับแต่งแบรนด์ (สี · ฟอนต์ · สไตล์)</h3>
-      <p class="sub" style="margin-top:0">ปรับแล้วดูตัวอย่างสดด้านล่าง — กด "บันทึกแบรนด์" เมื่อพอใจ</p>
+      <p class="sub" style="margin-top:0">เริ่มจากเลือก "สไตล์สำเร็จรูป" 1 คลิก แล้วปรับต่อได้ — ดูตัวอย่างสดด้านล่าง กด "บันทึกแบรนด์" เมื่อพอใจ</p>
+      <div style="margin-bottom:14px"><label>🎨 สไตล์สำเร็จรูป (10 ลุค)</label><select id="s-preset" onchange="applyPreset(this.value)"><option value="">— เลือกสไตล์ —</option></select></div>
       <label>สีหลัก (ใช้กับปุ่ม/หัวเว็บ ไล่เฉด 2 สี)</label>
       <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px">
         <div style="display:flex;gap:6px;align-items:center"><input id="s-c1" type="color" style="width:46px;height:40px;padding:2px" oninput="prevTheme()"><input id="s-c1x" style="max-width:100px" oninput="syncHex('s-c1',this.value)"></div>
@@ -64,18 +65,6 @@
       <div class="formgrid">
         <div><label>ฟอนต์</label><select id="s-font" onchange="prevTheme()"></select></div>
         <div><label>สไตล์มุม/ปุ่ม</label><select id="s-ui" onchange="prevTheme()"></select></div>
-        <div><label>รูปแบบหน้าจอง (Layout)</label><select id="s-layout">
-          <option value="og">BARN-PARK (ค่าเริ่มต้น)</option>
-          <option value="grid">แค็ตตาล็อก — กริดการ์ด</option>
-          <option value="minimal">มินิมอล — ภาพใหญ่ เรียบ</option>
-          <option value="fullhero">ภาพเต็มจอ — แบบรีสอร์ต</option>
-          <option value="creative">ครีเอทีฟ — การ์ดเอียงเล่น ๆ</option>
-          <option value="classic">คลาสสิก — กึ่งกลาง มีกรอบ</option>
-          <option value="split">แบ่งครึ่งจอ — กล่องจองซ้าย</option>
-          <option value="simple">เรียบง่าย — คอลัมน์เดียว</option>
-          <option value="immersive">ดื่มด่ำ — hero ใหญ่ ภาพเด่น</option>
-          <option value="bento">เบนโตะ — ไทล์มนแน่น</option>
-        </select></div>
         <div><label>คำโปรย</label><input id="s-tagline"></div>
       </div>
       <div id="theme-preview" style="margin-top:14px;border:1px dashed var(--line);border-radius:var(--card-radius);padding:16px">
@@ -338,7 +327,12 @@ function syncHex(pickerId,val){ const c=normHex(val); if(/^#[0-9a-fA-F]{6}$/.tes
 function themeFromForm(){
   return { brandColor:document.getElementById('s-c1').value, brandColor2:document.getElementById('s-c2').value,
     accentColor:document.getElementById('s-a1').value, accentColor2:document.getElementById('s-a2').value,
-    fontFamily:document.getElementById('s-font').value, uiStyle:document.getElementById('s-ui').value, layout:document.getElementById('s-layout').value };
+    fontFamily:document.getElementById('s-font').value, uiStyle:document.getElementById('s-ui').value };
+}
+function applyPreset(k){ const p=(API.STYLE_PRESETS||[]).find(x=>x.key===k); if(!p)return;
+  const setC=(pk,hx,v)=>{document.getElementById(pk).value=v;document.getElementById(hx).value=v;};
+  setC('s-c1','s-c1x',p.brandColor); setC('s-c2','s-c2x',p.brandColor2); setC('s-a1','s-a1x',p.accentColor); setC('s-a2','s-a2x',p.accentColor2);
+  document.getElementById('s-font').value=p.fontFamily; document.getElementById('s-ui').value=p.uiStyle; prevTheme();
 }
 function prevTheme(){ // ดูตัวอย่างสด (ยังไม่บันทึก)
   ['s-c1|s-c1x','s-c2|s-c2x','s-a1|s-a1x','s-a2|s-a2x'].forEach(p=>{const[a,b]=p.split('|');document.getElementById(b).value=document.getElementById(a).value;});
@@ -352,9 +346,9 @@ async function fillSettings(){
   setC('s-c1','s-c1x',HOTEL.brandColor,'#0d9488'); setC('s-c2','s-c2x',HOTEL.brandColor2,'#2563eb');
   setC('s-a1','s-a1x',HOTEL.accentColor,'#f59e0b'); setC('s-a2','s-a2x',HOTEL.accentColor2,'#ec4899');
   // ฟอนต์ + สไตล์
+  document.getElementById('s-preset').innerHTML='<option value="">— เลือกสไตล์ —</option>'+API.STYLE_PRESETS.map(p=>'<option value="'+p.key+'">'+p.name+'</option>').join('');
   const fsel=document.getElementById('s-font'); fsel.innerHTML=Object.keys(API.THEME_FONTS).map(f=>'<option value="'+f+'"'+((HOTEL.fontFamily||'Sarabun')===f?' selected':'')+'>'+f+'</option>').join('');
   const usel=document.getElementById('s-ui'); usel.innerHTML=Object.entries(API.UI_STYLES).map(([k,v])=>'<option value="'+k+'"'+((HOTEL.uiStyle||'pill')===k?' selected':'')+'>'+v.label+'</option>').join('');
-  document.getElementById('s-layout').value=HOTEL.layout||'og';
   Object.keys(API.THEME_FONTS).forEach(f=>API.loadFont(f)); // โหลดฟอนต์ล่วงหน้าให้เลือกเห็นผล
   // นโยบายยกเลิก
   document.getElementById('s-cancel-allow').value=(HOTEL.allowGuestCancel===false)?'no':'yes';
