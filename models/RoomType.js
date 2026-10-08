@@ -10,6 +10,8 @@ const schema = new mongoose.Schema({
   extraBedPrice: { type: Number, default: 0 },
   imageUrl:      String,                 // รูปหลัก (เท่ากับ images[0]) — เก็บไว้เพื่อความเข้ากันได้
   images:        { type: [String], default: [] }, // แกลเลอรีสูงสุด 4 รูป
+  // ราคาตามฤดู/ช่วงพิเศษ — ใช้ราคาของช่วงที่ "วันเช็คอิน" ตกอยู่ (ถ้าไม่ตกช่วงไหน ใช้ basePrice)
+  seasons:       { type: [{ name: String, from: String, to: String, price: Number, minNights: Number }], default: [] },
   sort:          { type: Number, default: 0 },
 }, { timestamps: true });
 

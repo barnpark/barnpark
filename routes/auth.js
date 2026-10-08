@@ -35,12 +35,13 @@ r.post("/register", async (req, res) => {
     approved: false, // รอแอดมินอนุมัติก่อนเปิดรับจอง
     ota: [{ channel: "agoda", status: 0 }, { channel: "booking", status: 0 }, { channel: "trip", status: 0 }],
   });
-  await User.create({
+  const owner = await User.create({
     email: em, role: "owner", name: hotelName, hotel: hotel._id,
     passwordHash: bcrypt.hashSync(String(password), 10),
   });
   notifyNewHotel(hotel, em).catch((e) => console.error("notifyNewHotel", e));
-  res.json({ ok: true, email: em, slug: s, bookingUrl: "/book.html?h=" + s });
+  // ล็อกอินให้เลยรอบแรก (ไม่ต้องกรอกรหัสซ้ำ/ไม่ต้อง OTP) — ลื่นขึ้น
+  res.json({ ok: true, email: em, slug: s, bookingUrl: "/book.html?h=" + s, token: sign(owner), user: userOut(owner) });
 });
 
 // ขั้นที่ 1: ตรวจรหัสผ่าน → ส่ง OTP ทางอีเมล (ถ้าตั้ง Brevo แล้ว)

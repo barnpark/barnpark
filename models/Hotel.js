@@ -28,6 +28,8 @@ const schema = new mongoose.Schema({
   notifyLineTo: String,            // LINE userId/groupId ของโรงแรม ที่จะรับแจ้งเตือนเมื่อมีจองใหม่
   promptpayId: String,             // เบอร์พร้อมเพย์ (08x) หรือเลขบัตร ปชช. ของโรงแรม สำหรับสร้าง QR รับเงิน
   promptpayName: String,           // ชื่อบัญชี/ชื่อร้าน แสดงคู่ QR
+  taxId:       String,             // เลขประจำตัวผู้เสียภาษี (สำหรับใบเสร็จ/ใบกำกับภาษี)
+  address:     String,             // ที่อยู่โรงแรม (แสดงบนใบเสร็จ)
   status:      { type: String, default: "active" }, // active | onboarding | paused
   approved:    { type: Boolean, default: true },      // แอดมินอนุมัติเปิดรับจองหรือยัง (สมัครเอง = false)
   planFee:     { type: Number, default: 800 },

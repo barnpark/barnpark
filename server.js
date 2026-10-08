@@ -11,6 +11,8 @@ import hotelRoutes from "./routes/hotels.js";
 import roomRoutes from "./routes/rooms.js";
 import serviceRoutes from "./routes/services.js";
 import bookingRoutes from "./routes/bookings.js";
+import promoRoutes from "./routes/promos.js";
+import reviewRoutes from "./routes/reviews.js";
 import publicRoutes from "./routes/public.js";
 import setupRoutes from "./routes/setup.js";
 import lineRoutes from "./routes/line.js";
@@ -31,6 +33,8 @@ app.use("/api", hotelRoutes);
 app.use("/api", roomRoutes);
 app.use("/api", serviceRoutes);
 app.use("/api", bookingRoutes);
+app.use("/api", promoRoutes);
+app.use("/api", reviewRoutes);
 
 // เสิร์ฟหน้าเว็บ (static)
 app.use(express.static(path.join(__dirname, "public")));

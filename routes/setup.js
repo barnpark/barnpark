@@ -1,7 +1,17 @@
 import { Router } from "express";
 import { runSeed } from "../lib/seed.js";
+import { dailyDigest } from "../lib/notify.js";
 
 const r = Router();
+
+// สรุปรายวันส่ง LINE/อีเมลให้ทุกโรงแรม — ให้ cron ภายนอกยิงวันละครั้ง
+//   GET /api/cron/daily?key=<CRON_KEY>   (ตั้งใน cron-job.org เวลา ~07:00)
+r.get("/cron/daily", async (req, res) => {
+  if (!process.env.CRON_KEY) return res.status(403).json({ error: "CRON_KEY ยังไม่ได้ตั้งใน environment" });
+  if (req.query.key !== process.env.CRON_KEY) return res.status(403).json({ error: "key ไม่ถูกต้อง" });
+  try { const out = await dailyDigest(); res.json({ ok: true, ...out }); }
+  catch (e) { res.status(500).json({ error: String(e.message || e) }); }
+});
 
 // เปิด URL ครั้งเดียวเพื่อใส่ข้อมูลตั้งต้น (ไม่ต้องใช้ terminal)
 //   /api/setup?key=<SETUP_KEY>

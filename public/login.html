@@ -26,7 +26,6 @@
     </div>
     <div id="stepReg" style="display:none">
       <div class="field"><label>ชื่อที่พัก *</label><input id="r-hotel" placeholder="เช่น ภูวิว เกสต์เฮาส์"></div>
-      <div class="field"><label>ลิงก์จอง (ภาษาอังกฤษ ไม่บังคับ)</label><input id="r-slug" placeholder="เช่น phuview — เว้นว่างได้ ระบบตั้งให้"></div>
       <div class="field"><label>ทำเล</label><input id="r-loc" placeholder="เช่น เชียงใหม่"></div>
       <div class="field"><label>เบอร์โทร</label><input id="r-phone" placeholder="08x-xxx-xxxx"></div>
       <div class="field"><label>อีเมล (ใช้ล็อกอิน) *</label><input id="r-email" type="email" placeholder="you@example.com"></div>
@@ -86,13 +85,11 @@ async function doRegister(){
   if(!document.getElementById("r-consent").checked){ showErr("กรุณายอมรับนโยบายความเป็นส่วนตัวก่อนสมัคร"); return; }
   const b=document.getElementById("goReg"); b.disabled=true; b.textContent="กำลังสร้างบัญชี…";
   try{
-    const res=await API.register({ hotelName, slug:v("r-slug"), location:v("r-loc"), phone:v("r-phone"), email, password });
-    // สมัครสำเร็จ → ไปหน้าเข้าสู่ระบบ (รับ OTP) พร้อมเติมอีเมลให้
-    backToLogin();
-    document.getElementById("email").value=res.email;
-    document.getElementById("pw").focus();
-    const e=document.getElementById("err"); e.style.cssText="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;border-radius:9px;padding:10px 12px;font-size:13px;margin-bottom:12px;display:block";
-    e.textContent="✔ สร้างบัญชีที่พักแล้ว! ลิงก์จองของคุณคือ "+location.origin+res.bookingUrl+" — เข้าสู่ระบบด้วยรหัสที่ตั้งไว้เพื่อเริ่มใช้งาน";
+    const res=await API.register({ hotelName, location:v("r-loc"), phone:v("r-phone"), email, password });
+    // สมัครสำเร็จ → ล็อกอินให้เลย เข้าแอปทันที (ลื่น ไม่ต้องกรอกซ้ำ/ไม่ต้อง OTP รอบแรก)
+    if(res.token){ API.setToken(res.token); location.href="app.html"; return; }
+    // เผื่อกรณีไม่มี token — กลับไปหน้าเข้าสู่ระบบ
+    backToLogin(); document.getElementById("email").value=res.email; document.getElementById("pw").focus();
   }catch(err){ showErr(err.message||"ลงทะเบียนไม่สำเร็จ"); }
   b.disabled=false; b.textContent="สร้างบัญชีที่พัก";
 }

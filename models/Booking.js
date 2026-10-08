@@ -16,6 +16,10 @@ const schema = new mongoose.Schema({
   payStatus:     { type: String, default: "" },          // ""|unpaid|reported(แขกแจ้งโอน รอตรวจ)|paid|deposit
   payRef:        String,                                  // เลขอ้างอิง/เวลาโอน ที่แขกกรอกตอนแจ้งชำระ
   payMethod:     { type: String, default: "" },          // promptpay|cash|transfer|ota
+  promoCode:     String,                                  // โค้ดส่วนลดที่ใช้
+  discount:      { type: Number, default: 0 },            // ส่วนลดต่อห้องนี้ (บาท)
+  addons:        { type: [{ name: String, price: Number, qty: Number }], default: [] }, // บริการเสริมที่ซื้อพ่วง
+  addonTotal:    { type: Number, default: 0 },            // ยอดบริการเสริมรวม (เก็บที่ห้องแรกของกลุ่ม)
   notifyChannel: { type: String, default: "email" },     // email|sms|line|none
   lineUserId:    String,
   ref:           String,

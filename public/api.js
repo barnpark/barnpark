@@ -156,6 +156,9 @@ window.API = (function () {
     pubAvailability: (slug, din, dout) => pub("/availability?slug=" + encodeURIComponent(slug) + "&din=" + din + "&dout=" + dout),
     pubBook: async (b) => { const r = await fetch("/api/public/book", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; },
     pubCancel: async (b) => { const r = await fetch("/api/public/cancel", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; },
+    pubPromo: async (b) => { const r = await fetch("/api/public/promo", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; },
+    pubReviews: (slug) => pub("/reviews/" + encodeURIComponent(slug)),
+    pubReview: async (b) => { const r = await fetch("/api/public/review", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; },
     money, ymd, addDays, nights, thDate, esc, applyBrand, applyTheme, loadFont, resizeImage, lang, setLang, t, applyI18n, mountLangToggle, THEME_FONTS, UI_STYLES, STYLE_PRESETS, CHAN, chColor, shortCh, toast, signOut: () => { clear(); location.href = "login.html"; },
     mountSupport,
   };
