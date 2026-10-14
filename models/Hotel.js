@@ -25,6 +25,7 @@ const schema = new mongoose.Schema({
   coverUrl:    String,
   coverData:   { type: String, select: false }, // รูปปกที่อัปผ่าน LINE (data URL) — เสิร์ฟที่ /api/public/img/cover/:id
   about:       String,
+  amenities:   { type: [String], default: [] }, // สิ่งอำนวยความสะดวกของที่พัก (สระว่ายน้ำ ที่จอดรถ ฯลฯ)
   promoText:   String,
   promoImage:  String,
   notifyEmail: String,             // อีเมลรับแจ้งเตือนของโรงแรม

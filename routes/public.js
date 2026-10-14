@@ -73,7 +73,7 @@ r.get("/hotel/:slug", async (req, res) => {
     id: h._id, slug: h.slug, name: h.name, location: h.location, phone: h.phone, lineId: h.lineId,
     brandColor: h.brandColor, brandColor2: h.brandColor2, accentColor: h.accentColor, accentColor2: h.accentColor2,
     fontFamily: h.fontFamily, uiStyle: h.uiStyle, template: h.template || "rich",
-    tagline: h.tagline, coverUrl: h.coverUrl, about: h.about,
+    tagline: h.tagline, coverUrl: h.coverUrl, about: h.about, amenities: h.amenities || [],
     promoText: h.promoText, promoImage: h.promoImage,
     promptpayId: h.promptpayId || "", promptpayName: h.promptpayName || h.name,
     allowGuestCancel: h.allowGuestCancel !== false, cancelDays: h.cancelDays ?? 3,
@@ -136,7 +136,7 @@ r.get("/availability", async (req, res) => {
     });
     const rate = rateFor(t, din); // ราคาตามฤดู (ถ้ามี)
     out.push({
-      roomTypeId: t._id, name: t.name, capacity: t.capacity, description: t.description || "",
+      roomTypeId: t._id, name: t.name, capacity: t.capacity, description: t.description || "", amenities: t.amenities || [],
       basePrice: rate.price, minNights: rate.minNights, season: rate.season,
       otaPrice: t.otaPrice, extraBedPrice: t.extraBedPrice, imageUrl: t.imageUrl,
       images: (t.images && t.images.length) ? t.images : (t.imageUrl ? [t.imageUrl] : []),

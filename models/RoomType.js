@@ -4,6 +4,7 @@ const schema = new mongoose.Schema({
   hotel:         { type: mongoose.Schema.Types.ObjectId, ref: "Hotel", required: true, index: true },
   name:          String,
   description:   String,                 // คำอธิบายสั้น ๆ (แสดงบนการ์ดห้อง)
+  amenities:     { type: [String], default: [] }, // สิ่งอำนวยความสะดวกในห้อง (แอร์ Wi-Fi ฯลฯ + พิมพ์เพิ่มเอง)
   hidden:        { type: Boolean, default: false }, // ปิดขายชั่วคราว (ไม่แสดงบนหน้าจอง)
   capacity:      { type: Number, default: 2 },
   qty:           { type: Number, default: 1 },
