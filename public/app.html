@@ -24,7 +24,7 @@
   <button data-v="v-set" onclick="go('v-set')">⚙️ ตั้งค่า</button>
 </div></div>
 <main><div class="wrap">
-  <section id="v-dash" class="view on"><h1>แดชบอร์ด</h1><p class="sub" id="dash-date"></p><div class="metrics" id="dash-metrics"></div>
+  <section id="v-dash" class="view on"><h1>แดชบอร์ด</h1><p class="sub" id="dash-date"></p><div class="panel" id="dash-check" style="display:none"></div><div class="metrics" id="dash-metrics"></div>
     <div class="panel"><h3>กำลังจะมาถึง</h3><table id="dash-arr"></table></div></section>
   <section id="v-cal" class="view"><h1>ปฏิทินห้องพัก</h1><p class="sub">คลิกช่องว่างเพื่อเพิ่ม · คลิกแถบเพื่อแก้ · แถบพาดคร่อมวัน</p>
     <div class="panel"><div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn ghost sm" onclick="moveWeek(-7)">‹</button><button class="btn ghost sm" onclick="jumpToday()">วันนี้</button><button class="btn ghost sm" onclick="moveWeek(7)">›</button><button class="btn sm" style="margin-left:auto" onclick="newBk('',null)">+ เพิ่มการจอง</button></div>
@@ -39,6 +39,7 @@
       <div><label>ราคา/คืน</label><input id="nt-price" type="number" value="900"></div>
       <div><label>ราคา OTA</label><input id="nt-ota" type="number" value="1050"></div>
       <div><label>เตียงเสริม/คืน</label><input id="nt-eb" type="number" value="0"></div>
+      <div><label>อาหารเช้า</label><select id="nt-bf" onchange="document.getElementById('nt-bfp').style.display=this.value==='optional'?'block':'none'"><option value="none">ไม่มีอาหารเช้า</option><option value="included">รวมในราคาแล้ว</option><option value="optional">แขกเลือกเพิ่ม</option></select><input id="nt-bfp" type="number" min="1" placeholder="ราคา/ท่าน/คืน เช่น 150" style="display:none;margin-top:6px"></div>
       <div><label>รูปห้อง (สูงสุด 4)</label><label class="btn ghost sm" style="cursor:pointer;margin:0;display:inline-block">เลือกรูป<input type="file" accept="image/*" multiple style="display:none" onchange="pickNewRoomImg(this)"></label> <span id="nt-img-status" class="note" style="margin:0"></span></div>
     </div><button class="btn" style="margin-top:12px" onclick="addRT()">เพิ่มห้อง</button></div></section>
   <section id="v-svc" class="view"><h1>บริการเสริม</h1><p class="sub">นวด สปา อาหารเช้า กิจกรรม ฯลฯ — แสดงบนหน้าจองของแขก</p>
@@ -48,7 +49,9 @@
       <div><label>รายละเอียด</label><input id="ns-desc" placeholder="เช่น 60 นาที"></div>
       <div><label>ราคา (บาท)</label><input id="ns-price" type="number" value="0"></div>
       <div><label>ลิงก์รูป (ถ้ามี)</label><input id="ns-img" placeholder="https://..."></div>
-    </div><button class="btn" style="margin-top:12px" onclick="addSvc()">เพิ่มบริการ</button></div></section>
+    </div><button class="btn" style="margin-top:12px" onclick="addSvc()">เพิ่มบริการ</button>
+    <p class="note" style="margin:8px 0 0">💡 อยากให้คนที่ไม่ได้พักจองได้ (เช่น นวด ทัวร์ เวิร์กช็อป) → ตั้ง “ขายแบบ” เป็น 🎟 จองเดี่ยว หรือ ✨ ทั้งสองแบบ ในตารางด้านบน</p></div>
+    <div class="panel"><h3>🎟 การจองกิจกรรม (จองเดี่ยว)</h3><div style="overflow-x:auto"><table id="actbktable"></table></div></div></section>
   <section id="v-promo" class="view"><h1>โค้ดส่วนลด / โปรโมชัน</h1><p class="sub">สร้างโค้ดให้ลูกค้าใส่ตอนจองตรง — กระตุ้นให้จองผ่านเว็บเรา</p>
     <div class="panel"><div style="overflow-x:auto"><table id="promotable"></table></div></div>
     <div class="panel"><h3>+ สร้างโค้ดใหม่</h3><div class="formgrid">
@@ -147,20 +150,32 @@
         <span class="note">— หรือถ้าให้ลูกค้าหลายคนรับแจ้งเตือนในกลุ่ม: ใส่ Webhook URL นี้ในหน้า channel แล้วทักแชตเพื่อเอา userId/groupId:
         <div style="display:flex;gap:6px;margin:6px 0"><input id="s-line-webhook" readonly style="flex:1;font-size:12px"><button class="btn ghost sm" onclick="copyWebhook()">คัดลอก</button></div></span>
       </div></div>
-    <div class="panel"><h3>รับเงินด้วย PromptPay</h3><p class="sub" style="margin-top:0">ใส่เบอร์พร้อมเพย์ (08x…) หรือเลขบัตรประชาชนของบัญชีรับเงิน — ระบบจะสร้าง QR ให้แขกสแกนจ่ายตอนจองตรง</p>
+    <div class="panel"><h3>รับเงินด้วย PromptPay</h3><p class="sub" style="margin-top:0">ใส่เบอร์มือถือที่ผูกพร้อมเพย์ (08x…) หรือเลขบัตรประชาชน/เลขนิติบุคคล 13 หลัก — ระบบจะสร้าง QR ตามยอดจองให้แขกสแกนจ่าย</p>
       <div class="formgrid">
-        <div><label>เบอร์/เลขบัตร PromptPay</label><input id="s-pp-id" placeholder="0812345678 หรือ 1234567890123"></div>
+        <div><label>เบอร์มือถือ / เลขบัตร PromptPay</label><input id="s-pp-id" inputmode="numeric" placeholder="0812345678 หรือ 1234567890123"></div>
         <div><label>ชื่อบัญชี/ชื่อร้าน (แสดงคู่ QR)</label><input id="s-pp-name" placeholder="เช่น บ้าน-บ้าน สุขพอดี"></div>
         <div><label>เลขผู้เสียภาษี (สำหรับใบเสร็จ)</label><input id="s-taxid" placeholder="ไม่บังคับ"></div>
         <div><label>ที่อยู่ (แสดงบนใบเสร็จ)</label><input id="s-address" placeholder="ไม่บังคับ"></div>
-      </div><button class="btn" style="margin-top:12px" onclick="saveHotel()">บันทึก PromptPay / ข้อมูลใบเสร็จ</button></div>
+      </div><button class="btn" style="margin-top:12px" onclick="saveHotel()">บันทึก PromptPay / ข้อมูลใบเสร็จ</button>
+      <div id="pp-test" style="display:none;margin-top:14px;padding:12px;border:1px dashed var(--line);border-radius:12px;align-items:center;gap:14px;flex-wrap:wrap">
+        <img id="pp-test-img" alt="QR ทดสอบ" style="width:132px;height:132px;background:#fff;border-radius:8px" onerror="this.parentElement.style.display='none'">
+        <div style="flex:1;min-width:180px"><b>🧪 QR ทดสอบ ฿1</b><br><span class="note">สแกนด้วยแอปธนาคารของคุณ — ถ้าแอปขึ้นชื่อบัญชีถูกต้อง แขกจ่ายได้แน่นอน (กดยกเลิกได้ ไม่ต้องโอนจริง)</span><br><span id="pp-test-id" class="note"></span></div>
+      </div></div>
+    <div class="panel"><h3>🛎 ข้อมูลการเข้าพัก</h3><p class="sub" style="margin-top:0">แสดงบนหน้าจอง หน้ายืนยันการจอง และอีเมลยืนยันของแขก</p>
+      <div class="formgrid">
+        <div><label>เช็คอินได้ตั้งแต่</label><input id="s-cin" type="time" placeholder="14:00"></div>
+        <div><label>เช็คเอาท์ก่อน</label><input id="s-cout" type="time" placeholder="12:00"></div>
+        <div style="grid-column:1/-1"><label>ลิงก์แผนที่ (Google Maps)</label><input id="s-map" placeholder="วางลิงก์จากปุ่ม “แชร์” ใน Google Maps หรือพิกัด เช่น 13.7563, 100.5018"></div>
+        <div style="grid-column:1/-1"><label>กฎที่พัก / ข้อควรรู้ (บรรทัดละข้อ)</label><textarea id="s-rules" rows="4" placeholder="🚭 ห้ามสูบบุหรี่ในห้องพัก&#10;🔇 งดใช้เสียงดังหลัง 22:00 น.&#10;🐶 ไม่อนุญาตให้นำสัตว์เลี้ยงเข้าพัก"></textarea></div>
+      </div><p class="note" style="margin:6px 0 0">ที่อยู่ที่พัก ใส่ได้ในกล่อง “รับเงินด้วย PromptPay / ข้อมูลใบเสร็จ” ด้านบน · ทำผ่าน LINE ได้ที่ 🎨 ตั้งค่าเว็บ → 🛎 ข้อมูลการเข้าพัก (ส่งตำแหน่งจากมือถือได้เลย)</p>
+      <button class="btn" style="margin-top:12px" onclick="saveHotel()">บันทึกข้อมูลการเข้าพัก</button></div>
     <div class="panel"><h3>นโยบายการยกเลิก</h3><p class="sub" style="margin-top:0">กำหนดเองว่าจะให้แขกยกเลิกออนไลน์ได้ไหม และยกเลิกฟรีก่อนเช็คอินกี่วัน</p>
       <div class="formgrid">
         <div><label>ให้แขกยกเลิกออนไลน์</label><select id="s-cancel-allow"><option value="yes">อนุญาต</option><option value="no">ไม่อนุญาต (ติดต่อโรงแรมเท่านั้น)</option></select></div>
         <div><label>ยกเลิกฟรีก่อนเช็คอิน (วัน)</label><input id="s-cancel-days" type="number" value="3" min="0"></div>
         <div><label>ปล่อยห้องค้างไม่จ่ายอัตโนมัติ (ชม.)</label><input id="s-hold-hours" type="number" value="24" min="0" placeholder="0 = ปิด"></div>
       </div>
-      <p class="note" style="margin:6px 0 0">การจองที่เลือก "จ่ายที่โรงแรม/ยังไม่โอน" จะถูกยกเลิกอัตโนมัติถ้าไม่ชำระภายในเวลาที่ตั้ง (ใส่ 0 เพื่อปิด)</p>
+      <p class="note" style="margin:6px 0 0">การจองที่แขกเลือก “จ่ายทีหลัง” แล้วยังไม่ชำระ จะถูกยกเลิกอัตโนมัติเมื่อครบเวลาที่ตั้ง (ใส่ 0 เพื่อปิด) — แขกเห็นกำหนดชำระในหน้ายืนยันและอีเมล · ถ้าตกลงให้แขกรายไหนจ่ายตอนเข้าพัก กด “🤝 ให้จ่ายที่ที่พัก” ในการ์ดแจ้งเตือนทาง LINE</p>
       <button class="btn" style="margin-top:12px" onclick="saveHotel()">บันทึกนโยบาย</button></div>
     <div class="panel"><h3>ข้อมูลโรงแรม</h3><div class="formgrid">
       <div><label>ชื่อโรงแรม</label><input id="s-name"></div><div><label>ทำเล</label><input id="s-loc"></div>
@@ -227,8 +242,16 @@ async function load(){
   SVC=await API.get('/hotels/'+HID+'/services').catch(()=>[]);
   PROMOS=await API.get('/hotels/'+HID+'/promos').catch(()=>[]);
   REVIEWS=await API.get('/hotels/'+HID+'/reviews').catch(()=>[]);
-  fillChannelSelect(); renderCal(); renderDash(); renderBook(); renderRooms(); renderReport(); renderSvc(); renderPromos(); renderGuests(); renderReviewsAdmin();
+  fillChannelSelect(); renderCal(); renderDash(); renderBook(); renderRooms(); renderReport(); renderSvc(); renderPromos(); renderGuests(); renderReviewsAdmin(); loadActBk(); loadChecklist();
 }
+// ---- เช็กความครบของที่พัก ----
+async function loadChecklist(){ const box=document.getElementById('dash-check'); if(!box) return;
+  let c; try{ c=await API.get('/hotels/'+HID+'/checklist'); }catch{ box.style.display='none'; return; }
+  const miss=c.items.filter(i=>!i.ok).sort((a,b)=>(b.must?1:0)-(a.must?1:0));
+  box.style.display='block';
+  box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0">✅ ความพร้อมของที่พัก '+c.done+'/'+c.total+'</h3><span class="note" style="margin:0">'+(miss.length?'ทำให้ครบ แขกจองง่ายและมั่นใจขึ้น':'🎉 ครบทุกอย่างแล้ว พร้อมรับจอง')+'</span></div>'+
+    '<div style="height:8px;background:var(--line);border-radius:4px;margin:10px 0 12px"><div style="height:8px;width:'+Math.max(4,c.pct)+'%;background:'+(c.pct===100?'var(--green)':'var(--brand)')+';border-radius:4px"></div></div>'+
+    (miss.length?'<div style="display:flex;flex-wrap:wrap;gap:8px">'+miss.map(i=>'<button class="btn ghost sm" onclick="go(\''+i.web+'\')">'+(i.must?'🔴 ':'⚪️ ')+esc(i.label)+'</button>').join('')+'</div><p class="note" style="margin:8px 0 0">🔴 = ควรทำก่อนเปิดรับจอง · ทำผ่าน LINE ได้ด้วย: พิมพ์ “เช็กความครบ”</p>':''); }
 
 // ---- dashboard ----
 function renderDash(){
@@ -271,13 +294,15 @@ function payBadge(b){
   if(s==='paid') return '<span class="pill on">ชำระแล้ว</span>';
   if(s==='reported') return '<span class="pill pend">แจ้งโอน รอตรวจ</span>'+(b.payRef?'<br><span style="color:var(--muted);font-size:11px">อ้างอิง: '+esc(b.payRef)+'</span>':'');
   if(s==='deposit') return '<span class="pill pend">มัดจำ</span>';
+  if(s==='onsite') return '<span class="pill pend">จ่ายที่ที่พัก</span>';
   return '<span class="pill off">ยังไม่ชำระ</span>';
 }
 function renderBook(){
   const rows=BK.slice().sort((a,b)=>a.checkin<b.checkin?-1:1);
   document.getElementById('booktable').innerHTML='<tr><th>เช็คอิน</th><th>คืน</th><th>แขก</th><th>ห้อง</th><th>ช่องทาง</th><th>ยอด</th><th>ชำระเงิน</th><th></th></tr>'+(rows.length?rows.map(b=>{
-    const canConfirm=(b.payStatus==='reported'||b.payStatus==='unpaid'||!b.payStatus);
-    return '<tr><td>'+thDate(b.checkin)+'</td><td>'+nights(b.checkin,b.checkout)+'</td><td><b>'+esc(b.guestName)+'</b><br><span style="color:var(--muted);font-size:12px">'+esc(b.guestTel||'')+'</span></td><td>'+rtName(b.roomType)+'</td><td>'+(API.CHAN[b.channel]||b.channel)+'</td><td>'+money(b.amount)+'</td><td>'+payBadge(b)+'</td><td style="white-space:nowrap">'+(canConfirm?'<button class="btn sm" onclick="markPaid(\''+b._id+'\')">✔ ยืนยันชำระ</button> ':'')+'<button class="btn ghost sm" onclick="editBk(\''+b._id+'\')">แก้</button> <button class="btn ghost sm" onclick="receipt(\''+b._id+'\')">🧾</button></td></tr>';
+    const canConfirm=(b.payStatus==='reported'||b.payStatus==='unpaid'||b.payStatus==='onsite'||!b.payStatus);
+    const extra=(b.breakfast==='included'?'<br><span style="color:var(--green);font-size:11.5px">🍳 รวมอาหารเช้า</span>':b.breakfast==='added'?'<br><span style="color:var(--green);font-size:11.5px">🍳 อาหารเช้า '+(b.breakfastPax||'')+' ท่าน</span>':'')+(b.note&&b.channel==='direct'?'<br><span style="color:var(--muted);font-size:11.5px">📝 '+esc(b.note)+'</span>':'');
+    return '<tr><td>'+thDate(b.checkin)+'</td><td>'+nights(b.checkin,b.checkout)+'</td><td><b>'+esc(b.guestName)+'</b><br><span style="color:var(--muted);font-size:12px">'+esc(b.guestTel||'')+'</span>'+extra+'</td><td>'+rtName(b.roomType)+'</td><td>'+(API.CHAN[b.channel]||b.channel)+'</td><td>'+money(b.amount)+'</td><td>'+payBadge(b)+'</td><td style="white-space:nowrap">'+(canConfirm?'<button class="btn sm" onclick="markPaid(\''+b._id+'\')">✔ ยืนยันชำระ</button> ':'')+'<button class="btn ghost sm" onclick="editBk(\''+b._id+'\')">แก้</button> <button class="btn ghost sm" onclick="receipt(\''+b._id+'\')">🧾</button></td></tr>';
   }).join(''):'<tr><td colspan="8" class="empty">ยังไม่มีการจอง</td></tr>');
 }
 async function markPaid(id){ try{ await API.patch('/bookings/'+id,{payStatus:'paid'}); const b=BK.find(x=>String(x._id)===String(id)); if(b)b.payStatus='paid'; renderBook(); API.toast('ยืนยันการชำระแล้ว','ok'); }catch(e){API.toast(e.message,'err');} }
@@ -293,7 +318,7 @@ function roomThumb(t){
   return html;
 }
 function renderRooms(){
-  document.getElementById('roomtable').innerHTML='<tr><th>รูป</th><th>ชื่อห้อง</th><th>รองรับ</th><th>จำนวน</th><th>ราคา/คืน</th><th>OTA</th><th>เตียงเสริม</th><th></th></tr>'+(RT.length?RT.map(t=>'<tr>'+
+  document.getElementById('roomtable').innerHTML='<tr><th>รูป</th><th>ชื่อห้อง</th><th>รองรับ</th><th>จำนวน</th><th>ราคา/คืน</th><th>OTA</th><th>เตียงเสริม</th><th>อาหารเช้า</th><th></th></tr>'+(RT.length?RT.map(t=>'<tr>'+
     '<td>'+roomThumb(t)+'</td>'+
     '<td><input class="rate" style="max-width:150px" value="'+esc(t.name)+'" id="r-name-'+t._id+'">'+(t.hidden?'<div><span class="pill off">⏸ ปิดขาย</span></div>':'')+(t.description?'<div class="note" style="margin:2px 0 0;max-width:170px">'+esc(t.description)+'</div>':'')+((t.amenities&&t.amenities.length)?'<div class="note" style="margin:2px 0 0;max-width:170px;color:var(--brand)">✨ '+esc(t.amenities.join(' · '))+'</div>':'')+'</td>'+
     '<td><input class="rate" style="max-width:70px" type="number" value="'+(t.capacity||2)+'" id="r-cap-'+t._id+'"></td>'+
@@ -301,6 +326,7 @@ function renderRooms(){
     '<td><input class="rate" type="number" value="'+(t.basePrice||0)+'" id="r-price-'+t._id+'"></td>'+
     '<td><input class="rate" type="number" value="'+(t.otaPrice||0)+'" id="r-ota-'+t._id+'"></td>'+
     '<td><input class="rate" style="max-width:90px" type="number" value="'+(t.extraBedPrice||0)+'" id="r-eb-'+t._id+'"></td>'+
+    '<td>'+bfCell(t)+'</td>'+
     '<td style="white-space:nowrap"><button class="btn sm" onclick="saveRT(\''+t._id+'\')">บันทึก</button> <button class="btn ghost sm" onclick="openSeasons(\''+t._id+'\')">📅 ฤดู'+((t.seasons&&t.seasons.length)?' ('+t.seasons.length+')':'')+'</button> <button class="btn ghost sm" onclick="editDescRT(\''+t._id+'\')" title="คำอธิบายห้อง">📝</button> <button class="btn ghost sm" onclick="editAmenRT(\''+t._id+'\')" title="สิ่งอำนวยความสะดวก">✨</button> <button class="btn ghost sm" onclick="toggleHideRT(\''+t._id+'\')">'+(t.hidden?'▶️ เปิดขาย':'⏸ ปิดขาย')+'</button> <button class="btn danger sm" onclick="delRT(\''+t._id+'\')">ลบ</button></td></tr>').join(''):'<tr><td colspan="8" class="empty">ยังไม่มีห้อง</td></tr>');
 }
 async function addRoomImg(id,input){
@@ -326,12 +352,23 @@ async function pickNewRoomImg(input){
 }
 async function addRT(){
   const name=document.getElementById('nt-name').value.trim(); if(!name){API.toast('กรอกชื่อห้อง','err');return;}
-  await API.post('/hotels/'+HID+'/rooms',{name,capacity:+document.getElementById('nt-cap').value||2,qty:+document.getElementById('nt-qty').value||1,basePrice:+document.getElementById('nt-price').value||0,otaPrice:+document.getElementById('nt-ota').value||0,extraBedPrice:+document.getElementById('nt-eb').value||0,images:newRoomImgs,imageUrl:newRoomImgs[0]||'',sort:RT.length+1});
+  let bf; try{ bf=bfPayload(document.getElementById('nt-bf').value,document.getElementById('nt-bfp').value); }catch(e){ API.toast(e.message,'err'); return; }
+  await API.post('/hotels/'+HID+'/rooms',{...bf,name,capacity:+document.getElementById('nt-cap').value||2,qty:+document.getElementById('nt-qty').value||1,basePrice:+document.getElementById('nt-price').value||0,otaPrice:+document.getElementById('nt-ota').value||0,extraBedPrice:+document.getElementById('nt-eb').value||0,images:newRoomImgs,imageUrl:newRoomImgs[0]||'',sort:RT.length+1});
   document.getElementById('nt-name').value=''; newRoomImgs=[]; document.getElementById('nt-img-status').textContent=''; API.toast('เพิ่มห้องแล้ว','ok'); load();
 }
+// อาหารเช้า: none = ไม่มี · included = รวมในราคาห้อง · optional = แขกเลือกเพิ่ม (ราคาต่อท่าน/คืน)
+function bfMode(t){ return ['none','included','optional'].includes(t.breakfast)?t.breakfast:((t.amenities||[]).includes('🍳 รวมอาหารเช้า')?'included':''); }
+function bfCell(t){ const m=bfMode(t);
+  return '<select class="rate" style="max-width:150px" id="r-bf-'+t._id+'" onchange="document.getElementById(\'r-bfp-'+t._id+'\').style.display=this.value===\'optional\'?\'block\':\'none\'">'+
+    (m?'':'<option value="" selected>— ยังไม่ระบุ —</option>')+'<option value="none"'+(m==='none'?' selected':'')+'>ไม่มีอาหารเช้า</option><option value="included"'+(m==='included'?' selected':'')+'>รวมในราคาแล้ว</option><option value="optional"'+(m==='optional'?' selected':'')+'>แขกเลือกเพิ่ม</option></select>'+
+    '<input class="rate" type="number" min="1" placeholder="฿/ท่าน/คืน" style="max-width:110px;margin-top:4px;display:'+(m==='optional'?'block':'none')+'" id="r-bfp-'+t._id+'" value="'+(t.breakfastPrice||'')+'">'; }
+function bfPayload(mode,price){ if(!mode) return {}; if(mode==='optional'&&!(+price>0)) throw new Error('อาหารเช้าแบบ “แขกเลือกเพิ่ม” ต้องใส่ราคาต่อท่าน'); return {breakfast:mode,breakfastPrice:mode==='optional'?+price:0}; }
 async function saveRT(id){
-  await API.patch('/rooms/'+id,{name:document.getElementById('r-name-'+id).value,capacity:+document.getElementById('r-cap-'+id).value,qty:+document.getElementById('r-qty-'+id).value,basePrice:+document.getElementById('r-price-'+id).value,otaPrice:+document.getElementById('r-ota-'+id).value,extraBedPrice:+document.getElementById('r-eb-'+id).value||0});
-  API.toast('บันทึกแล้ว','ok'); load();
+  try{
+    const bf=bfPayload(document.getElementById('r-bf-'+id).value,document.getElementById('r-bfp-'+id).value);
+    await API.patch('/rooms/'+id,Object.assign({name:document.getElementById('r-name-'+id).value,capacity:+document.getElementById('r-cap-'+id).value,qty:+document.getElementById('r-qty-'+id).value,basePrice:+document.getElementById('r-price-'+id).value,otaPrice:+document.getElementById('r-ota-'+id).value,extraBedPrice:+document.getElementById('r-eb-'+id).value||0},bf));
+    API.toast('บันทึกแล้ว','ok'); load();
+  }catch(e){ API.toast(e.message,'err'); }
 }
 async function delRT(id){ if(!confirm('ลบประเภทห้องนี้?'))return; await API.del('/rooms/'+id); API.toast('ลบแล้ว','ok'); load(); }
 // ---- seasonal pricing ----
@@ -351,12 +388,14 @@ async function addSeason(){
 async function delSeason(i){ const ss=(seasonRT.seasons||[]).slice(); ss.splice(i,1); await API.patch('/rooms/'+seasonRT._id,{seasons:ss}); seasonRT.seasons=ss; const t=RT.find(x=>String(x._id)===String(seasonRT._id)); if(t)t.seasons=ss; renderSeasons(); renderRooms(); }
 // ---- services (บริการเสริม) ----
 function renderSvc(){
-  document.getElementById('svctable').innerHTML='<tr><th>ชื่อบริการ</th><th>รายละเอียด</th><th>ราคา</th><th>ลิงก์รูป</th><th></th></tr>'+(SVC.length?SVC.map(s=>'<tr>'+
+  document.getElementById('svctable').innerHTML='<tr><th>ชื่อบริการ</th><th>รายละเอียด</th><th>ราคา</th><th>ขายแบบ</th><th>รับ/รอบ · รอบเวลา</th><th>ลิงก์รูป</th><th></th></tr>'+(SVC.length?SVC.map(s=>'<tr>'+
     '<td><input class="rate" style="max-width:150px" value="'+esc(s.name)+'" id="sv-name-'+s._id+'"></td>'+
     '<td><input class="rate" value="'+esc(s.description||'')+'" id="sv-desc-'+s._id+'"></td>'+
     '<td><input class="rate" style="max-width:90px" type="number" value="'+(s.price||0)+'" id="sv-price-'+s._id+'"></td>'+
+    '<td><select id="sv-mode-'+s._id+'" style="max-width:150px">'+[['addon','🛏 พ่วงกับห้อง'],['standalone','🎟 จองเดี่ยว'],['both','✨ ทั้งสองแบบ']].map(([k,v])=>'<option value="'+k+'"'+((s.saleMode||'addon')===k?' selected':'')+'>'+v+'</option>').join('')+'</select></td>'+
+    '<td style="white-space:nowrap"><input class="rate" style="max-width:60px" type="number" min="0" title="0 = ไม่จำกัด" value="'+(s.dailyCap||0)+'" id="sv-cap-'+s._id+'"> <input class="rate" style="max-width:130px" placeholder="09:00, 14:00" value="'+esc((s.times||[]).join(', '))+'" id="sv-times-'+s._id+'"></td>'+
     '<td>'+(/^data:/.test(s.imageUrl||'')?'<input class="rate" data-keep="1" placeholder="📷 ใช้รูปจาก LINE (วางลิงก์เพื่อเปลี่ยน)" id="sv-img-'+s._id+'">':'<input class="rate" value="'+esc(s.imageUrl||'')+'" id="sv-img-'+s._id+'">')+'</td>'+
-    '<td style="white-space:nowrap"><button class="btn sm" onclick="saveSvc(\''+s._id+'\')">บันทึก</button> <button class="btn ghost sm" onclick="toggleHideSvc(\''+s._id+'\')">'+(s.hidden?'▶️ เปิดขาย':'⏸ ปิดขาย')+'</button> <button class="btn danger sm" onclick="delSvc(\''+s._id+'\')">ลบ</button></td></tr>').join(''):'<tr><td colspan="5" class="empty">ยังไม่มีบริการเสริม</td></tr>');
+    '<td style="white-space:nowrap"><button class="btn sm" onclick="saveSvc(\''+s._id+'\')">บันทึก</button> <button class="btn ghost sm" onclick="toggleHideSvc(\''+s._id+'\')">'+(s.hidden?'▶️ เปิดขาย':'⏸ ปิดขาย')+'</button> <button class="btn danger sm" onclick="delSvc(\''+s._id+'\')">ลบ</button></td></tr>').join(''):'<tr><td colspan="7" class="empty">ยังไม่มีบริการเสริม</td></tr>');
 }
 async function addSvc(){
   const name=document.getElementById('ns-name').value.trim(); if(!name){API.toast('กรอกชื่อบริการ','err');return;}
@@ -366,11 +405,18 @@ async function addSvc(){
 }
 async function saveSvc(id){
   const imgEl=document.getElementById('sv-img-'+id);
-  const body={name:document.getElementById('sv-name-'+id).value,description:document.getElementById('sv-desc-'+id).value,price:+document.getElementById('sv-price-'+id).value||0};
+  const times=document.getElementById('sv-times-'+id).value.split(/[,\s]+/).map(t=>{const m=/^(\d{1,2})[:.](\d{2})$/.exec(t.trim());return m?m[1].padStart(2,'0')+':'+m[2]:'';}).filter(Boolean);
+  const body={name:document.getElementById('sv-name-'+id).value,description:document.getElementById('sv-desc-'+id).value,price:+document.getElementById('sv-price-'+id).value||0,saleMode:document.getElementById('sv-mode-'+id).value,dailyCap:Math.max(0,+document.getElementById('sv-cap-'+id).value||0),times};
   if(imgEl.value.trim()||!imgEl.dataset.keep) body.imageUrl=imgEl.value.trim(); // รูปที่อัปผ่าน LINE คงไว้ ถ้าไม่ได้วางลิงก์ใหม่
   await API.patch('/services/'+id,body);
   API.toast('บันทึกแล้ว','ok'); SVC=await API.get('/hotels/'+HID+'/services'); renderSvc();
 }
+let ACTBK=[];
+async function loadActBk(){ try{ ACTBK=await API.get('/hotels/'+HID+'/activity-bookings?since='+ymd(addDays(new Date(),-7))); }catch{ ACTBK=[]; } renderActBk(); }
+function renderActBk(){ const el=document.getElementById('actbktable'); if(!el)return;
+  el.innerHTML='<tr><th>วัน/รอบ</th><th>กิจกรรม</th><th>แขก</th><th>จำนวน</th><th>ยอด</th><th>ชำระ</th><th></th></tr>'+(ACTBK.length?ACTBK.map(b=>'<tr'+(b.status==='cancelled'?' style="opacity:.5"':'')+'><td>'+thDate(b.date)+(b.time?' '+esc(b.time):'')+'<br><span class="note" style="margin:0">'+esc(b.ref||'')+'</span></td><td>'+esc(b.serviceName||'')+'</td><td><b>'+esc(b.guestName||'')+'</b><br><span class="note" style="margin:0">'+esc(b.guestTel||'')+'</span></td><td>'+b.qty+'</td><td>'+money(b.amount)+'</td><td>'+(b.status==='cancelled'?'<span class="pill off">ยกเลิก</span>':b.payStatus==='paid'?'<span class="pill on">ชำระแล้ว</span>':b.payStatus==='reported'?'<span class="pill pend">แจ้งโอน'+(b.payRef?' · '+esc(b.payRef):'')+'</span>':'<span class="pill off">ยังไม่ชำระ</span>')+'</td><td style="white-space:nowrap">'+(b.status!=='cancelled'&&b.payStatus!=='paid'?'<button class="btn sm" onclick="actPaid(\''+b._id+'\')">✔ ยืนยันชำระ</button> ':'')+(b.status!=='cancelled'?'<button class="btn ghost sm" onclick="actCancel(\''+b._id+'\')">ยกเลิก</button>':'')+'</td></tr>').join(''):'<tr><td colspan="7" class="empty">ยังไม่มีการจองกิจกรรม</td></tr>'); }
+async function actPaid(id){ try{ await API.patch('/activity-bookings/'+id,{payStatus:'paid'}); API.toast('ยืนยันชำระแล้ว','ok'); loadActBk(); }catch(e){API.toast(e.message,'err');} }
+async function actCancel(id){ if(!confirm('ยกเลิกการจองกิจกรรมนี้?'))return; try{ await API.patch('/activity-bookings/'+id,{status:'cancelled'}); API.toast('ยกเลิกแล้ว','ok'); loadActBk(); }catch(e){API.toast(e.message,'err');} }
 async function delSvc(id){ if(!confirm('ลบบริการนี้?'))return; await API.del('/services/'+id); API.toast('ลบแล้ว','ok'); SVC=await API.get('/hotels/'+HID+'/services'); renderSvc(); }
 // ---- reports ----
 function renderReport(){
@@ -405,16 +451,17 @@ async function delReview(id){ if(!confirm('ลบรีวิวนี้?'))ret
 // ---- receipt / ใบเสร็จ ----
 function receipt(id){
   const b=BK.find(x=>String(x._id)===String(id)); if(!b)return;
-  const nts=nights(b.checkin,b.checkout); const roomAmt=Number(b.amount||0)-Number(b.addonTotal||0);
+  const nts=nights(b.checkin,b.checkout); const roomAmt=Number(b.amount||0)-Number(b.addonTotal||0)-Number(b.breakfastTotal||0);
+  const bfRow=b.breakfastTotal?'<tr><td>อาหารเช้า '+(b.breakfastPax||'')+' ท่าน × '+nts+' คืน</td><td style="text-align:right">'+money(b.breakfastTotal)+'</td></tr>':(b.breakfast==='included'?'<tr><td>รวมอาหารเช้า</td><td style="text-align:right">—</td></tr>':'');
   const addons=(b.addons||[]).map(a=>'<tr><td>'+esc(a.name)+' ×'+a.qty+'</td><td style="text-align:right">'+money(a.price*a.qty)+'</td></tr>').join('');
   const w=window.open('','_blank','width=420,height=640'); if(!w){API.toast('เปิดหน้าต่างไม่ได้ (ปิด popup blocker)','err');return;}
   w.document.write('<html><head><meta charset="utf-8"><title>ใบเสร็จ '+esc(b.ref)+'</title><style>body{font-family:"Sarabun",sans-serif;padding:24px;color:#0f2540;font-size:14px}h2{margin:0}.muted{color:#5b7089}.row{display:flex;justify-content:space-between;padding:4px 0}table{width:100%;border-collapse:collapse;margin:10px 0}td{padding:4px 0;border-bottom:1px dashed #e6eef5}.tot{font-weight:800;font-size:18px;border-top:2px solid #0f2540;padding-top:8px;margin-top:6px;display:flex;justify-content:space-between}@media print{button{display:none}}</style></head><body>'+
     '<h2>'+esc(HOTEL.name)+'</h2>'+(HOTEL.address?'<div class="muted">'+esc(HOTEL.address)+'</div>':'')+(HOTEL.taxId?'<div class="muted">เลขผู้เสียภาษี: '+esc(HOTEL.taxId)+'</div>':'')+(HOTEL.phone?'<div class="muted">โทร '+esc(HOTEL.phone)+'</div>':'')+
     '<hr><h3>ใบเสร็จรับเงิน / Receipt</h3><div class="row"><span class="muted">เลขที่</span><span><b>'+esc(b.ref)+'</b></span></div><div class="row"><span class="muted">วันที่</span><span>'+new Date().toLocaleDateString("th-TH")+'</span></div>'+
     '<div class="row"><span class="muted">ผู้เข้าพัก</span><span>'+esc(b.guestName||'-')+'</span></div><div class="row"><span class="muted">เข้าพัก</span><span>'+b.checkin+' → '+b.checkout+' ('+nts+' คืน)</span></div>'+
-    '<table><tr><td>'+esc(rtName(b.roomType))+' × '+nts+' คืน</td><td style="text-align:right">'+money(roomAmt+Number(b.discount||0))+'</td></tr>'+(b.discount?'<tr><td>ส่วนลด'+(b.promoCode?' ('+esc(b.promoCode)+')':'')+'</td><td style="text-align:right;color:#16a34a">-'+money(b.discount)+'</td></tr>':'')+addons+'</table>'+
+    '<table><tr><td>'+esc(rtName(b.roomType))+' × '+nts+' คืน</td><td style="text-align:right">'+money(roomAmt+Number(b.discount||0))+'</td></tr>'+(b.discount?'<tr><td>ส่วนลด'+(b.promoCode?' ('+esc(b.promoCode)+')':'')+'</td><td style="text-align:right;color:#16a34a">-'+money(b.discount)+'</td></tr>':'')+bfRow+addons+'</table>'+
     '<div class="tot"><span>รวมทั้งสิ้น</span><span>'+money(b.amount)+'</span></div>'+
-    '<div class="muted" style="margin-top:8px">สถานะ: '+(b.payStatus==='paid'?'ชำระแล้ว':b.payStatus==='reported'?'แจ้งชำระ':'ยังไม่ชำระ')+'</div>'+
+    '<div class="muted" style="margin-top:8px">สถานะ: '+(b.payStatus==='paid'?'ชำระแล้ว':b.payStatus==='reported'?'แจ้งชำระ':b.payStatus==='onsite'?'ชำระที่ที่พัก':'ยังไม่ชำระ')+'</div>'+
     '<p style="margin-top:20px;text-align:center"><button onclick="window.print()">🖨 พิมพ์</button></p>'+
     '<p class="muted" style="text-align:center;font-size:12px">ขับเคลื่อนโดย BARN-PARK</p></body></html>'); w.document.close();
 }
@@ -450,7 +497,11 @@ async function saveBk(){
   const din=document.getElementById('bk-in').value,dout=document.getElementById('bk-out').value;
   if(!din||!dout||dout<=din){API.toast('วันที่ไม่ถูกต้อง','err');return;}
   const eb=+document.getElementById('bk-extra').value||0;const nts=nights(din,dout);
-  const amount=(Number(t.basePrice)+eb*Number(t.extraBedPrice||0))*nts;
+  const old=editId?BK.find(x=>String(x._id)===String(editId)):null;
+  // แก้แค่ชื่อ/เบอร์ → คงยอดเดิม (ไม่ทำให้ค่าอาหารเช้า/บริการเสริม/ส่วนลดหาย)
+  const same=old&&String(old.roomType)===String(rtId)&&old.checkin===din&&old.checkout===dout&&Number(old.extraBed||0)===eb;
+  const extras=old?Number(old.addonTotal||0)+Number(old.breakfastTotal||0)-Number(old.discount||0):0;
+  const amount=same?Number(old.amount||0):Math.max(0,(Number(t.basePrice)+eb*Number(t.extraBedPrice||0))*nts+extras);
   const row={roomType:rtId,guestName:document.getElementById('bk-guest').value.trim()||'(ไม่ระบุชื่อ)',guestTel:document.getElementById('bk-tel').value.trim(),guestEmail:document.getElementById('bk-email').value.trim(),channel:document.getElementById('bk-ch').value,notifyChannel:document.getElementById('bk-notify').value,checkin:din,checkout:dout,pax:+document.getElementById('bk-pax').value||1,extraBed:eb,amount,status:'confirmed'};
   try{ if(editId)await API.patch('/bookings/'+editId,row); else await API.post('/hotels/'+HID+'/bookings',row); closeBk();API.toast('บันทึกแล้ว','ok');load(); }catch(e){API.toast(e.message,'err');}
 }
@@ -489,16 +540,22 @@ async function fillSettings(){
   document.getElementById('s-cancel-allow').value=(HOTEL.allowGuestCancel===false)?'no':'yes';
   document.getElementById('s-cancel-days').value=HOTEL.cancelDays??3;
   document.getElementById('s-hold-hours').value=HOTEL.holdHours??24;
+  document.getElementById('s-cin').value=HOTEL.checkInTime||''; document.getElementById('s-cout').value=HOTEL.checkOutTime||'';
+  document.getElementById('s-map').value=HOTEL.mapUrl||''; document.getElementById('s-rules').value=HOTEL.houseRules||'';
   // PromptPay + LINE + ลิงก์
   const link=location.origin+'/book.html?h='+encodeURIComponent(HOTEL.slug);document.getElementById('booklink').value=link;document.getElementById('bookopen').href=link;
   document.getElementById('s-line-id').value=HOTEL.lineId||'';
   document.getElementById('s-line-notify').value=HOTEL.notifyLineTo||'';
   document.getElementById('s-line-webhook').value=location.origin+'/api/line/webhook/'+encodeURIComponent(HOTEL.slug);
-  document.getElementById('s-pp-id').value=HOTEL.promptpayId||'';document.getElementById('s-pp-name').value=HOTEL.promptpayName||'';
+  document.getElementById('s-pp-id').value=HOTEL.promptpayId||'';document.getElementById('s-pp-name').value=HOTEL.promptpayName||''; ppPreview();
   document.getElementById('s-taxid').value=HOTEL.taxId||'';document.getElementById('s-address').value=HOTEL.address||'';
   try{ const ls=await API.get('/hotels/'+HID+'/line'); document.getElementById('line-status').textContent=ls.connected?'✔ เชื่อม LINE OA แล้ว':'ยังไม่ได้เชื่อม'; }catch{}
   setupLinePanel();
 }
+function ppPreview(){ const box=document.getElementById('pp-test'); if(!box) return; const id=String(HOTEL.promptpayId||'').replace(/\D/g,''); if(!id){ box.style.display='none'; return; }
+  document.getElementById('pp-test-img').src='/api/public/promptpay-qr?slug='+encodeURIComponent(HOTEL.slug)+'&amount=1&v='+Date.now();
+  document.getElementById('pp-test-id').textContent='พร้อมเพย์: '+(id.length===10?id.replace(/(\d{3})(\d{3})(\d{4})/,'$1-$2-$3'):id)+(HOTEL.promptpayName?' · '+HOTEL.promptpayName:'');
+  box.style.display='flex'; }
 function copyLink(){const el=document.getElementById('booklink');el.select();navigator.clipboard.writeText(el.value).then(()=>API.toast('คัดลอกแล้ว','ok'));}
 async function saveHotel(){
   const upd=Object.assign(themeFromForm(),{
@@ -510,11 +567,13 @@ async function saveHotel(){
     template:document.getElementById('s-template').value,
     allowGuestCancel:document.getElementById('s-cancel-allow').value==='yes',cancelDays:+document.getElementById('s-cancel-days').value||0,
     holdHours:+document.getElementById('s-hold-hours').value||0,
+    checkInTime:document.getElementById('s-cin').value,checkOutTime:document.getElementById('s-cout').value,
+    mapUrl:document.getElementById('s-map').value.trim(),houseRules:document.getElementById('s-rules').value.trim(),
     notifyLineTo:document.getElementById('s-line-notify').value.trim(),
   });
   try{
     const updated=await API.patch('/hotels/'+HID,upd); Object.assign(HOTEL,updated);
-    document.getElementById('hotelName').textContent=HOTEL.name; API.applyTheme(HOTEL); API.toast('บันทึกแล้ว','ok');
+    document.getElementById('hotelName').textContent=HOTEL.name; API.applyTheme(HOTEL); API.toast('บันทึกแล้ว','ok'); ppPreview(); document.getElementById('s-pp-id').value=HOTEL.promptpayId||''; document.getElementById('s-map').value=HOTEL.mapUrl||''; loadChecklist();
   }catch(e){API.toast(e.message,'err');}
 }
 // ---- จัดการผ่าน LINE Barn Park ----

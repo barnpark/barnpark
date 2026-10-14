@@ -11,6 +11,10 @@ const schema = new mongoose.Schema({
   basePrice:     { type: Number, default: 0 },
   otaPrice:      { type: Number, default: 0 },
   extraBedPrice: { type: Number, default: 0 },
+  // อาหารเช้า: none = ไม่มี · included = รวมในราคาห้องแล้ว · optional = แขกเลือกเพิ่มได้ (คิดราคาต่อท่าน/คืน)
+  // ไม่ตั้ง default ไว้ เพื่อแยก "ยังไม่ได้ระบุ" ออกจาก "ไม่มีอาหารเช้า" (ใช้ในเช็กความครบ)
+  breakfast:      { type: String },
+  breakfastPrice: { type: Number, default: 0 },
   imageUrl:      String,                 // รูปหลัก (เท่ากับ images[0]) — เก็บไว้เพื่อความเข้ากันได้
   images:        { type: [String], default: [] }, // แกลเลอรีสูงสุด 4 รูป
   // ราคาตามฤดู/ช่วงพิเศษ — ใช้ราคาของช่วงที่ "วันเช็คอิน" ตกอยู่ (ถ้าไม่ตกช่วงไหน ใช้ basePrice)

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import Service from "../models/Service.js";
 import { requireAuth, canAccessHotel } from "../lib/auth.js";
+import { badImageFields } from "../lib/security.js";
 
 const r = Router();
 
@@ -11,14 +12,17 @@ r.get("/hotels/:hid/services", requireAuth, async (req, res) => {
 
 r.post("/hotels/:hid/services", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.hid)) return res.status(403).json({ error: "forbidden" });
-  res.json(await Service.create({ ...req.body, hotel: req.params.hid }));
+  if (badImageFields(req.body, ["imageUrl"])) return res.status(400).json({ error: "รูปไม่ถูกต้อง (ใช้ไฟล์รูป หรือลิงก์ https)" });
+  const { _id, ...body } = req.body || {};
+  res.json(await Service.create({ ...body, hotel: req.params.hid }));
 });
 
 r.patch("/services/:id", requireAuth, async (req, res) => {
   const sv = await Service.findById(req.params.id);
   if (!sv) return res.status(404).json({ error: "not found" });
   if (!canAccessHotel(req.user, sv.hotel)) return res.status(403).json({ error: "forbidden" });
-  const { hotel, ...safe } = req.body;
+  const { hotel, _id, ...safe } = req.body || {};
+  if (badImageFields(safe, ["imageUrl"])) return res.status(400).json({ error: "รูปไม่ถูกต้อง (ใช้ไฟล์รูป หรือลิงก์ https)" });
   res.json(await Service.findByIdAndUpdate(req.params.id, safe, { new: true }));
 });
 

@@ -50,3 +50,15 @@ npm start                 # เปิด http://localhost:3000
 ## ความปลอดภัย
 - LINE OA token ของแต่ละโรงแรมเก็บใน `Hotel.lineChannelToken` (`select:false` — ไม่หลุดผ่าน API ปกติ)
 - ห้าม commit `.env` / secret — ตั้งบน Render Environment เท่านั้น
+- ตัวจำกัดคำขอ (`lib/ratelimit.js`) ใช้ IP จริงจาก `CF-Connecting-IP` บน Render (Cloudflare ของ Render เขียนทับให้ ปลอมไม่ได้) — แยกตัวนับต่อจุด
+
+## อัปเดต ต.ค. 2026
+- **PromptPay QR**: แก้ AID ผิด (เดิมสแกนไม่ขึ้น) → สร้าง QR ฝั่งเซิร์ฟเวอร์ `GET /api/public/promptpay-qr?slug=&amount=` (`lib/promptpay.js`) · เจ้าของดู QR ทดสอบ ฿1 ได้ในเว็บและใน LINE
+- **อาหารเช้าต่อห้อง** (`RoomType.breakfast` = none | included | optional + `breakfastPrice` ต่อท่าน/คืน) — คิดราคาฝั่งเซิร์ฟเวอร์ (`lib/stay.js`)
+- **ข้อมูลการเข้าพัก**: เวลาเช็คอิน/เอาท์ แผนที่ (ส่งตำแหน่งใน LINE ได้) กฎที่พัก → หน้าจอง + หน้ายืนยันการจอง + อีเมลยืนยัน
+- **หน้ายืนยันการจอง** หลังจองเสร็จ (เลขจอง, QR จ่ายทีหลัง, ปุ่มแจ้งโอน `POST /api/public/report-paid`)
+- **แจ้งเตือนเข้า LINE Barn Park** ของทุกคนที่เชื่อมที่พัก: จองใหม่ · แขกแจ้งโอน · แขกยกเลิก · ระบบปล่อยห้อง — มีปุ่ม ✅ รับเงิน / 🤝 ให้จ่ายที่ที่พัก (payStatus `onsite` ไม่ถูกปล่อยห้อง)
+- **เช็กความครบ** (`lib/checklist.js`): แดชบอร์ดเว็บ · พิมพ์ "เช็กความครบ" ใน LINE · `GET /api/hotels/:id/checklist`
+- **แจ้งอัปเดตระบบ** (`lib/announce.js`): หน้าแอดมิน → 📣 แจ้งอัปเดต → ส่งประกาศ + เช็กลิสต์เฉพาะของแต่ละที่ (1 คน = 1 push)
+- env ใหม่ (ไม่บังคับ): `LINE_DAILY_DIGEST=1` ส่งสรุปเข้า-ออกรายวันเข้า LINE Barn Park ด้วย
+- ⚠️ โควตา LINE OA ฟรี 300 ข้อความ/เดือน — แจ้งเตือนจองใหม่ใช้โควตานี้ ถ้าเต็มระบบจะอีเมลเตือนแอดมิน

@@ -26,3 +26,5 @@ services:
         sync: false
       - key: SUPPORT_LINE_URL
         sync: false
+      - key: PUBLIC_URL
+        sync: false

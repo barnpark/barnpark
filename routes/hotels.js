@@ -5,11 +5,17 @@ import User from "../models/User.js";
 import RoomType from "../models/RoomType.js";
 import Booking from "../models/Booking.js";
 import Service from "../models/Service.js";
+import ActivityBooking from "../models/ActivityBooking.js";
 import { requireAuth, requireAdmin, canAccessHotel } from "../lib/auth.js";
 import LineChat from "../models/LineChat.js";
 import { issueLinkCode, fmtCode, oaAddUrl, oaPrefillUrl, approveHotel } from "../lib/onboard.js";
 import { detachHotelFromChat } from "../lib/linebot.js";
 import { rememberBase } from "../lib/baseurl.js";
+import { badImageFields } from "../lib/security.js";
+import { normalizePromptPayId } from "../lib/promptpay.js";
+import { cleanStayFields } from "../lib/stay.js";
+import { checklist } from "../lib/checklist.js";
+import { announceUpdate, announceLog } from "../lib/announce.js";
 
 const r = Router();
 
@@ -49,12 +55,12 @@ r.post("/admin/hotels/:id/approve", requireAuth, requireAdmin, async (req, res) 
 
 // สำรองข้อมูลทั้งระบบเป็น JSON (แอดมินเท่านั้น) — กดดาวน์โหลดเก็บไว้เอง
 r.get("/admin/export", requireAuth, requireAdmin, async (_req, res) => {
-  const [hotels, users, rooms, bookings, services] = await Promise.all([
+  const [hotels, users, rooms, bookings, services, activityBookings] = await Promise.all([
     Hotel.find().lean(), User.find().select("-passwordHash -otpHash").lean(),
-    RoomType.find().lean(), Booking.find().lean(), Service.find().lean(),
+    RoomType.find().lean(), Booking.find().lean(), Service.find().lean(), ActivityBooking.find().lean(),
   ]);
   res.setHeader("Content-Disposition", 'attachment; filename="barnpark-backup-' + new Date().toISOString().slice(0, 10) + '.json"');
-  res.json({ exportedAt: new Date().toISOString(), hotels, users, rooms, bookings, services });
+  res.json({ exportedAt: new Date().toISOString(), hotels, users, rooms, bookings, services, activityBookings });
 });
 
 // เพิ่มโรงแรมใหม่ + สร้างบัญชีเจ้าของ (admin เท่านั้น)
@@ -90,6 +96,7 @@ r.get("/hotels/:id", requireAuth, async (req, res) => {
 });
 
 r.post("/hotels", requireAuth, requireAdmin, async (req, res) => {
+  if (badImageFields(req.body, ["coverUrl", "promoImage"])) return res.status(400).json({ error: "ลิงก์รูปไม่ถูกต้อง" });
   try { res.json(await Hotel.create(req.body)); }
   catch (e) { res.status(400).json({ error: String(e.message || e) }); }
 });
@@ -98,8 +105,48 @@ r.patch("/hotels/:id", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
   const { lineChannelToken, lineChannelSecret, coverData, _id, ...safe } = req.body || {}; // secret ผ่าน route แยกเท่านั้น
   if (req.user.role !== "admin") { delete safe.approved; delete safe.status; delete safe.planFee; delete safe.slug; delete safe.ota; } // เจ้าของอนุมัติตัวเอง/แก้ค่าบริการไม่ได้
+  if (badImageFields(safe, ["coverUrl", "promoImage"])) return res.status(400).json({ error: "ลิงก์รูปไม่ถูกต้อง (ใช้ลิงก์ https)" });
+  if (safe.promptpayId !== undefined && String(safe.promptpayId).trim() !== "") {
+    const pp = normalizePromptPayId(safe.promptpayId);
+    if (!pp) return res.status(400).json({ error: "เบอร์พร้อมเพย์ไม่ถูกต้อง — ใช้เบอร์มือถือ 10 หลัก หรือเลขบัตรประชาชน/เลขนิติบุคคล 13 หลัก" });
+    safe.promptpayId = pp;
+  }
+  const stayErr = cleanStayFields(safe); if (stayErr) return res.status(400).json({ error: stayErr });
+  if (safe.holdHours !== undefined) safe.holdHours = Math.max(0, Math.min(720, parseInt(safe.holdHours, 10) || 0));
+  if (safe.cancelDays !== undefined) safe.cancelDays = Math.max(0, Math.min(60, parseInt(safe.cancelDays, 10) || 0));
   res.json(await Hotel.findByIdAndUpdate(req.params.id, safe, { new: true }));
 });
+
+// เช็กความครบของที่พัก (แดชบอร์ดเจ้าของ)
+r.get("/hotels/:id/checklist", requireAuth, async (req, res) => {
+  if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const h = await Hotel.findById(req.params.id).lean();
+  if (!h) return res.status(404).json({ error: "not found" });
+  const c = await checklist(h);
+  res.json({ ...c, items: c.items.map(({ key, label, must, web, ok }) => ({ key, label, must: !!must, web, ok })), missing: undefined, mustMissing: c.mustMissing.length });
+});
+
+// ===== แอดมิน: ภาพรวมความครบทุกที่พัก + แจ้งอัปเดตระบบ =====
+r.get("/admin/checklist", requireAuth, requireAdmin, async (_req, res) => {
+  const hotels = await Hotel.find().sort("createdAt").lean();
+  const out = [];
+  for (const h of hotels) {
+    const c = await checklist(h);
+    const linked = await LineChat.countDocuments({ hotels: h._id });
+    out.push({ id: h._id, name: h.name, slug: h.slug, approved: h.approved !== false, linked, done: c.done, total: c.total, pct: c.pct, missing: c.missing.map((i) => i.label) });
+  }
+  res.json(out);
+});
+// ส่งประกาศ "อัปเดตระบบ" + เช็กลิสต์เฉพาะของแต่ละที่ เข้า LINE Barn Park ของทุกคนที่เชื่อมที่พัก (+อีเมล)
+//   body: { title, message, dryRun, email, onlyMissing }
+r.post("/admin/announce", requireAuth, requireAdmin, async (req, res) => {
+  rememberBase(req);
+  const { title = "", message = "", dryRun = true, email = false, onlyMissing = false } = req.body || {};
+  if (!String(title).trim()) return res.status(400).json({ error: "ใส่หัวข้อประกาศ" });
+  try { res.json(await announceUpdate({ title: String(title).slice(0, 80), message: String(message).slice(0, 1500), dryRun: dryRun !== false, email: !!email, onlyMissing: !!onlyMissing })); }
+  catch (e) { res.status(400).json({ error: String(e.message || e) }); }
+});
+r.get("/admin/announce/log", requireAuth, requireAdmin, async (_req, res) => res.json(await announceLog()));
 
 // ===== LINE OA ต่อโรงแรม =====
 // ดูสถานะการเชื่อม (ไม่คืน token)

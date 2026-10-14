@@ -33,7 +33,12 @@ const schema = new mongoose.Schema({
   promptpayId: String,             // เบอร์พร้อมเพย์ (08x) หรือเลขบัตร ปชช. ของโรงแรม สำหรับสร้าง QR รับเงิน
   promptpayName: String,           // ชื่อบัญชี/ชื่อร้าน แสดงคู่ QR
   taxId:       String,             // เลขประจำตัวผู้เสียภาษี (สำหรับใบเสร็จ/ใบกำกับภาษี)
-  address:     String,             // ที่อยู่โรงแรม (แสดงบนใบเสร็จ)
+  address:     String,             // ที่อยู่โรงแรม (แสดงบนใบเสร็จ + หน้าจอง)
+  // ===== ข้อมูลการเข้าพัก (แสดงบนหน้าจอง + อีเมลยืนยัน + หน้ายืนยันการจอง) =====
+  checkInTime:  String,            // "14:00" — ไม่ตั้ง default เพื่อไม่แสดงเวลาที่โรงแรมไม่ได้ยืนยัน
+  checkOutTime: String,            // "12:00"
+  mapUrl:       String,            // ลิงก์ Google Maps (https) — ส่งตำแหน่งผ่าน LINE ได้
+  houseRules:   String,            // กฎที่พัก/ข้อควรรู้ (หลายบรรทัด) เช่น ห้ามสูบบุหรี่ในห้อง งดเสียงดังหลัง 22:00
   status:      { type: String, default: "active" }, // active | onboarding | paused
   approved:    { type: Boolean, default: true },      // แอดมินอนุมัติเปิดรับจองหรือยัง (สมัครเอง = false)
   planFee:     { type: Number, default: 800 },

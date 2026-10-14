@@ -1,6 +1,8 @@
 // BARN-PARK frontend API client (talks to the Express backend on same origin)
 window.API = (function () {
   const KEY = "bp_token";
+  // ค่าสำรองของปุ่ม "ช่วยเหลือ" (ต้องประกาศก่อน return ด้านล่าง ไม่งั้นปุ่มไม่ขึ้น) — ปกติใช้ค่าจาก env SUPPORT_LINE_URL
+  const SUPPORT_LINE_URL = "https://lin.ee/qsWFdPx";
   const token = () => localStorage.getItem(KEY);
   const setToken = (t) => localStorage.setItem(KEY, t);
   const clear = () => localStorage.removeItem(KEY);
@@ -164,8 +166,7 @@ window.API = (function () {
   };
 
   // ===== ปุ่มติดต่อซัพพอร์ตของ BARN-PARK (LINE OA ของแพลตฟอร์ม) =====
-  // 🔧 แก้ลิงก์นี้เป็น LINE OA ของ BARN-PARK: https://line.me/R/ti/p/@<basic id>  หรือ  https://lin.ee/xxxxxxx
-  const SUPPORT_LINE_URL = "https://line.me/R/ti/p/@barnpark";
+  // ลิงก์มาจาก env SUPPORT_LINE_URL ของเซิร์ฟเวอร์ (/api/public/config) — SUPPORT_LINE_URL ด้านบนไฟล์เป็นค่าสำรอง
   async function mountSupport(url) {
     if (document.getElementById("bp-support")) return;
     let href = url || SUPPORT_LINE_URL;

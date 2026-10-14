@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { connectDB } from "./lib/db.js";
 import { rateLimit } from "./lib/ratelimit.js";
+import { securityHeaders, blockOperators } from "./lib/security.js";
 import { releaseExpiredHolds } from "./lib/holds.js";
 
 import authRoutes from "./routes/auth.js";
@@ -17,14 +18,23 @@ import reviewRoutes from "./routes/reviews.js";
 import publicRoutes from "./routes/public.js";
 import setupRoutes from "./routes/setup.js";
 import lineRoutes from "./routes/line.js";
+import activityRoutes from "./routes/activities.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+app.disable("x-powered-by");
+app.use(securityHeaders);
 app.use(express.json({ limit: "12mb", verify: (req, _res, buf) => { req.rawBody = buf; } }));
+app.use("/api", blockOperators); // กันการยิง MongoDB operator ผ่าน input
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, service: "barn-park" }));
 // กัน brute-force ล็อกอิน/OTP และสแปมหน้าจอง
 app.use("/api/auth", rateLimit({ windowMs: 10 * 60 * 1000, max: 40, message: "พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่" }));
+app.use("/api/public/cancel", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
+app.use("/api/public/report-paid", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
+app.use("/api/public/review", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
+app.use("/api/public/promo", rateLimit({ windowMs: 10 * 60 * 1000, max: 30, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
+app.use("/api/public/book-activity", rateLimit({ windowMs: 10 * 60 * 1000, max: 20, message: "ส่งคำขอจองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/book", rateLimit({ windowMs: 10 * 60 * 1000, max: 20, message: "ส่งคำขอจองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/public", publicRoutes);
@@ -36,6 +46,7 @@ app.use("/api", serviceRoutes);
 app.use("/api", bookingRoutes);
 app.use("/api", promoRoutes);
 app.use("/api", reviewRoutes);
+app.use("/api", activityRoutes);
 
 // เสิร์ฟหน้าเว็บ (static)
 app.use(express.static(path.join(__dirname, "public")));
@@ -51,7 +62,7 @@ app.use((err, _req, res, _next) => {
 });
 
 // เตือนถ้าลืมตั้งค่าลับสำคัญ (โทเคนอาจถูกปลอมได้ถ้าใช้ค่า default)
-if (!process.env.JWT_SECRET) console.warn("⚠️  JWT_SECRET ยังไม่ได้ตั้ง — ใช้ค่า default ที่ไม่ปลอดภัย! ตั้งใน Render Environment ก่อนใช้จริง");
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16) console.warn("⚠️  JWT_SECRET ยังไม่ได้ตั้ง (หรือสั้นเกินไป) — ระบบสุ่มค่าชั่วคราวให้ ทุกคนต้องล็อกอินใหม่ทุกครั้งที่รีสตาร์ต ตั้งค่าสุ่มยาว ๆ ใน Render Environment");
 if (!process.env.BREVO_API_KEY) console.warn("⚠️  BREVO_API_KEY ยังไม่ได้ตั้ง — OTP จะไม่ส่ง และระบบจะเข้าสู่ระบบแบบไม่มี OTP (ชั่วคราว)");
 if (process.env.LINE_CHANNEL_TOKEN && !process.env.LINE_CHANNEL_SECRET) console.warn("⚠️  LINE_CHANNEL_SECRET ยังไม่ได้ตั้ง — บอทจัดการที่พักใน LINE Barn Park ยังปิดอยู่");
 

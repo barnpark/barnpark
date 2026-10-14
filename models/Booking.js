@@ -13,18 +13,23 @@ const schema = new mongoose.Schema({
   amount:        { type: Number, default: 0 },
   extraBed:      { type: Number, default: 0 },
   status:        { type: String, default: "confirmed" }, // confirmed|pending|cancelled
-  payStatus:     { type: String, default: "" },          // ""|unpaid|reported(แขกแจ้งโอน รอตรวจ)|paid|deposit
+  payStatus:     { type: String, default: "" },          // ""|unpaid|reported(แขกแจ้งโอน รอตรวจ)|paid|deposit|onsite(ที่พักตกลงให้จ่ายตอนเข้าพัก — ไม่ถูกปล่อยห้องอัตโนมัติ)
   payRef:        String,                                  // เลขอ้างอิง/เวลาโอน ที่แขกกรอกตอนแจ้งชำระ
   payMethod:     { type: String, default: "" },          // promptpay|cash|transfer|ota
   promoCode:     String,                                  // โค้ดส่วนลดที่ใช้
   discount:      { type: Number, default: 0 },            // ส่วนลดต่อห้องนี้ (บาท)
   addons:        { type: [{ name: String, price: Number, qty: Number }], default: [] }, // บริการเสริมที่ซื้อพ่วง
   addonTotal:    { type: Number, default: 0 },            // ยอดบริการเสริมรวม (เก็บที่ห้องแรกของกลุ่ม)
+  breakfast:     { type: String, default: "" },           // "" ไม่มี | included รวมในราคาห้อง | added แขกเลือกเพิ่ม
+  breakfastPax:  { type: Number, default: 0 },            // จำนวนท่านที่สั่งอาหารเช้าเพิ่ม
+  breakfastTotal:{ type: Number, default: 0 },            // ค่าอาหารเช้าที่สั่งเพิ่ม (เก็บที่ห้องแรกของกลุ่ม)
   notifyChannel: { type: String, default: "email" },     // email|sms|line|none
   lineUserId:    String,
   ref:           String,
   extUid:        String, // รหัสยืนยันจาก OTA (อนาคต Channex)
-  note:          String,
+  note:          String,                                  // คำขอพิเศษจากแขก / เวลาที่จะมาถึง
+  remindedAt:    Date,                                    // ส่งอีเมลเตือนก่อนเข้าพักแล้ว (กันส่งซ้ำ)
+  cancelReason:  String,                                  // guest = แขกยกเลิกเอง · auto-unpaid = ระบบปล่อยห้อง (ไม่ชำระตามเวลา) · hotel
 }, { timestamps: true });
 
 schema.index({ hotel: 1, checkin: 1, checkout: 1 });

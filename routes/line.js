@@ -19,11 +19,7 @@ r.post("/webhook/:slug", async (req, res) => {
   if (!h || !h.lineChannelToken) return res.sendStatus(200); // ตอบ 200 เสมอ กัน LINE retry
 
   // ตรวจลายเซ็น (ถ้าตั้ง secret ไว้)
-  if (h.lineChannelSecret) {
-    const sig = req.get("x-line-signature") || "";
-    const expected = crypto.createHmac("sha256", h.lineChannelSecret).update(req.rawBody || Buffer.from("")).digest("base64");
-    if (sig !== expected) return res.sendStatus(401);
-  }
+  if (h.lineChannelSecret && !L.verifySignature(req.rawBody, req.get("x-line-signature"), h.lineChannelSecret)) return res.sendStatus(401);
 
   const events = (req.body && req.body.events) || [];
   for (const ev of events) {

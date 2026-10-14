@@ -6,7 +6,7 @@ import { notifyBooking } from "../lib/notify.js";
 
 const r = Router();
 
-const mkRef = () => "BP-" + Date.now().toString(36).toUpperCase().slice(-6);
+import { mkRef } from "../lib/security.js";
 
 r.get("/hotels/:hid/bookings", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.hid)) return res.status(403).json({ error: "forbidden" });
