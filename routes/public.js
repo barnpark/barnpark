@@ -8,8 +8,47 @@ import { evalPromo } from "../lib/promo.js";
 import { rateFor } from "../lib/pricing.js";
 import PromoCode from "../models/PromoCode.js";
 import Review from "../models/Review.js";
+import mongoose from "mongoose";
+import { parseDataUrl, fitForLine } from "../lib/images.js";
 
 const r = Router();
+
+// ===== เสิร์ฟรูปที่เก็บเป็น data URL เป็นไฟล์รูปจริง (ใช้ในการ์ด LINE + รูปปก) =====
+//   /api/public/img/room/<roomId>/<index>   /api/public/img/svc/<serviceId>/0   /api/public/img/cover/<hotelId>/0
+r.get("/img/:kind/:id/:i?", async (req, res) => {
+  const { kind, id } = req.params;
+  const i = Math.max(0, parseInt(req.params.i || "0", 10) || 0);
+  if (!mongoose.isValidObjectId(id)) return res.sendStatus(404);
+  let src = "", key = "";
+  if (kind === "room") {
+    const t = await RoomType.findById(id).select("images imageUrl updatedAt").lean();
+    if (t) { src = (t.images && t.images[i]) || (i === 0 ? t.imageUrl : ""); key = id + ":" + i + ":" + new Date(t.updatedAt || 0).getTime(); }
+  } else if (kind === "svc") {
+    const s = await Service.findById(id).select("imageUrl updatedAt").lean();
+    if (s) { src = s.imageUrl || ""; key = id + ":" + new Date(s.updatedAt || 0).getTime(); }
+  } else if (kind === "cover") {
+    const h = await Hotel.findById(id).select("+coverData updatedAt").lean();
+    if (h) { src = h.coverData || ""; key = id + ":c:" + new Date(h.updatedAt || 0).getTime(); }
+  }
+  if (!src) return res.sendStatus(404);
+  if (/^https?:\/\//i.test(src)) return res.redirect(src);
+  const p = parseDataUrl(src);
+  if (!p) return res.sendStatus(404);
+  const out = req.query.w === "line" ? await fitForLine(key, p.buf, p.type) : p;
+  res.set("Content-Type", out.type).set("Cache-Control", "public, max-age=86400").send(out.buf);
+});
+
+// QR ลิงก์จองของที่พัก (ให้โรงแรมเอาไปพิมพ์/แชร์)
+r.get("/qr/:slug.png", async (req, res) => {
+  const h = await Hotel.findOne({ slug: req.params.slug }).select("slug").lean();
+  if (!h) return res.sendStatus(404);
+  let QR;
+  try { QR = (await import("qrcode")).default; } catch { return res.sendStatus(404); }
+  const proto = String(req.get("x-forwarded-proto") || req.protocol || "https").split(",")[0];
+  const base = (process.env.PUBLIC_URL || proto + "://" + req.get("host")).replace(/\/+$/, "");
+  const buf = await QR.toBuffer(base + "/book.html?h=" + encodeURIComponent(h.slug), { width: 720, margin: 2, color: { dark: "#0f2540", light: "#ffffff" } });
+  res.set("Content-Type", "image/png").set("Cache-Control", "public, max-age=86400").send(buf);
+});
 
 // ตรวจโค้ดส่วนลด (สาธารณะ) — ให้หน้าจองเช็กสดก่อนยืนยัน
 r.post("/promo", async (req, res) => {
@@ -81,7 +120,7 @@ r.post("/cancel", async (req, res) => {
 r.get("/services/:slug", async (req, res) => {
   const h = await Hotel.findOne({ slug: req.params.slug });
   if (!h) return res.json([]);
-  res.json(await Service.find({ hotel: h._id }).sort("sort"));
+  res.json(await Service.find({ hotel: h._id, hidden: { $ne: true } }).sort("sort"));
 });
 
 // ห้องว่างตามช่วงวันที่ (สาธารณะ) — คืนเฉพาะจำนวน ไม่มีข้อมูลแขก
@@ -89,7 +128,7 @@ r.get("/availability", async (req, res) => {
   const { slug, din, dout } = req.query;
   const h = await Hotel.findOne({ slug });
   if (!h) return res.status(404).json({ error: "not found" });
-  const rts = await RoomType.find({ hotel: h._id }).sort("sort");
+  const rts = await RoomType.find({ hotel: h._id, hidden: { $ne: true } }).sort("sort");
   const out = [];
   for (const t of rts) {
     const booked = await Booking.countDocuments({
@@ -97,7 +136,7 @@ r.get("/availability", async (req, res) => {
     });
     const rate = rateFor(t, din); // ราคาตามฤดู (ถ้ามี)
     out.push({
-      roomTypeId: t._id, name: t.name, capacity: t.capacity,
+      roomTypeId: t._id, name: t.name, capacity: t.capacity, description: t.description || "",
       basePrice: rate.price, minNights: rate.minNights, season: rate.season,
       otaPrice: t.otaPrice, extraBedPrice: t.extraBedPrice, imageUrl: t.imageUrl,
       images: (t.images && t.images.length) ? t.images : (t.imageUrl ? [t.imageUrl] : []),
@@ -115,7 +154,8 @@ r.post("/book", async (req, res) => {
   if (h.approved === false) return res.status(403).json({ error: "ที่พักนี้ยังไม่เปิดรับจอง (รอการอนุมัติ)" });
   if (!name || !tel) return res.status(400).json({ error: "กรุณากรอกชื่อและเบอร์โทร" });
   if (!din || !dout || dout <= din) return res.status(400).json({ error: "invalid dates" });
-  const t = await RoomType.findOne({ _id: roomTypeId, hotel: h._id });
+  if (!mongoose.isValidObjectId(roomTypeId)) return res.status(404).json({ error: "room not found" });
+  const t = await RoomType.findOne({ _id: roomTypeId, hotel: h._id, hidden: { $ne: true } });
   if (!t) return res.status(404).json({ error: "room not found" });
 
   const want = Math.max(1, +rooms);

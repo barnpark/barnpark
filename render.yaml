@@ -20,3 +20,9 @@ services:
         value: BARNPARK
       - key: LINE_CHANNEL_TOKEN
         sync: false
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: ADMIN_LINE_TO
+        sync: false
+      - key: SUPPORT_LINE_URL
+        sync: false

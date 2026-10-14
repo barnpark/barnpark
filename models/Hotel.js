@@ -1,8 +1,10 @@
 import mongoose from "mongoose";
 
 const otaSchema = new mongoose.Schema({
-  channel: String,                 // agoda | booking | trip
-  status:  { type: Number, default: 0 }, // 0 ยังไม่เชื่อม / 1 เชื่อมแล้ว / 2 ขัดข้อง
+  channel: String,                 // agoda | booking | trip | airbnb
+  status:  { type: Number, default: 0 }, // 0 ยังไม่เชื่อม / 1 เชื่อมแล้ว / 2 ขัดข้อง / 3 โรงแรมส่งคำขอเชื่อมแล้ว (รอทีมงาน)
+  propertyId:  String,             // รหัสที่พักใน OTA นั้น (โรงแรมส่งมาทาง LINE)
+  requestedAt: Date,
 }, { _id: false });
 
 const schema = new mongoose.Schema({
@@ -21,6 +23,7 @@ const schema = new mongoose.Schema({
   template:    { type: String, default: "rich" },    // เทมเพลตหน้าจอง: rich|editorial|magazine|split|simple|catalog|classic|bento|fullscreen|immersive
   tagline:     String,
   coverUrl:    String,
+  coverData:   { type: String, select: false }, // รูปปกที่อัปผ่าน LINE (data URL) — เสิร์ฟที่ /api/public/img/cover/:id
   about:       String,
   promoText:   String,
   promoImage:  String,

@@ -5,6 +5,7 @@ import Hotel from "../models/Hotel.js";
 import { sign, requireAuth } from "../lib/auth.js";
 import { sendOtp, brevoReady } from "../lib/mailer.js";
 import { notifyNewHotel } from "../lib/notify.js";
+import { consumeMagic } from "../lib/onboard.js";
 
 const r = Router();
 const genCode = () => String(Math.floor(100000 + Math.random() * 900000));
@@ -31,7 +32,7 @@ r.post("/register", async (req, res) => {
   while (await Hotel.findOne({ slug: s })) { n++; s = base + "-" + n; if (n > 50) { s = base + "-" + Date.now().toString(36).slice(-4); break; } }
 
   const hotel = await Hotel.create({
-    name: hotelName, slug: s, location: location || "", phone: phone || "", status: "onboarding",
+    name: hotelName, slug: s, location: location || "", phone: phone || "", status: "onboarding", notifyEmail: em,
     approved: false, // รอแอดมินอนุมัติก่อนเปิดรับจอง
     ota: [{ channel: "agoda", status: 0 }, { channel: "booking", status: 0 }, { channel: "trip", status: 0 }],
   });
@@ -80,6 +81,15 @@ r.post("/verify-otp", async (req, res) => {
     return res.status(401).json({ error: "รหัส OTP ไม่ถูกต้อง (เหลืออีก " + Math.max(0, 5 - u.otpTries) + " ครั้ง)" });
   }
   u.otpHash = undefined; u.otpExpires = undefined; u.otpTries = 0; await u.save();
+  res.json({ token: sign(u), user: userOut(u) });
+});
+
+// เข้าเว็บหลังบ้านจากลิงก์ใน LINE Barn Park (ใช้ครั้งเดียว อายุ 10 นาที)
+r.post("/magic", async (req, res) => {
+  const lc = await consumeMagic((req.body || {}).code);
+  if (!lc) return res.status(401).json({ error: "ลิงก์หมดอายุหรือถูกใช้ไปแล้ว — ขอลิงก์ใหม่ใน LINE Barn Park (บัญชี → เข้าเว็บหลังบ้าน)" });
+  const u = await User.findById(lc.user);
+  if (!u || String(u.hotel) !== String(lc.hotel)) return res.status(401).json({ error: "ไม่พบบัญชีของที่พักนี้" });
   res.json({ token: sign(u), user: userOut(u) });
 });
 

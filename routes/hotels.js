@@ -6,8 +6,46 @@ import RoomType from "../models/RoomType.js";
 import Booking from "../models/Booking.js";
 import Service from "../models/Service.js";
 import { requireAuth, requireAdmin, canAccessHotel } from "../lib/auth.js";
+import LineChat from "../models/LineChat.js";
+import { issueLinkCode, fmtCode, oaAddUrl, oaPrefillUrl, approveHotel } from "../lib/onboard.js";
+import { detachHotelFromChat } from "../lib/linebot.js";
+import { rememberBase } from "../lib/baseurl.js";
 
 const r = Router();
+
+// ===== จัดการที่พักผ่าน LINE Barn Park =====
+// ขอรหัสเชื่อม (เจ้าของ/แอดมิน) — พิมพ์รหัสนี้ใน LINE Barn Park เพื่อเปิดเมนูจัดการที่พัก
+r.post("/hotels/:id/line-code", requireAuth, async (req, res) => {
+  if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const h = await Hotel.findById(req.params.id);
+  if (!h) return res.status(404).json({ error: "not found" });
+  if (h.approved === false) return res.status(400).json({ error: "ที่พักยังรออนุมัติ — อนุมัติแล้วจึงขอรหัสเชื่อม LINE ได้" });
+  const owner = req.user.role === "admin"
+    ? await User.findOne({ hotel: h._id, role: "owner" }).sort("createdAt")
+    : await User.findById(req.user.id);
+  const code = await issueLinkCode(h._id, owner?._id, 7);
+  res.json({ code: fmtCode(code), expiresInDays: 7, addFriendUrl: oaAddUrl(), sendCodeUrl: oaPrefillUrl("เชื่อม " + fmtCode(code)) });
+});
+// LINE ที่เชื่อมกับที่พักนี้อยู่
+r.get("/hotels/:id/line-links", requireAuth, async (req, res) => {
+  if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const list = await LineChat.find({ hotels: req.params.id }).select("name hotel updatedAt").lean();
+  res.json(list.map((c) => ({ id: c._id, name: c.name || "ผู้ใช้ LINE", active: String(c.hotel) === String(req.params.id), updatedAt: c.updatedAt })));
+});
+// ถอดสิทธิ์ LINE นั้นออกจากที่พัก
+r.delete("/hotels/:id/line-links/:cid", requireAuth, async (req, res) => {
+  if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const c = await LineChat.findOne({ _id: req.params.cid, hotels: req.params.id }).lean();
+  if (!c) return res.status(404).json({ error: "not found" });
+  await detachHotelFromChat(c._id, req.params.id);
+  res.json({ ok: true });
+});
+// แอดมินอนุมัติที่พัก → ออกรหัสเชื่อม → ส่งให้ผู้สมัครทาง LINE (ถ้าสมัครผ่าน LINE) + อีเมล
+r.post("/admin/hotels/:id/approve", requireAuth, requireAdmin, async (req, res) => {
+  rememberBase(req);
+  try { res.json({ ok: true, ...(await approveHotel(req.params.id)) }); }
+  catch (e) { res.status(400).json({ error: String(e.message || e) }); }
+});
 
 // สำรองข้อมูลทั้งระบบเป็น JSON (แอดมินเท่านั้น) — กดดาวน์โหลดเก็บไว้เอง
 r.get("/admin/export", requireAuth, requireAdmin, async (_req, res) => {
@@ -58,7 +96,8 @@ r.post("/hotels", requireAuth, requireAdmin, async (req, res) => {
 
 r.patch("/hotels/:id", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
-  const { lineChannelToken, lineChannelSecret, ...safe } = req.body; // secret ผ่าน route แยกเท่านั้น
+  const { lineChannelToken, lineChannelSecret, coverData, _id, ...safe } = req.body || {}; // secret ผ่าน route แยกเท่านั้น
+  if (req.user.role !== "admin") { delete safe.approved; delete safe.status; delete safe.planFee; delete safe.slug; delete safe.ota; } // เจ้าของอนุมัติตัวเอง/แก้ค่าบริการไม่ได้
   res.json(await Hotel.findByIdAndUpdate(req.params.id, safe, { new: true }));
 });
 

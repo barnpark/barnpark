@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 const schema = new mongoose.Schema({
   hotel:         { type: mongoose.Schema.Types.ObjectId, ref: "Hotel", required: true, index: true },
   name:          String,
+  description:   String,                 // คำอธิบายสั้น ๆ (แสดงบนการ์ดห้อง)
+  hidden:        { type: Boolean, default: false }, // ปิดขายชั่วคราว (ไม่แสดงบนหน้าจอง)
   capacity:      { type: Number, default: 2 },
   qty:           { type: Number, default: 1 },
   basePrice:     { type: Number, default: 0 },

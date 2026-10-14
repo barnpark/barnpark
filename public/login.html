@@ -95,7 +95,18 @@ async function doRegister(){
 }
 document.getElementById("pw").addEventListener("keydown", e => { if(e.key==="Enter") doLogin(); });
 document.getElementById("otp").addEventListener("keydown", e => { if(e.key==="Enter") doVerify(); });
-if(API.token()){ route().catch(()=>{}); }
+// เข้าจากลิงก์ใน LINE Barn Park (ใช้ครั้งเดียว 10 นาที) — ไม่ต้องกรอกรหัสผ่าน
+const MAGIC=new URLSearchParams(location.search).get("magic");
+if(MAGIC){
+  (async()=>{
+    try{
+      const r=await fetch("/api/auth/magic",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({code:MAGIC})});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(d.error||"ลิงก์ใช้ไม่ได้");
+      API.setToken(d.token); history.replaceState(null,"","login.html"); location.href="app.html";
+    }catch(err){ history.replaceState(null,"","login.html"); showErr(err.message); }
+  })();
+} else if(API.token()){ route().catch(()=>{}); }
 if(new URLSearchParams(location.search).get("mode")==="register"){ showReg(); }
 API.mountSupport();
 </script>

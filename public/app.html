@@ -69,6 +69,27 @@
     <div class="panel"><h3>แนวโน้มเข้าพัก 7 วันข้างหน้า</h3><div id="rep-outlook"></div></div></section>
   <section id="v-set" class="view"><h1>ตั้งค่า</h1>
     <div class="panel"><h3>ลิงก์จองตรงสำหรับแขก</h3><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input id="booklink" readonly style="flex:1;min-width:220px"><button class="btn ghost" onclick="copyLink()">คัดลอก</button><a id="bookopen" class="btn" target="_blank">เปิดดู</a></div></div>
+    <div class="panel" id="lbp-panel"><h3>📱 จัดการที่พักผ่าน LINE Barn Park (แนะนำ)</h3>
+      <p class="sub" style="margin-top:0">เพิ่มห้อง/กิจกรรม ใส่รูป ตั้งค่าเว็บ ดูการจอง ยืนยันรับเงิน — ทำในแชท LINE ได้ทั้งหมด ไม่ต้องเปิดคอม</p>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1;min-width:240px;line-height:1.9">
+          <b>วิธีเชื่อม (ทำครั้งเดียว ~1 นาที)</b><br>
+          1) กด “ขอรหัสเชื่อม LINE” ด้านล่าง<br>
+          2) บนมือถือ: กด “เปิด LINE แล้วส่งรหัส” → กดส่ง<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;บนคอม: สแกน QR ด้วยมือถือ แล้วกดส่ง<br>
+          3) เมนูจัดการที่พักจะขึ้นในแชททันที ✅
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="lbp-btn" onclick="getLineCode()">🔑 ขอรหัสเชื่อม LINE</button><a id="lbp-add" class="btn ghost" target="_blank" rel="noopener" style="display:none">➕ แอด LINE Barn Park</a></div>
+          <p class="note" id="lbp-note" style="margin:8px 0 0"></p>
+        </div>
+        <div id="lbp-code" style="display:none;text-align:center;min-width:220px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:14px;padding:14px">
+          <div class="note" style="margin:0">รหัสเชื่อม (ใช้ได้ 7 วัน ครั้งเดียว)</div>
+          <div id="lbp-code-txt" style="font-size:30px;font-weight:800;letter-spacing:4px;color:#0d9488;margin:4px 0 8px"></div>
+          <div id="lbp-qr" style="display:inline-block;background:#fff;padding:6px;border-radius:8px"></div>
+          <div style="margin-top:8px"><a id="lbp-send" class="btn sm" target="_blank" rel="noopener">📲 เปิด LINE แล้วส่งรหัส</a></div>
+        </div>
+      </div>
+      <div style="margin-top:14px"><b>LINE ที่จัดการที่พักนี้ได้</b><div id="lbp-links" class="note" style="margin-top:6px">กำลังโหลด…</div></div>
+    </div>
     <div class="panel"><h3>ปรับแต่งแบรนด์ (สี · ฟอนต์ · สไตล์)</h3>
       <p class="sub" style="margin-top:0">เริ่มจากเลือก "สไตล์สำเร็จรูป" 1 คลิก แล้วปรับต่อได้ — ดูตัวอย่างสดด้านล่าง กด "บันทึกแบรนด์" เมื่อพอใจ</p>
       <div class="formgrid" style="margin-bottom:14px">
@@ -176,6 +197,7 @@
   </div>
   <div class="modal-foot"><button id="bk-del" class="btn danger" onclick="delBk()">🗑 ลบ</button><span style="flex:1"></span><button class="btn ghost" onclick="closeBk()">ยกเลิก</button><button class="btn" onclick="saveBk()">✔ บันทึก</button></div>
 </div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="api.js"></script>
 <script>
 let HOTEL=null, HID=null, RT=[], BK=[], SVC=[], PROMOS=[], REVIEWS=[], winStart=new Date(), editId=null, lastRows=[];
@@ -273,13 +295,13 @@ function roomThumb(t){
 function renderRooms(){
   document.getElementById('roomtable').innerHTML='<tr><th>รูป</th><th>ชื่อห้อง</th><th>รองรับ</th><th>จำนวน</th><th>ราคา/คืน</th><th>OTA</th><th>เตียงเสริม</th><th></th></tr>'+(RT.length?RT.map(t=>'<tr>'+
     '<td>'+roomThumb(t)+'</td>'+
-    '<td><input class="rate" style="max-width:150px" value="'+esc(t.name)+'" id="r-name-'+t._id+'"></td>'+
+    '<td><input class="rate" style="max-width:150px" value="'+esc(t.name)+'" id="r-name-'+t._id+'">'+(t.hidden?'<div><span class="pill off">⏸ ปิดขาย</span></div>':'')+(t.description?'<div class="note" style="margin:2px 0 0;max-width:170px">'+esc(t.description)+'</div>':'')+'</td>'+
     '<td><input class="rate" style="max-width:70px" type="number" value="'+(t.capacity||2)+'" id="r-cap-'+t._id+'"></td>'+
     '<td><input class="rate" style="max-width:70px" type="number" value="'+(t.qty||1)+'" id="r-qty-'+t._id+'"></td>'+
     '<td><input class="rate" type="number" value="'+(t.basePrice||0)+'" id="r-price-'+t._id+'"></td>'+
     '<td><input class="rate" type="number" value="'+(t.otaPrice||0)+'" id="r-ota-'+t._id+'"></td>'+
     '<td><input class="rate" style="max-width:90px" type="number" value="'+(t.extraBedPrice||0)+'" id="r-eb-'+t._id+'"></td>'+
-    '<td style="white-space:nowrap"><button class="btn sm" onclick="saveRT(\''+t._id+'\')">บันทึก</button> <button class="btn ghost sm" onclick="openSeasons(\''+t._id+'\')">📅 ฤดู'+((t.seasons&&t.seasons.length)?' ('+t.seasons.length+')':'')+'</button> <button class="btn danger sm" onclick="delRT(\''+t._id+'\')">ลบ</button></td></tr>').join(''):'<tr><td colspan="8" class="empty">ยังไม่มีห้อง</td></tr>');
+    '<td style="white-space:nowrap"><button class="btn sm" onclick="saveRT(\''+t._id+'\')">บันทึก</button> <button class="btn ghost sm" onclick="openSeasons(\''+t._id+'\')">📅 ฤดู'+((t.seasons&&t.seasons.length)?' ('+t.seasons.length+')':'')+'</button> <button class="btn ghost sm" onclick="editDescRT(\''+t._id+'\')" title="คำอธิบายห้อง">📝</button> <button class="btn ghost sm" onclick="toggleHideRT(\''+t._id+'\')">'+(t.hidden?'▶️ เปิดขาย':'⏸ ปิดขาย')+'</button> <button class="btn danger sm" onclick="delRT(\''+t._id+'\')">ลบ</button></td></tr>').join(''):'<tr><td colspan="8" class="empty">ยังไม่มีห้อง</td></tr>');
 }
 async function addRoomImg(id,input){
   const f=input.files&&input.files[0]; if(!f)return;
@@ -333,8 +355,8 @@ function renderSvc(){
     '<td><input class="rate" style="max-width:150px" value="'+esc(s.name)+'" id="sv-name-'+s._id+'"></td>'+
     '<td><input class="rate" value="'+esc(s.description||'')+'" id="sv-desc-'+s._id+'"></td>'+
     '<td><input class="rate" style="max-width:90px" type="number" value="'+(s.price||0)+'" id="sv-price-'+s._id+'"></td>'+
-    '<td><input class="rate" value="'+esc(s.imageUrl||'')+'" id="sv-img-'+s._id+'"></td>'+
-    '<td style="white-space:nowrap"><button class="btn sm" onclick="saveSvc(\''+s._id+'\')">บันทึก</button> <button class="btn danger sm" onclick="delSvc(\''+s._id+'\')">ลบ</button></td></tr>').join(''):'<tr><td colspan="5" class="empty">ยังไม่มีบริการเสริม</td></tr>');
+    '<td>'+(/^data:/.test(s.imageUrl||'')?'<input class="rate" data-keep="1" placeholder="📷 ใช้รูปจาก LINE (วางลิงก์เพื่อเปลี่ยน)" id="sv-img-'+s._id+'">':'<input class="rate" value="'+esc(s.imageUrl||'')+'" id="sv-img-'+s._id+'">')+'</td>'+
+    '<td style="white-space:nowrap"><button class="btn sm" onclick="saveSvc(\''+s._id+'\')">บันทึก</button> <button class="btn ghost sm" onclick="toggleHideSvc(\''+s._id+'\')">'+(s.hidden?'▶️ เปิดขาย':'⏸ ปิดขาย')+'</button> <button class="btn danger sm" onclick="delSvc(\''+s._id+'\')">ลบ</button></td></tr>').join(''):'<tr><td colspan="5" class="empty">ยังไม่มีบริการเสริม</td></tr>');
 }
 async function addSvc(){
   const name=document.getElementById('ns-name').value.trim(); if(!name){API.toast('กรอกชื่อบริการ','err');return;}
@@ -343,7 +365,10 @@ async function addSvc(){
   API.toast('เพิ่มบริการแล้ว','ok'); SVC=await API.get('/hotels/'+HID+'/services'); renderSvc();
 }
 async function saveSvc(id){
-  await API.patch('/services/'+id,{name:document.getElementById('sv-name-'+id).value,description:document.getElementById('sv-desc-'+id).value,price:+document.getElementById('sv-price-'+id).value||0,imageUrl:document.getElementById('sv-img-'+id).value});
+  const imgEl=document.getElementById('sv-img-'+id);
+  const body={name:document.getElementById('sv-name-'+id).value,description:document.getElementById('sv-desc-'+id).value,price:+document.getElementById('sv-price-'+id).value||0};
+  if(imgEl.value.trim()||!imgEl.dataset.keep) body.imageUrl=imgEl.value.trim(); // รูปที่อัปผ่าน LINE คงไว้ ถ้าไม่ได้วางลิงก์ใหม่
+  await API.patch('/services/'+id,body);
   API.toast('บันทึกแล้ว','ok'); SVC=await API.get('/hotels/'+HID+'/services'); renderSvc();
 }
 async function delSvc(id){ if(!confirm('ลบบริการนี้?'))return; await API.del('/services/'+id); API.toast('ลบแล้ว','ok'); SVC=await API.get('/hotels/'+HID+'/services'); renderSvc(); }
@@ -472,6 +497,7 @@ async function fillSettings(){
   document.getElementById('s-pp-id').value=HOTEL.promptpayId||'';document.getElementById('s-pp-name').value=HOTEL.promptpayName||'';
   document.getElementById('s-taxid').value=HOTEL.taxId||'';document.getElementById('s-address').value=HOTEL.address||'';
   try{ const ls=await API.get('/hotels/'+HID+'/line'); document.getElementById('line-status').textContent=ls.connected?'✔ เชื่อม LINE OA แล้ว':'ยังไม่ได้เชื่อม'; }catch{}
+  setupLinePanel();
 }
 function copyLink(){const el=document.getElementById('booklink');el.select();navigator.clipboard.writeText(el.value).then(()=>API.toast('คัดลอกแล้ว','ok'));}
 async function saveHotel(){
@@ -491,6 +517,34 @@ async function saveHotel(){
     document.getElementById('hotelName').textContent=HOTEL.name; API.applyTheme(HOTEL); API.toast('บันทึกแล้ว','ok');
   }catch(e){API.toast(e.message,'err');}
 }
+// ---- จัดการผ่าน LINE Barn Park ----
+async function setupLinePanel(){
+  try{ const c=await fetch('/api/public/config').then(r=>r.json()); if(c&&c.supportLineUrl){ const a=document.getElementById('lbp-add'); a.href=c.supportLineUrl; a.style.display='inline-flex'; } }catch{}
+  if(HOTEL.approved===false){ document.getElementById('lbp-btn').disabled=true; document.getElementById('lbp-note').textContent='⏳ ใช้ได้หลังทีมงาน Barn Park อนุมัติที่พัก'; }
+  loadLineLinks();
+}
+async function loadLineLinks(){
+  const box=document.getElementById('lbp-links');
+  try{ const l=await API.get('/hotels/'+HID+'/line-links');
+    box.innerHTML=l.length?l.map(x=>'<div style="display:flex;align-items:center;gap:8px;padding:4px 0">💬 <b>'+esc(x.name)+'</b>'+(x.active?' <span class="pill on">กำลังจัดการที่พักนี้</span>':'')+'<button class="btn ghost sm" style="margin-left:auto" onclick="removeLineLink(\''+x.id+'\')">ถอดสิทธิ์</button></div>').join(''):'ยังไม่มี — กด “ขอรหัสเชื่อม LINE” แล้วส่งรหัสในแชท LINE Barn Park';
+  }catch{ box.textContent='—'; }
+}
+async function getLineCode(){
+  try{ const r=await API.post('/hotels/'+HID+'/line-code',{});
+    document.getElementById('lbp-code').style.display='block';
+    document.getElementById('lbp-code-txt').textContent=r.code;
+    const s=document.getElementById('lbp-send'); s.href=r.sendCodeUrl||r.addFriendUrl||'#';
+    const q=document.getElementById('lbp-qr'); q.innerHTML='';
+    if(window.QRCode&&r.sendCodeUrl) new QRCode(q,{text:r.sendCodeUrl,width:132,height:132}); else q.style.display='none';
+    API.toast('ได้รหัสแล้ว — ส่งรหัสนี้ในแชท LINE Barn Park','ok');
+    setTimeout(loadLineLinks,30000);
+  }catch(e){ API.toast(e.message,'err'); }
+}
+async function removeLineLink(id){ if(!confirm('ถอดสิทธิ์ LINE นี้ออกจากที่พัก? (LINE นั้นจะจัดการที่พักไม่ได้จนกว่าจะใส่รหัสใหม่)'))return; try{ await API.del('/hotels/'+HID+'/line-links/'+id); API.toast('ถอดสิทธิ์แล้ว','ok'); loadLineLinks(); }catch(e){ API.toast(e.message,'err'); } }
+// ปิดขาย / คำอธิบายห้อง (ตรงกับที่ทำได้ใน LINE)
+async function toggleHideRT(id){ const t=RT.find(x=>String(x._id)===String(id)); if(!t)return; try{ await API.patch('/rooms/'+id,{hidden:!t.hidden}); t.hidden=!t.hidden; renderRooms(); API.toast(t.hidden?'ปิดขายแล้ว (ซ่อนจากหน้าจอง)':'เปิดขายแล้ว','ok'); }catch(e){API.toast(e.message,'err');} }
+async function editDescRT(id){ const t=RT.find(x=>String(x._id)===String(id)); if(!t)return; const v=prompt('คำอธิบายห้อง (แสดงบนการ์ดห้องในหน้าจอง)',t.description||''); if(v===null)return; const d=v.trim().slice(0,300); try{ await API.patch('/rooms/'+id,{description:d}); t.description=d; renderRooms(); API.toast('บันทึกคำอธิบายแล้ว','ok'); }catch(e){API.toast(e.message,'err');} }
+async function toggleHideSvc(id){ const s=SVC.find(x=>String(x._id)===String(id)); if(!s)return; try{ await API.patch('/services/'+id,{hidden:!s.hidden}); s.hidden=!s.hidden; renderSvc(); API.toast(s.hidden?'ปิดขายแล้ว':'เปิดขายแล้ว','ok'); }catch(e){API.toast(e.message,'err');} }
 function copyWebhook(){const el=document.getElementById('s-line-webhook');el.select();navigator.clipboard.writeText(el.value).then(()=>API.toast('คัดลอก Webhook URL แล้ว','ok'));}
 async function saveLine(){
   const lineId=document.getElementById('s-line-id').value.trim();

@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import "./lib/asyncerrors.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { connectDB } from "./lib/db.js";
@@ -40,9 +41,19 @@ app.use("/api", reviewRoutes);
 app.use(express.static(path.join(__dirname, "public")));
 app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
+// กันเซิร์ฟเวอร์ล่มจาก error ที่ไม่ได้ดักไว้ (เช่น id ผิดรูปแบบใน route แบบ async)
+process.on("unhandledRejection", (e) => console.error("unhandledRejection:", e && e.message ? e.message : e));
+app.use((err, _req, res, _next) => {
+  if (err && err.name === "CastError") return res.status(404).json({ error: "ไม่พบข้อมูล" }); // id ผิดรูปแบบ
+  if (err && err.type === "entity.too.large") return res.status(413).json({ error: "ไฟล์/ข้อมูลใหญ่เกินไป" });
+  console.error("route error:", err && err.message);
+  res.status(500).json({ error: "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง" });
+});
+
 // เตือนถ้าลืมตั้งค่าลับสำคัญ (โทเคนอาจถูกปลอมได้ถ้าใช้ค่า default)
 if (!process.env.JWT_SECRET) console.warn("⚠️  JWT_SECRET ยังไม่ได้ตั้ง — ใช้ค่า default ที่ไม่ปลอดภัย! ตั้งใน Render Environment ก่อนใช้จริง");
 if (!process.env.BREVO_API_KEY) console.warn("⚠️  BREVO_API_KEY ยังไม่ได้ตั้ง — OTP จะไม่ส่ง และระบบจะเข้าสู่ระบบแบบไม่มี OTP (ชั่วคราว)");
+if (process.env.LINE_CHANNEL_TOKEN && !process.env.LINE_CHANNEL_SECRET) console.warn("⚠️  LINE_CHANNEL_SECRET ยังไม่ได้ตั้ง — บอทจัดการที่พักใน LINE Barn Park ยังปิดอยู่");
 
 const PORT = process.env.PORT || 3000;
 connectDB()

@@ -6,6 +6,7 @@ const schema = new mongoose.Schema({
   description: String,
   price:       Number,
   imageUrl:    String,
+  hidden:      { type: Boolean, default: false }, // ปิดขายชั่วคราว
   sort:        { type: Number, default: 0 },
 }, { timestamps: true });
 

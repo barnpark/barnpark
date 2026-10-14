@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>วิธีสมัคร OTA + เชื่อมกับ Barn Park</title>
+<style>
+  :root{--brand:#0d9488;--ink:#0f2540;--muted:#5b7089;--line:#e3eaf2;--bg:#f6f9fc}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Sarabun",-apple-system,"Segoe UI",sans-serif;line-height:1.75;font-size:15.5px}
+  header{background:linear-gradient(135deg,#0d9488,#2563eb);color:#fff;padding:26px 18px 22px}
+  header h1{margin:0 0 4px;font-size:23px} header p{margin:0;opacity:.92;font-size:14px}
+  .wrap{max-width:760px;margin:0 auto;padding:0 16px 50px}
+  nav{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+  nav a{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px;text-decoration:none;color:var(--ink);font-weight:700;font-size:14px}
+  h2{font-size:20px;margin:30px 0 10px;padding-top:6px;border-top:2px solid var(--line)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:10px 0}
+  .step{display:flex;gap:12px;margin:10px 0}
+  .step .n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .note{border-radius:12px;padding:10px 14px;margin:10px 0;font-size:14px}
+  .warn{background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12}
+  .ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#064e3b}
+  .info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a}
+  ul{padding-left:20px;margin:6px 0} li{margin:3px 0}
+  code{background:#eef2f7;border-radius:6px;padding:1px 6px;font-size:13.5px}
+  .muted{color:var(--muted);font-size:13.5px}
+</style>
+</head>
+<body>
+<header><div class="wrap" style="padding-bottom:0">
+  <h1>🌐 วิธีสมัคร OTA + เชื่อมกับ Barn Park</h1>
+  <p>สำหรับเจ้าของที่พัก · อ่านจบแล้วรู้ว่าต้องทำอะไรบ้าง</p>
+</div></header>
+<div class="wrap">
+
+<nav><a href="#start">เริ่มต้น</a><a href="#docs">เอกสาร</a><a href="#agoda">Agoda</a><a href="#booking">Booking.com</a><a href="#airbnb">Airbnb</a><a href="#trip">Trip.com</a><a href="#line">ส่ง ID ใน LINE</a></nav>
+
+<h2 id="start">OTA คืออะไร ทำไมต้องเชื่อม</h2>
+<div class="card">
+  <b>OTA</b> = เว็บขายห้องออนไลน์ เช่น Agoda, Booking.com, Airbnb, Trip.com — ช่วยให้นักท่องเที่ยวเจอที่พักคุณมากขึ้น<br>
+  ปัญหาคือถ้าขายหลายที่พร้อมกัน แล้วแต่ละที่ไม่รู้กัน → <b>จองซ้อน</b> (ห้องเดียวกันขายได้ 2 คน)<br>
+  <b>Barn Park จะซิงก์ห้องว่าง + ราคา ไปทุก OTA ให้อัตโนมัติ</b> และดึงการจองกลับมาที่ปฏิทินเดียว
+</div>
+<div class="note info">ลำดับง่าย ๆ: <b>① สมัคร OTA เอง (ฟรี)</b> → <b>② ส่ง ID ให้ Barn Park ทาง LINE</b> → <b>③ กดอนุญาตใน OTA</b> → ทีมงานจับคู่ห้องให้ ✅</div>
+<div class="note warn">⏳ ระบบซิงก์ OTA อัตโนมัติกำลังเปิดให้บริการ — ส่งคำขอไว้ได้เลย ทีมงานจะติดต่อกลับเมื่อพร้อมเชื่อมให้ ระหว่างนี้ถ้ามีจองจาก OTA ให้กด <b>📅 การจอง → ➕ บันทึกการจองเอง</b> ใน LINE เพื่อกันห้องบนเว็บ</div>
+
+<h2 id="docs">📋 เตรียมเอกสารก่อนสมัคร</h2>
+<div class="card"><ul>
+  <li>บัตรประชาชนเจ้าของ (หรือหนังสือรับรองบริษัท)</li>
+  <li><b>บัญชีธนาคาร</b> ชื่อตรงกับเจ้าของ/บริษัท (ไว้รับเงิน)</li>
+  <li>เลขประจำตัวผู้เสียภาษี</li>
+  <li>ใบอนุญาตโรงแรม/หนังสือรับรองการแจ้ง (ถ้ามี)</li>
+  <li>ชื่อ + ที่อยู่ที่พัก <b>ภาษาอังกฤษ</b> + ปักหมุดแผนที่ให้ถูก</li>
+  <li>รูปสวย ๆ อย่างน้อย 10 รูป (ภายนอก ห้อง ห้องน้ำ วิว)</li>
+  <li>ข้อมูลห้อง: ประเภท จำนวน เตียง พักได้กี่คน ราคา</li>
+  <li>นโยบาย: เวลาเช็คอิน-เอาท์ การยกเลิก เด็ก อาหารเช้า สัตว์เลี้ยง</li>
+</ul></div>
+<div class="note warn">⚖️ ให้เช่ารายวัน/รายสัปดาห์ ถือเป็น “โรงแรม” ตามกฎหมาย ต้องมีใบอนุญาตหรือแจ้งที่จังหวัด และถ้ามีแขกต่างชาติ ต้องแจ้ง ตม. ภายใน 24 ชม. (ตม.30) — สอบถามอำเภอ/ทนายเพื่อความชัวร์</div>
+
+<h2 id="agoda">🅰️ Agoda</h2>
+<div class="card">
+  <div class="step"><div class="n">1</div><div>ค้นหา “<b>Agoda list your property</b>” → สมัคร (ฟรี) — ระบบหลังบ้านชื่อ <b>Agoda Partner Portal</b> (เดิมชื่อ YCS)</div></div>
+  <div class="step"><div class="n">2</div><div>ใส่ข้อมูลที่พัก รูป ห้อง ราคา · ที่พักหลังเดียว/บ้านทั้งหลัง ให้สมัครแบบ <b>Agoda Homes</b></div></div>
+  <div class="step"><div class="n">3</div><div>Agoda ตรวจ ~3 วัน แล้วส่ง<b>สัญญาทางอีเมล</b> → เซ็น</div></div>
+  <div class="step"><div class="n">4</div><div>จด <b>Agoda Hotel ID</b> (ตัวเลขมุมบนของ Partner Portal) → ส่งใน LINE Barn Park</div></div>
+  <div class="note ok"><b>ตอนเชื่อม:</b> Partner Portal → Property Settings → Optional Settings → Channel manager → เลือก <b>Channex</b> (ถ้าไม่เจอ ทักแชท Agoda ว่า “connect my property to Channex”)</div>
+</div>
+
+<h2 id="booking">🅱️ Booking.com</h2>
+<div class="card">
+  <div class="step"><div class="n">1</div><div>ไปที่ <code>join.booking.com</code> → <b>List your property</b> (ฟรี)</div></div>
+  <div class="step"><div class="n">2</div><div>ใส่ข้อมูล ที่อยู่ รูป ห้อง ราคา นโยบาย</div></div>
+  <div class="step"><div class="n">3</div><div>ยืนยันตัวตน + บัญชีรับเงิน + เลขภาษี (อาจมี<b>จดหมายยืนยัน</b>ส่งไปที่อยู่ที่พัก)</div></div>
+  <div class="step"><div class="n">4</div><div>จด <b>Property ID</b> (ตัวเลขด้านบนหน้า Extranet) → ส่งใน LINE Barn Park</div></div>
+  <div class="note ok"><b>ตอนเชื่อม:</b> Extranet → Account → <b>Connectivity provider</b> → ค้นหา <b>Channex</b> → เลือกและยอมรับ</div>
+</div>
+
+<h2 id="airbnb">🏠 Airbnb</h2>
+<div class="card">
+  <div class="step"><div class="n">1</div><div>airbnb.com → <b>Airbnb your home</b> → สร้างประกาศ (ห้อง รูป ราคา กฎบ้าน)</div></div>
+  <div class="step"><div class="n">2</div><div>ยืนยันตัวตน + ใส่บัญชีรับเงิน → เปิดประกาศ</div></div>
+  <div class="step"><div class="n">3</div><div>ก็อป<b>ลิงก์ประกาศ</b> (airbnb.com/rooms/…) → ส่งใน LINE Barn Park</div></div>
+  <div class="note ok"><b>ตอนเชื่อม:</b> ทีมงานจะส่งลิงก์ให้คุณ<b>ล็อกอิน Airbnb ของคุณเองแล้วกดอนุญาต</b> (ไม่ต้องบอกรหัสผ่านใคร) · Airbnb เชื่อมระบบได้ทีละ 1 ระบบ ถ้าเคยเชื่อมระบบอื่นต้องยกเลิกก่อน</div>
+</div>
+
+<h2 id="trip">✈️ Trip.com</h2>
+<div class="card">
+  <div class="step"><div class="n">1</div><div>ค้นหา “<b>Trip.com list your property</b>” → สร้างบัญชี <b>eBooking</b> (ฟรี)</div></div>
+  <div class="step"><div class="n">2</div><div>กรอกชื่อ/ที่อยู่ภาษาอังกฤษ ประเภทที่พัก รูป ข้อมูลรับเงิน</div></div>
+  <div class="step"><div class="n">3</div><div>เซ็นสัญญาออนไลน์ (ค่าคอมแสดงในขั้น Contract)</div></div>
+  <div class="step"><div class="n">4</div><div>จด <b>Hotel ID</b> จากหน้า eBooking → ส่งใน LINE Barn Park</div></div>
+  <div class="note ok"><b>ตอนเชื่อม:</b> ทีมงาน Barn Park จะประสานกับ Trip.com ให้</div>
+</div>
+
+<h2 id="line">📲 ส่ง ID ให้ Barn Park ทาง LINE</h2>
+<div class="card">
+  <div class="step"><div class="n">1</div><div>เปิดแชท <b>LINE Barn Park</b> → กดเมนู <b>🌐 OTA</b></div></div>
+  <div class="step"><div class="n">2</div><div>กด <b>🔗 ขอเชื่อม OTA</b> → เลือก OTA → กด “มีแล้ว”</div></div>
+  <div class="step"><div class="n">3</div><div>พิมพ์ ID (หรือวางลิงก์ Airbnb) → ทีมงานได้รับแจ้งทันที</div></div>
+  <div class="step"><div class="n">4</div><div>ทำขั้น “ตอนเชื่อม” ของ OTA นั้น (กล่องสีเขียวด้านบน) แล้วรอทีมงานติดต่อกลับ</div></div>
+</div>
+<div class="note info">💡 หลังเชื่อมแล้ว ให้แก้ราคา/ปิดห้อง <b>ที่ Barn Park ที่เดียว</b> (ผ่าน LINE หรือเว็บหลังบ้าน) — ถ้าไปแก้ในหลังบ้าน OTA โดยตรง ระบบจะเขียนทับ</div>
+<p class="muted">ค่าคอมมิชชันของแต่ละ OTA ดูได้ในสัญญาตอนสมัคร (สมัครฟรีทุกเจ้า จ่ายเมื่อมีคนจอง) · ขั้นตอน/เมนูของ OTA อาจเปลี่ยน ถ้าหาไม่เจอ ทักทีมงานใน LINE ได้เลย</p>
+</div>
+</body>
+</html>
