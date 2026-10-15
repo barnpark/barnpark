@@ -19,6 +19,7 @@ import publicRoutes from "./routes/public.js";
 import setupRoutes from "./routes/setup.js";
 import lineRoutes from "./routes/line.js";
 import activityRoutes from "./routes/activities.js";
+import feedbackRoutes from "./routes/feedback.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -31,6 +32,7 @@ app.get("/api/health", (_req, res) => res.json({ ok: true, service: "barn-park" 
 // กัน brute-force ล็อกอิน/OTP และสแปมหน้าจอง
 app.use("/api/auth", rateLimit({ windowMs: 10 * 60 * 1000, max: 40, message: "พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/cancel", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
+app.use("/api/feedback", rateLimit({ windowMs: 10 * 60 * 1000, max: 20, message: "ส่งความเห็นบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/report-paid", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/review", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/promo", rateLimit({ windowMs: 10 * 60 * 1000, max: 30, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
@@ -47,6 +49,7 @@ app.use("/api", bookingRoutes);
 app.use("/api", promoRoutes);
 app.use("/api", reviewRoutes);
 app.use("/api", activityRoutes);
+app.use("/api", feedbackRoutes);
 
 // เสิร์ฟหน้าเว็บ (static)
 app.use(express.static(path.join(__dirname, "public")));

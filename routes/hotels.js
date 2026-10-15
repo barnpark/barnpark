@@ -6,6 +6,7 @@ import RoomType from "../models/RoomType.js";
 import Booking from "../models/Booking.js";
 import Service from "../models/Service.js";
 import ActivityBooking from "../models/ActivityBooking.js";
+import Feedback from "../models/Feedback.js";
 import { requireAuth, requireAdmin, canAccessHotel } from "../lib/auth.js";
 import LineChat from "../models/LineChat.js";
 import { issueLinkCode, fmtCode, oaAddUrl, oaPrefillUrl, approveHotel } from "../lib/onboard.js";
@@ -55,12 +56,12 @@ r.post("/admin/hotels/:id/approve", requireAuth, requireAdmin, async (req, res) 
 
 // สำรองข้อมูลทั้งระบบเป็น JSON (แอดมินเท่านั้น) — กดดาวน์โหลดเก็บไว้เอง
 r.get("/admin/export", requireAuth, requireAdmin, async (_req, res) => {
-  const [hotels, users, rooms, bookings, services, activityBookings] = await Promise.all([
+  const [hotels, users, rooms, bookings, services, activityBookings, feedback] = await Promise.all([
     Hotel.find().lean(), User.find().select("-passwordHash -otpHash").lean(),
-    RoomType.find().lean(), Booking.find().lean(), Service.find().lean(), ActivityBooking.find().lean(),
+    RoomType.find().lean(), Booking.find().lean(), Service.find().lean(), ActivityBooking.find().lean(), Feedback.find().lean(),
   ]);
   res.setHeader("Content-Disposition", 'attachment; filename="barnpark-backup-' + new Date().toISOString().slice(0, 10) + '.json"');
-  res.json({ exportedAt: new Date().toISOString(), hotels, users, rooms, bookings, services, activityBookings });
+  res.json({ exportedAt: new Date().toISOString(), hotels, users, rooms, bookings, services, activityBookings, feedback });
 });
 
 // เพิ่มโรงแรมใหม่ + สร้างบัญชีเจ้าของ (admin เท่านั้น)

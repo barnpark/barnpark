@@ -22,6 +22,7 @@
   <button data-v="v-reviews" onclick="go('v-reviews')">⭐ รีวิว</button>
   <button data-v="v-report" onclick="go('v-report')">📈 รายงาน</button>
   <button data-v="v-set" onclick="go('v-set')">⚙️ ตั้งค่า</button>
+  <button data-v="v-feedback" onclick="go('v-feedback');loadFeedback()">💡 ความเห็น</button>
 </div></div>
 <main><div class="wrap">
   <section id="v-dash" class="view on"><h1>แดชบอร์ด</h1><p class="sub" id="dash-date"></p><div class="panel" id="dash-check" style="display:none"></div><div class="metrics" id="dash-metrics"></div>
@@ -70,6 +71,16 @@
   <section id="v-report" class="view"><h1>รายงาน</h1><div class="metrics" id="rep-metrics"></div>
     <div class="panel"><h3>สัดส่วนช่องทางการจอง</h3><div id="rep-mix"></div></div>
     <div class="panel"><h3>แนวโน้มเข้าพัก 7 วันข้างหน้า</h3><div id="rep-outlook"></div></div></section>
+  <section id="v-feedback" class="view"><h1>💡 ความเห็นถึงทีม Barn Park</h1><p class="sub">เจอปัญหา อยากได้ฟีเจอร์ หรืออยากชม — บอกเราได้ทุกเมื่อ ทุกความเห็นมีคนอ่านจริง และเราตอบกลับที่นี่ + ใน LINE (ใน LINE พิมพ์ “ส่งความเห็น” ได้เหมือนกัน)</p>
+    <div class="panel"><h3>ส่งความเห็น</h3>
+      <div class="formgrid">
+        <div><label>หัวข้อ</label><select id="fb-cat"><option value="idea">💡 อยากได้ฟีเจอร์</option><option value="bug">🐞 เจอปัญหา</option><option value="praise">💚 ชมเชย</option><option value="other">💬 อื่น ๆ</option></select></div>
+        <div><label>เดือนนี้ Barn Park ช่วยงานคุณได้ดีแค่ไหน? (ไม่บังคับ)</label><div id="fb-stars"></div></div>
+      </div>
+      <div class="field" style="margin-top:10px"><label>รายละเอียด</label><textarea id="fb-text" rows="4" maxlength="2000" placeholder="เช่น อยากให้ปิดขายบางวันได้ / หน้าจองบนมือถือกดปุ่มยาก / ชอบแจ้งเตือน LINE มาก"></textarea></div>
+      <button class="btn" id="fb-send" onclick="sendFeedback()">ส่งถึงทีม Barn Park</button></div>
+    <div class="panel"><h3>ที่เคยส่ง</h3><div id="fb-list"><p class="note">กำลังโหลด…</p></div></div>
+  </section>
   <section id="v-set" class="view"><h1>ตั้งค่า</h1>
     <div class="panel"><h3>ลิงก์จองตรงสำหรับแขก</h3><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input id="booklink" readonly style="flex:1;min-width:220px"><button class="btn ghost" onclick="copyLink()">คัดลอก</button><a id="bookopen" class="btn" target="_blank">เปิดดู</a></div></div>
     <div class="panel" id="lbp-panel"><h3>📱 จัดการที่พักผ่าน LINE Barn Park (แนะนำ)</h3>
@@ -233,6 +244,7 @@ async function boot(){
   API.applyTheme(HOTEL);
   winStart=new Date();
   fillSettings(); fillChannelSelect(); API.mountSupport();
+  if(location.hash==='#feedback'){ go('v-feedback'); loadFeedback(); }
   await load();
 }
 async function load(){
@@ -556,6 +568,20 @@ function ppPreview(){ const box=document.getElementById('pp-test'); if(!box) ret
   document.getElementById('pp-test-img').src='/api/public/promptpay-qr?slug='+encodeURIComponent(HOTEL.slug)+'&amount=1&v='+Date.now();
   document.getElementById('pp-test-id').textContent='พร้อมเพย์: '+(id.length===10?id.replace(/(\d{3})(\d{3})(\d{4})/,'$1-$2-$3'):id)+(HOTEL.promptpayName?' · '+HOTEL.promptpayName:'');
   box.style.display='flex'; }
+// ---- ความเห็นถึงทีม Barn Park ----
+let FB_RATING=0;
+const FB_ST={new:'🆕 รับเรื่องแล้ว',planned:'🛠 อยู่ในแผน / กำลังทำ',done:'✅ ทำเสร็จแล้ว',wontfix:'🙏 ยังไม่ทำตอนนี้'}, FB_CT={bug:'🐞',idea:'💡',praise:'💚',other:'💬'}, FB_SRC={line:'LINE',web:'เว็บ',monthly:'แบบสอบถามรายเดือน'};
+function fbStars(){ const el=document.getElementById('fb-stars'); if(!el) return;
+  el.innerHTML=[1,2,3,4,5].map(i=>'<span role="button" aria-label="'+i+' ดาว" onclick="FB_RATING=(FB_RATING==='+i+'?0:'+i+');fbStars()" style="cursor:pointer;font-size:30px;line-height:1;color:'+(i<=FB_RATING?'#f59e0b':'#cbd5e1')+'">★</span>').join('')+'<span class="note" style="margin-left:8px">'+(FB_RATING?FB_RATING+'/5':'แตะดาวเพื่อให้คะแนน')+'</span>'; }
+async function loadFeedback(){ fbStars(); let list=[]; try{ list=await API.get('/feedback/mine'); }catch{}
+  document.getElementById('fb-list').innerHTML=list.length?list.map(f=>'<div style="border-bottom:1px solid var(--line);padding:10px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+(FB_CT[f.category]||'')+' '+(f.text?esc(f.text):(f.rating?'ให้คะแนน '+f.rating+'/5':''))+'</b><span class="pill '+(f.status==='done'?'on':'pend')+'">'+(FB_ST[f.status]||esc(f.status))+'</span></div>'+
+    '<div class="note" style="margin:2px 0 0">'+new Date(f.createdAt).toLocaleDateString('th-TH')+(f.rating?' · '+'★'.repeat(f.rating):'')+' · '+(FB_SRC[f.source]||'')+'</div>'+
+    (f.reply?'<div style="background:#f0fdfa;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:13.5px">↳ <b>ทีม Barn Park:</b> '+esc(f.reply)+'</div>':'')+'</div>').join(''):'<p class="note">ยังไม่เคยส่ง — ความเห็นแรกของคุณช่วยเราได้มาก 🙏</p>'; }
+async function sendFeedback(){ const text=document.getElementById('fb-text').value.trim();
+  if(text.length<2&&!FB_RATING){ API.toast('พิมพ์ความเห็น หรือแตะดาวให้คะแนน','err'); return; }
+  const b=document.getElementById('fb-send'); b.disabled=true;
+  try{ await API.post('/feedback',{category:document.getElementById('fb-cat').value,text,rating:FB_RATING||undefined}); document.getElementById('fb-text').value=''; FB_RATING=0; API.toast('ส่งแล้ว ขอบคุณมาก 🙏','ok'); await loadFeedback(); }
+  catch(e){ API.toast(e.message,'err'); } b.disabled=false; }
 function copyLink(){const el=document.getElementById('booklink');el.select();navigator.clipboard.writeText(el.value).then(()=>API.toast('คัดลอกแล้ว','ok'));}
 async function saveHotel(){
   const upd=Object.assign(themeFromForm(),{

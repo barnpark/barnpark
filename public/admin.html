@@ -24,6 +24,7 @@
   <button data-v="a-bill" onclick="go('a-bill')">💳 การเงิน</button>
   <button data-v="a-line" onclick="go('a-line');loadLineStatus()">📲 LINE OA</button>
   <button data-v="a-news" onclick="go('a-news');loadNews()">📣 แจ้งอัปเดต</button>
+  <button data-v="a-fb" onclick="go('a-fb');loadFb()">💬 Feedback</button>
 </div></div>
 <main><div class="wrap">
   <section id="a-port" class="view on"><h1>โรงแรมในระบบ</h1><p class="sub">คลิกโรงแรมเพื่อดู/แก้</p><div class="metrics" id="a-metrics"></div><div class="cards" id="a-cards"></div></section>
@@ -94,6 +95,19 @@
       <p class="note">1 คน = 1 ข้อความ push ของ LINE OA (ประกาศ + การ์ดเช็กลิสต์รวมอยู่ในข้อความเดียว) · ดูโควตาคงเหลือได้ที่ LINE Official Account Manager</p></div>
     <div class="panel"><h3>✅ ความพร้อมของแต่ละที่พัก</h3><div style="overflow-x:auto"><table id="nw-check"></table></div></div>
     <div class="panel"><h3>🕘 ประกาศที่ส่งแล้ว</h3><div id="nw-log" class="note">—</div></div>
+  </section>
+  <section id="a-fb" class="view"><h1>💬 Feedback จากที่พัก</h1><p class="sub">ความเห็นที่ที่พักส่งมา (LINE · เว็บหลังบ้าน · แบบสอบถามรายเดือน) — เปลี่ยนสถานะหรือตอบกลับ แล้วระบบแจ้งคนที่ส่งทาง LINE ให้เอง</p>
+    <div class="metrics" id="fb-metrics"></div>
+    <div class="panel"><h3>📝 แบบสอบถามรายเดือน</h3>
+      <p class="sub" style="margin-top:0">ระบบส่งการ์ดให้คะแนน 1 คลิกเข้า LINE ของทุกคนที่เชื่อมที่พักให้อัตโนมัติทุกวันที่ 1 (ผ่าน cron รายวัน) — ส่งเองจากตรงนี้ก็ได้ เดือนละครั้ง</p>
+      <div id="fb-dist" style="margin:6px 0 10px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" onclick="fbAsk(true)">👀 ตรวจก่อนส่ง</button><button class="btn" onclick="fbAsk(false)">📝 ส่งแบบสอบถามเดือนนี้</button></div>
+      <div id="fb-askres" class="note" style="margin-top:10px"></div></div>
+    <div class="panel"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><h3 style="margin:0;margin-right:auto">รายการความเห็น</h3>
+      <select id="fbf-status" onchange="loadFb()" style="width:auto"><option value="">ทุกสถานะ</option><option value="new">🆕 ใหม่</option><option value="planned">🛠 อยู่ในแผน</option><option value="done">✅ เสร็จแล้ว</option><option value="wontfix">🙏 ยังไม่ทำ</option></select>
+      <select id="fbf-cat" onchange="loadFb()" style="width:auto"><option value="">ทุกหัวข้อ</option><option value="bug">🐞 ปัญหา</option><option value="idea">💡 ฟีเจอร์</option><option value="praise">💚 ชมเชย</option><option value="other">💬 อื่น ๆ</option></select>
+      <label style="display:flex;gap:6px;align-items:center;font-weight:400;margin:0"><input type="checkbox" id="fbf-text" checked onchange="loadFb()" style="width:auto"> เฉพาะที่มีข้อความ</label></div>
+      <div style="overflow-x:auto"><table id="fb-table"></table></div></div>
   </section>
   <section id="a-bill" class="view"><h1>การเงิน</h1><div class="metrics" id="a-billm"></div><div class="panel"><div style="overflow-x:auto"><table id="a-billtable"></table></div></div>
     <div class="panel"><h3>สำรองข้อมูล</h3><p class="sub" style="margin-top:0">ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON เก็บไว้ (โรงแรม/ห้อง/การจอง/บริการ) — ควรทำสม่ำเสมอ</p><button class="btn" onclick="downloadBackup()">⬇ ดาวน์โหลดไฟล์สำรอง</button></div></section>
@@ -192,6 +206,36 @@ async function announce(dry){
     else { NW_DRY=null; out.innerHTML='✅ ส่งแล้ว: LINE '+r.sentLine+' คน · อีเมล '+r.sentEmail+' ที่'+(r.errors.length?'<br>⚠️ '+r.errors.map(esc).join('<br>'):''); loadNews(); }
   }catch(e){ out.textContent='✗ '+e.message; }
 }
+// ---- Feedback ----
+let FBI=[], FB_ASKDRY=null;
+const FBS={new:'🆕 ใหม่',planned:'🛠 อยู่ในแผน',done:'✅ เสร็จแล้ว',wontfix:'🙏 ยังไม่ทำ'}, FBC={bug:'🐞 ปัญหา',idea:'💡 ฟีเจอร์',praise:'💚 ชมเชย',other:'💬 อื่น ๆ'}, FBSRC={line:'LINE',web:'เว็บ',monthly:'แบบสอบถาม'};
+async function loadFb(){
+  let r; try{ r=await API.get('/admin/feedback?status='+document.getElementById('fbf-status').value+'&category='+document.getElementById('fbf-cat').value+'&withText='+(document.getElementById('fbf-text').checked?'1':'')); }catch(e){ API.toast(e.message,'err'); return; }
+  FBI=r.items; const s=r.summary;
+  document.getElementById('fb-metrics').innerHTML=m('⭐ คะแนนเดือน'+s.monthLabel,s.avg!=null?s.avg+' / 5':'—')+m('🗳 ตอบแบบสอบถาม',s.responses+' คน')+m('📅 เดือนก่อน ('+s.prevLabel+')',s.prevAvg!=null?s.prevAvg+' / 5 · '+s.prevResponses+' คน':'—')+m('📌 รอจัดการ',s.open,s.open>0);
+  const tot=s.dist.reduce((a,b)=>a+b,0)||1;
+  document.getElementById('fb-dist').innerHTML=(s.asked?'<div class="note" style="margin:0 0 6px">ส่งแบบสอบถามเดือนนี้แล้ว '+new Date(s.asked.at).toLocaleString('th-TH')+(s.asked.lineUsers!=null?' · LINE '+s.asked.lineUsers+' คน':'')+'</div>':'<div class="note" style="margin:0 0 6px">เดือนนี้ยังไม่ได้ส่งแบบสอบถาม</div>')+
+    [5,4,3,2,1].map(i=>'<div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:44px">'+i+' ★</span><div style="flex:1;height:10px;background:var(--line);border-radius:5px"><div style="height:10px;width:'+Math.round(s.dist[i-1]/tot*100)+'%;background:var(--brand);border-radius:5px"></div></div><span style="width:30px;text-align:right">'+s.dist[i-1]+'</span></div>').join('');
+  document.getElementById('fb-table').innerHTML='<tr><th>วันที่</th><th>ที่พัก / ผู้ส่ง</th><th>หัวข้อ</th><th>ความเห็น</th><th>สถานะ</th><th>ตอบกลับ</th></tr>'+(FBI.length?FBI.map(f=>'<tr>'+
+    '<td style="white-space:nowrap">'+new Date(f.createdAt).toLocaleDateString('th-TH')+'<br><span class="note" style="margin:0">'+(FBSRC[f.source]||'')+'</span></td>'+
+    '<td><b>'+esc(f.hotelName||'-')+'</b><br><span class="note" style="margin:0">'+esc(f.senderName||'')+(f.viaLine?' · LINE':'')+'</span></td>'+
+    '<td style="white-space:nowrap">'+(FBC[f.category]||'')+(f.rating?'<br>'+'★'.repeat(f.rating)+'<span style="color:var(--line)">'+'★'.repeat(5-f.rating)+'</span>':'')+'</td>'+
+    '<td style="min-width:220px;white-space:pre-line">'+esc(f.text||'—')+(f.hasImage?'<br><a href="#" onclick="fbImg(\''+f.id+'\');return false">📷 ดูภาพหน้าจอ</a>':'')+(f.reply?'<div class="note" style="margin:6px 0 0">↳ ตอบแล้ว: '+esc(f.reply)+'</div>':'')+'</td>'+
+    '<td><select onchange="fbSet(\''+f.id+'\',this.value)" style="width:auto">'+Object.keys(FBS).map(k=>'<option value="'+k+'"'+(k===f.status?' selected':'')+'>'+FBS[k]+'</option>').join('')+'</select></td>'+
+    '<td style="min-width:200px"><textarea id="fbr-'+f.id+'" rows="2" placeholder="พิมพ์คำตอบ…" style="font-size:13px"></textarea><button class="btn sm" style="margin-top:4px" onclick="fbReply(\''+f.id+'\')">ส่งคำตอบ</button></td></tr>').join(''):'<tr><td colspan="6" class="empty">ยังไม่มีความเห็น</td></tr>');
+}
+async function fbSet(id,status){ try{ const r=await API.patch('/admin/feedback/'+id,{status}); API.toast('อัปเดตสถานะแล้ว'+(r.sentVia==='line'?' · แจ้งทาง LINE แล้ว':r.sentVia==='email'?' · แจ้งทางอีเมลแล้ว':''),'ok'); loadFb(); }catch(e){ API.toast(e.message,'err'); } }
+async function fbReply(id){ const el=document.getElementById('fbr-'+id), t=(el.value||'').trim(); if(!t){ API.toast('พิมพ์คำตอบก่อน','err'); return; }
+  try{ const r=await API.patch('/admin/feedback/'+id,{reply:t}); API.toast('ส่งคำตอบแล้ว'+(r.sentVia==='line'?' (LINE)':r.sentVia==='email'?' (อีเมล)':' (บันทึกไว้ — ผู้ส่งไม่มี LINE/อีเมล)'),'ok'); loadFb(); }catch(e){ API.toast(e.message,'err'); } }
+async function fbImg(id){ try{ const r=await API.get('/admin/feedback/'+id); if(!r.image) return API.toast('ไม่มีภาพ','err'); const w=window.open('','_blank'); if(!w) return API.toast('เปิดหน้าต่างไม่ได้ (ปิด popup blocker)','err'); w.document.write('<title>ภาพหน้าจอ</title><img src="'+r.image+'" style="max-width:100%">'); w.document.close(); }catch(e){ API.toast(e.message,'err'); } }
+async function fbAsk(dry){ const out=document.getElementById('fb-askres');
+  if(!dry&&!FB_ASKDRY){ API.toast('กด “ตรวจก่อนส่ง” ก่อน 1 ครั้ง','err'); return; }
+  const force=!dry&&FB_ASKDRY.alreadyAsked;
+  if(!dry&&!confirm((force?'เดือนนี้ส่งไปแล้ว — ส่งซ้ำอีกครั้ง?':'ส่งแบบสอบถามเดือน'+FB_ASKDRY.monthLabel+'?')+'\nLINE '+FB_ASKDRY.lineUsers+' คน (ใช้โควตา '+FB_ASKDRY.lineQuota+' ข้อความ)'+(FB_ASKDRY.emails?' + อีเมล '+FB_ASKDRY.emails+' ที่':''))) return;
+  try{ const r=await API.post('/admin/feedback/ask',{dryRun:dry,force});
+    if(dry){ FB_ASKDRY=r; out.innerHTML='👀 เดือน'+r.monthLabel+': จะส่งถึง <b>'+r.lineUsers+'</b> คนใน LINE'+(r.emails?' + อีเมล '+r.emails+' ที่ (ที่พักที่ไม่ได้เชื่อม LINE)':'')+(r.alreadyAsked?'<br>⚠️ เดือนนี้ส่งไปแล้ว — ถ้ากดส่งจะเป็นการส่งซ้ำ':''); }
+    else { FB_ASKDRY=null; out.innerHTML=r.skipped?'เดือนนี้ส่งไปแล้ว ไม่ได้ส่งซ้ำ':'✅ ส่งแล้ว: LINE '+r.sentLine+' คน · อีเมล '+r.sentEmail+' ที่'+(r.errors.length?'<br>⚠️ '+r.errors.map(esc).join('<br>'):''); loadFb(); }
+  }catch(e){ out.textContent='✗ '+e.message; } }
 function downloadBackup(){ const t=API.token(); fetch('/api/admin/export',{headers:{authorization:'Bearer '+t}}).then(r=>r.blob()).then(b=>{const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='barnpark-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(u);API.toast('ดาวน์โหลดสำรองข้อมูลแล้ว','ok');}).catch(e=>API.toast('สำรองข้อมูลไม่สำเร็จ','err')); }
 // ---- onboard new hotel ----
 function val(id){return document.getElementById(id).value.trim();}

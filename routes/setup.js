@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { runSeed } from "../lib/seed.js";
 import { dailyDigest } from "../lib/notify.js";
+import { maybeMonthlyFeedback } from "../lib/feedback.js";
 
 const r = Router();
 
@@ -9,7 +10,11 @@ const r = Router();
 r.get("/cron/daily", async (req, res) => {
   if (!process.env.CRON_KEY) return res.status(403).json({ error: "CRON_KEY ยังไม่ได้ตั้งใน environment" });
   if (req.query.key !== process.env.CRON_KEY) return res.status(403).json({ error: "key ไม่ถูกต้อง" });
-  try { const out = await dailyDigest(); res.json({ ok: true, ...out }); }
+  try {
+    const out = await dailyDigest();
+    const feedback = await maybeMonthlyFeedback().catch((e) => ({ error: String(e.message || e) })); // แบบสอบถามรายเดือน (วันที่ FEEDBACK_DAY)
+    res.json({ ok: true, ...out, feedback });
+  }
   catch (e) { res.status(500).json({ error: String(e.message || e) }); }
 });
 
