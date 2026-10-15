@@ -109,6 +109,9 @@ input.bad{border-color:var(--red)!important;box-shadow:0 0 0 3px #fecaca}
 .gal{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:160px;gap:10px}
 .gal .gt{border-radius:calc(var(--card-radius)*.7);background-size:cover;background-position:center;background-color:var(--line);cursor:zoom-in;border:none;padding:0}
 .gal .gt:first-child{grid-column:span 2;grid-row:span 2}
+.gal-arrows{display:none}
+.pband{display:none}
+.rv .av{display:none}
 @media(max-width:640px){.gal{grid-template-columns:1fr 1fr;grid-auto-rows:118px}}
 .benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:920px;margin:0 auto}
 @media(max-width:700px){.benefits{grid-template-columns:1fr}}
@@ -369,6 +372,486 @@ details.rules{background:#f6f8fb;border-radius:12px;padding:10px 12px;margin:10p
 .tpl-immersive .im-book{background:#fff;padding:60px 20px;color:var(--ink)}
 .tpl-immersive .im-book .searchbar{max-width:960px;margin:0 auto 26px}
 .tpl-immersive .im-book h2{text-align:center;font-size:clamp(24px,3.2vw,32px);margin:0 0 18px}
+/* =========== ส่วนล่างของหน้า — แต่ละเทมเพลตมีหน้าตาของตัวเอง =========== */
+/* ---- CLASSIC: หัวข้อกลางมีลาย · กรอบรูปซ้อน · รีวิวแบบคำพูด · ข้อมูลในกรอบเดียว ---- */
+.tpl-classic .sec{padding:76px 20px}
+.tpl-classic .sh{text-align:center;margin-bottom:34px}
+.tpl-classic .kick{display:flex;align-items:center;justify-content:center;gap:14px;color:var(--accent-ink);font-weight:600}
+.tpl-classic .kick:before,.tpl-classic .kick:after{content:"";width:44px;height:1px;background:var(--accent);flex:none}
+.tpl-classic .sh h2:after,.tpl-classic .about .txt h2:after{content:"❧";display:block;color:var(--accent);font-size:21px;font-weight:400;margin-top:6px}
+.tpl-classic .sh .lead{margin-bottom:0}
+.tpl-classic .gal{display:flex;flex-wrap:wrap;justify-content:center;gap:22px}
+.tpl-classic .gal .gt{flex:0 0 calc((100% - 44px)/3);aspect-ratio:4/3;border:8px solid #fff;outline:1px solid color-mix(in srgb,var(--accent) 55%,#fff);border-radius:2px;box-shadow:0 16px 28px -20px rgba(40,30,10,.6)}
+.tpl-classic .gal .gt:nth-child(n+7){display:none}
+.tpl-classic #g-reviews{gap:0;max-width:1000px}
+.tpl-classic #g-reviews .rv{background:none;border:none;border-radius:0;text-align:center;padding:4px 28px}
+.tpl-classic #g-reviews .rv:not(:nth-child(3n+1)){border-left:1px solid color-mix(in srgb,var(--accent) 45%,#fff)}
+.tpl-classic #g-reviews .rv:nth-child(n+4){margin-top:26px}
+.tpl-classic .rv .st{color:var(--accent);font-size:14px;letter-spacing:4px}
+.tpl-classic .rv p{font-family:var(--font-head);font-size:17px;line-height:1.75}
+.tpl-classic #sec-why .benefits,.tpl-classic .amen,.tpl-classic .stay,.tpl-classic .contact-band{background:#fff;border:1px solid color-mix(in srgb,var(--accent) 60%,#fff);outline:1px solid color-mix(in srgb,var(--accent) 32%,#fff);outline-offset:6px}
+.tpl-classic #sec-why .benefits{gap:0;padding:26px 8px;max-width:960px}
+.tpl-classic .ben{background:none;border:none;border-radius:0;padding:6px 22px}
+.tpl-classic .ben+.ben{border-left:1px solid color-mix(in srgb,var(--accent) 40%,#fff)}
+.tpl-classic .ben .ic,.tpl-classic .stay .it .ic{background:none;border:1px solid var(--accent);border-radius:50%}
+.tpl-classic .amen{grid-template-columns:1fr 1fr;gap:0 44px;padding:10px 34px;max-width:900px;margin:0 auto}
+.tpl-classic .am{flex-direction:row;align-items:center;gap:14px;background:none;border:none;border-bottom:1px dashed color-mix(in srgb,var(--accent) 45%,#fff);border-radius:0;padding:16px 0}
+.tpl-classic .am:last-child,.tpl-classic .am:nth-child(odd):nth-last-child(2){border-bottom:none}
+.tpl-classic .am .ic{flex:none;width:54px;height:54px;aspect-ratio:auto;border-radius:50%;font-size:22px}
+.tpl-classic .am .tx{flex:1;padding:0;display:grid;grid-template-columns:1fr auto;column-gap:12px;align-items:baseline}
+.tpl-classic .am .t{grid-column:1}.tpl-classic .am .p{grid-column:2;grid-row:1;margin:0;color:var(--accent-ink)}.tpl-classic .am .d{grid-column:1/-1}
+.tpl-classic .about .img{order:2;border:10px solid #fff;outline:1px solid color-mix(in srgb,var(--accent) 55%,#fff);border-radius:2px;box-shadow:0 20px 36px -24px rgba(40,30,10,.65)}
+.tpl-classic .about .txt,.tpl-classic .about .txt h2{text-align:center}
+.tpl-classic .about .amen-chips{justify-content:center}
+.tpl-classic .about .amen-chips span{border-color:color-mix(in srgb,var(--accent) 50%,#fff);border-radius:3px}
+.tpl-classic .stay{grid-template-columns:1fr 1fr;gap:0 44px;padding:8px 36px;max-width:980px;margin:0 auto}
+.tpl-classic .stay .it{display:grid;grid-template-columns:46px 1fr;column-gap:16px;align-content:start;background:none;border:none;border-bottom:1px dashed color-mix(in srgb,var(--accent) 40%,#fff);border-radius:0;padding:22px 0}
+.tpl-classic .stay .it>*{grid-column:2}
+.tpl-classic .stay .it .ic{grid-column:1;grid-row:1/span 4;margin:0}
+.tpl-classic .stay .it .btn{justify-self:start}
+.tpl-classic .stay .it:last-child,.tpl-classic .stay .it:nth-child(odd):nth-last-child(2){border-bottom:none}
+.tpl-classic .contact-band{max-width:760px;margin:6px auto 76px;padding:46px 24px}
+.tpl-classic .contact-band h2:after{content:"❧";display:block;color:var(--accent);font-size:20px;font-weight:400;margin-top:4px}
+.tpl-classic .gfoot{background:color-mix(in srgb,var(--brand) 32%,#0d1117);text-align:center}
+.tpl-classic .gfoot .logo,.tpl-classic .gfoot .pw{justify-content:center}
+@media(max-width:700px){
+  .tpl-classic .sec{padding:54px 16px}
+  .tpl-classic .gal{gap:12px}.tpl-classic .gal .gt{flex-basis:calc((100% - 12px)/2);border-width:5px}
+  .tpl-classic #g-reviews .rv{border-left:none!important;padding:4px 10px}.tpl-classic #g-reviews .rv+.rv{border-top:1px solid color-mix(in srgb,var(--accent) 40%,#fff);margin-top:18px;padding-top:22px}
+  .tpl-classic .ben+.ben{border-left:none;border-top:1px solid color-mix(in srgb,var(--accent) 40%,#fff);padding-top:18px;margin-top:12px}
+  .tpl-classic .amen{grid-template-columns:1fr;padding:4px 20px}.tpl-classic .am:nth-child(odd):nth-last-child(2){border-bottom:1px dashed color-mix(in srgb,var(--accent) 45%,#fff)}
+  .tpl-classic .about .img{order:0}
+  .tpl-classic .stay{grid-template-columns:1fr;padding:4px 20px}.tpl-classic .stay .it:nth-child(odd):nth-last-child(2){border-bottom:1px dashed color-mix(in srgb,var(--accent) 40%,#fff)}
+  .tpl-classic .contact-band{margin:6px 16px 56px;padding:38px 18px}
+}
+
+/* ---- BENTO: ส่วนล่างต่อเป็นกล่องไทล์เหมือนส่วนบน ---- */
+.tpl-bento .btail{max-width:1200px;margin:0 auto;padding:0 16px 16px;display:flex;flex-wrap:wrap;gap:14px}
+.tpl-bento .btail>*{flex:1 1 100%;min-width:0}
+.tpl-bento .btail>.sec,.tpl-bento .btail>.sec.tint{background:#fff;border-radius:24px;padding:28px}
+.tpl-bento .btail .sec-in{max-width:none}
+.tpl-bento .btail .sh{text-align:left;margin-bottom:18px}
+.tpl-bento .btail .sec h2{text-align:left;font-size:clamp(21px,2.4vw,27px);margin-bottom:4px}
+.tpl-bento .btail .kick{display:inline-block;text-align:left;background:color-mix(in srgb,var(--brand) 10%,#fff);border-radius:999px;padding:4px 12px;font-size:12.5px}
+.tpl-bento .btail .lead{text-align:left;margin:0;max-width:none}
+.tpl-bento #sec-act{order:1}.tpl-bento #sec-gal{order:2}.tpl-bento #sec-reviews{order:3}.tpl-bento #sec-why{order:4}.tpl-bento #sec-about{order:5}.tpl-bento #sec-amen{order:6}.tpl-bento #sec-stay{order:7}.tpl-bento #sec-contact{order:8}.tpl-bento .btail>.gfoot{order:9}
+.tpl-bento .gal .gt{border-radius:16px}
+.tpl-bento #g-reviews{grid-template-columns:1fr;gap:10px;max-width:none}
+.tpl-bento #g-reviews .rv{border:none;background:color-mix(in srgb,var(--brand) 5%,#f3f5f8);border-radius:18px;padding:16px 18px}
+.tpl-bento #g-reviews .rv:nth-child(n+4){display:none}
+.tpl-bento #g-rv-lead{font-weight:700;color:var(--ink)}
+.tpl-bento #sec-why{background:var(--brand);color:var(--on-brand)}
+.tpl-bento #sec-why .kick{background:rgba(255,255,255,.16);color:inherit}
+.tpl-bento #sec-why .benefits{grid-template-columns:1fr;gap:10px;max-width:none}
+.tpl-bento #sec-why .ben{display:grid;grid-template-columns:48px 1fr;column-gap:14px;align-items:center;text-align:left;background:rgba(255,255,255,.11);border:none;border-radius:18px;padding:14px 16px;color:inherit}
+.tpl-bento #sec-why .ben .ic{grid-row:span 2;margin:0;width:48px;height:48px;background:rgba(255,255,255,.16)}
+.tpl-bento #sec-why .ben .d{color:inherit;opacity:.85}.tpl-bento #sec-why .ben .d a{color:inherit;text-decoration:underline}
+.tpl-bento #sec-about{background:transparent;padding:0}
+.tpl-bento .about{gap:14px;align-items:stretch}
+.tpl-bento .about .img{aspect-ratio:auto;min-height:340px;border-radius:24px}
+.tpl-bento .about .txt{background:#fff;border-radius:24px;padding:30px}
+.tpl-bento .about .txt .kick,.tpl-bento .about .txt h2{text-align:left}
+.tpl-bento .about.noimg{max-width:none;text-align:left}.tpl-bento .about.noimg .amen-chips{justify-content:flex-start}
+.tpl-bento .am,.tpl-bento .stay .it{border:none;background:color-mix(in srgb,var(--brand) 5%,#f3f5f8);border-radius:18px}
+.tpl-bento .stay{gap:12px}
+.tpl-bento .stay .it:first-child{background:var(--brand);color:var(--on-brand)}
+.tpl-bento .stay .it:first-child .b,.tpl-bento .stay .it:first-child .big span{color:inherit;opacity:.85}
+.tpl-bento .stay .it:first-child .ic{background:rgba(255,255,255,.16)}
+.tpl-bento .stay .it:first-child .btn.ghost{background:#fff;color:var(--ink);border-color:#fff}
+.tpl-bento .btail>.contact-band{border-radius:24px;background:color-mix(in srgb,var(--accent) 16%,#fff);text-align:left;padding:28px}
+.tpl-bento .btail>.contact-band .acts{justify-content:flex-start}
+.tpl-bento .btail>.gfoot{border-radius:24px;padding:34px 28px 92px}
+@media(min-width:861px){
+  .tpl-bento #sec-reviews,.tpl-bento #sec-why{flex:1 1 calc(50% - 7px)}
+  .tpl-bento .btail:has(#sec-reviews[style*="none"]) #sec-why .benefits{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:860px){
+  .tpl-bento .btail{padding:0 12px 12px;gap:12px}
+  .tpl-bento .btail>.sec,.tpl-bento .btail>.sec.tint{padding:20px 16px;border-radius:20px}
+  .tpl-bento #sec-about{padding:0}
+  .tpl-bento .about{gap:12px}.tpl-bento .about .img{min-height:220px;border-radius:20px}.tpl-bento .about .txt{padding:20px 18px;border-radius:20px}
+  .tpl-bento .btail>.contact-band{padding:22px 18px;border-radius:20px}
+  .tpl-bento .btail>.gfoot{border-radius:20px}
+}
+
+/* ---- IMMERSIVE: ส่วนล่างเป็นฉาก ๆ — แถบรูปเลื่อน · ฉากรีวิวบนรูป · เกี่ยวกับเราเต็มจอ · ฉากปิดท้าย ---- */
+.tpl-immersive .sec{padding:88px 20px}
+.tpl-immersive .sec.tint{background:#fff}
+.tpl-immersive .sec .sh{margin-bottom:34px}
+.tpl-immersive .sec h2{font-size:clamp(28px,4.6vw,46px);line-height:1.15;margin-bottom:10px}
+.tpl-immersive .lead{font-size:16px}
+html[lang="en"] .tpl-immersive .kick{letter-spacing:.24em}
+.tpl-immersive #g-acts .room,.tpl-immersive .am{position:relative;border:none;border-radius:10px;justify-content:flex-end;color:#fff;isolation:isolate}
+.tpl-immersive #g-acts .room{min-height:420px}
+.tpl-immersive #g-acts .room .pic{position:absolute;inset:0;aspect-ratio:auto;z-index:-1}
+.tpl-immersive #g-acts .room .body{flex:0 0 auto;background:linear-gradient(180deg,transparent,rgba(6,9,14,.84) 42%);padding-top:80px}
+.tpl-immersive #g-acts .room .desc{color:rgba(255,255,255,.86)}
+.tpl-immersive #g-acts .room .amen-chips span{background:rgba(255,255,255,.16);color:#fff}
+.tpl-immersive #g-acts .room .foot{border-top-color:rgba(255,255,255,.25)}
+.tpl-immersive #g-acts .room .price .now{color:#fff}.tpl-immersive #g-acts .room .price .per{color:rgba(255,255,255,.8)}
+.tpl-immersive #g-acts .room .btn{background:#fff;color:#111827}
+.tpl-immersive .amen{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.tpl-immersive .am{min-height:250px}
+.tpl-immersive .am .ic{position:absolute;inset:0;aspect-ratio:auto;z-index:-1;background-color:color-mix(in srgb,var(--brand) 72%,#000);align-items:flex-start;padding-top:40px;font-size:46px}
+.tpl-immersive .am .tx{background:linear-gradient(180deg,transparent,rgba(6,9,14,.82) 46%);padding:56px 16px 16px}
+.tpl-immersive .am .d{color:rgba(255,255,255,.85)}.tpl-immersive .am .p{color:#fff}
+.tpl-immersive #sec-gal{padding-left:0;padding-right:0}
+.tpl-immersive #sec-gal .sec-in{max-width:none}
+.tpl-immersive .gal{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 20px 4px;scrollbar-width:none}
+.tpl-immersive .gal::-webkit-scrollbar{display:none}
+.tpl-immersive .gal .gt{flex:0 0 min(76vw,420px);aspect-ratio:3/4;scroll-snap-align:center;border-radius:8px}
+.tpl-immersive .gal-arrows{display:flex;justify-content:center;gap:10px;margin-top:18px}
+.tpl-immersive .gal-arrows button{width:46px;height:46px;border-radius:50%;border:1.5px solid var(--line);background:#fff;color:var(--ink);font-size:24px;line-height:1;cursor:pointer}
+.tpl-immersive .gal-arrows button:hover{border-color:var(--ink)}
+@media(hover:none){.tpl-immersive .gal-arrows{display:none}.tpl-immersive #sec-gal .sh:after{content:"ปัดดูรูปเพิ่ม →";display:block;color:var(--muted);font-size:13px;margin-top:8px}html[lang="en"] .tpl-immersive #sec-gal .sh:after{content:"Swipe for more →"}}
+.tpl-immersive #sec-reviews,.tpl-immersive .contact-band{color:#fff;background:linear-gradient(rgba(8,12,20,.62),rgba(8,12,20,.8)),var(--sc-img,linear-gradient(135deg,var(--brand),var(--brand2)));background-size:cover;background-position:center}
+.tpl-immersive #sec-reviews .kick,.tpl-immersive #sec-reviews .lead{color:rgba(255,255,255,.85)}
+.tpl-immersive #g-reviews{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;max-width:none;padding:4px 2px 10px;scrollbar-width:none}
+.tpl-immersive #g-reviews::-webkit-scrollbar{display:none}
+.tpl-immersive #g-reviews .rv{flex:0 0 min(86%,520px);scroll-snap-align:center;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.22);color:#fff;padding:26px 24px 22px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.tpl-immersive #g-reviews .rv:first-child{margin-left:auto}.tpl-immersive #g-reviews .rv:last-child{margin-right:auto}
+.tpl-immersive #g-reviews .rv p{font-family:var(--font-head);font-size:clamp(18px,2.2vw,21px);line-height:1.65;margin:12px 0}
+.tpl-immersive #g-reviews .rv .who{color:rgba(255,255,255,.75)}
+.tpl-immersive #sec-reviews .btn.ghost,.tpl-immersive .contact-band .btn.ghost{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.55)}
+@media(min-width:900px){.tpl-immersive #g-reviews{display:grid;grid-template-columns:repeat(3,1fr);overflow:visible}.tpl-immersive #g-reviews .rv{margin:0!important}.tpl-immersive #g-reviews .rv:nth-child(n+4){display:none}}
+.tpl-immersive #sec-about{padding:0}
+.tpl-immersive #sec-about .sec-in{max-width:none}
+.tpl-immersive .about{gap:0;align-items:stretch;min-height:540px}
+.tpl-immersive .about .img{aspect-ratio:auto;border-radius:0;min-height:320px}
+.tpl-immersive .about .txt{padding:64px clamp(22px,5vw,76px);align-self:center}
+.tpl-immersive .about .txt h2{font-size:clamp(28px,4vw,42px)}
+.tpl-immersive .about.noimg{min-height:0}.tpl-immersive .about.noimg .txt{padding:80px 22px}
+.tpl-immersive #sec-why .benefits{gap:0;max-width:1040px}
+.tpl-immersive .ben{background:none;border:none;border-radius:0;padding:8px 26px}
+.tpl-immersive .ben+.ben{border-left:1px solid var(--line)}
+.tpl-immersive .ben .ic{background:none;width:auto;height:auto;font-size:40px;margin-bottom:12px}
+.tpl-immersive .ben .t{font-family:var(--font-head);font-size:21px;margin-bottom:4px}
+.tpl-immersive #sec-stay{background:#f4f5f7}
+.tpl-immersive .stay{gap:30px}
+.tpl-immersive .stay .it{background:none;border:none;border-top:2px solid var(--ink);border-radius:0;padding:18px 2px 0}
+.tpl-immersive .stay .it .ic{background:none;width:auto;height:auto;justify-content:flex-start;font-size:26px;margin-bottom:8px}
+.tpl-immersive .stay .it .h{font-family:var(--font-head);font-size:18px}
+.tpl-immersive .contact-band{padding:16vh 20px}
+.tpl-immersive .contact-band h2{font-size:clamp(28px,4.8vw,50px);margin-bottom:10px}
+.tpl-immersive .contact-band p{color:rgba(255,255,255,.86);font-size:16px}
+.tpl-immersive .gfoot{background:#07090d}
+@media(min-width:900px){.tpl-immersive .contact-band{background-attachment:fixed}}
+@media(max-width:700px){
+  .tpl-immersive .sec{padding:60px 18px}
+  .tpl-immersive #sec-gal{padding-left:0;padding-right:0}
+  .tpl-immersive #sec-about{padding:0}
+  .tpl-immersive .about{min-height:0}.tpl-immersive .about .img{min-height:280px}.tpl-immersive .about .txt{padding:36px 20px 46px}
+  .tpl-immersive .ben+.ben{border-left:none;border-top:1px solid var(--line);padding-top:22px;margin-top:10px}
+  .tpl-immersive #g-acts .room{min-height:380px}
+}
+/* ---- EDITORIAL: หัวข้อมีเลขลำดับ · แกลเลอรีแบบนิตยสาร · คำพูดเด่น · บทความ · เส้นคั่นบาง ---- */
+.tpl-editorial{counter-reset:edsec}
+.tpl-editorial .sec.tint{background:#fff}
+.tpl-editorial .sec .sh{counter-increment:edsec;display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:22px;align-items:end;text-align:left;border-top:1px solid var(--ink);padding-top:20px;margin-bottom:36px}
+.tpl-editorial .sec .sh:before{content:counter(edsec,decimal-leading-zero);grid-row:1/span 3;font-family:var(--font-head);font-size:clamp(44px,6vw,72px);font-weight:300;line-height:.9;color:var(--accent-ink)}
+.tpl-editorial .sec .sh .kick,.tpl-editorial .sec .sh h2,.tpl-editorial .sec .sh .lead{grid-column:2;text-align:left;margin-left:0}
+.tpl-editorial .sec .sh h2{font-size:clamp(26px,3.6vw,40px);font-weight:700;letter-spacing:-.01em;margin-bottom:0}
+.tpl-editorial .sec .sh .lead{margin:6px 0 0;max-width:none}
+.tpl-editorial .gal{grid-template-columns:1.5fr 1fr 1fr;grid-auto-rows:clamp(150px,18vw,240px);gap:14px}
+.tpl-editorial .gal .gt{border-radius:4px;position:relative}
+.tpl-editorial .gal .gt:first-child{grid-column:auto;grid-row:span 2}
+.tpl-editorial .gal .gt:nth-child(4){grid-column:span 2}
+.tpl-editorial .gal .gt:nth-child(n+5){display:none}
+.tpl-editorial .gal .gt:nth-child(4)[data-more]:after,.tpl-catalog .gal .gt:nth-child(5)[data-more]:after{content:"📷 " attr(data-more);position:absolute;right:12px;bottom:12px;background:rgba(10,12,16,.74);color:#fff;font:700 13.5px/1 var(--font);padding:8px 12px;border-radius:999px}
+.tpl-editorial #g-reviews{grid-template-columns:1fr 1fr;gap:26px 44px;max-width:1000px}
+.tpl-editorial #g-reviews .rv{background:none;border:none;border-left:2px solid var(--line);border-radius:0;padding:2px 0 2px 18px}
+.tpl-editorial #g-reviews .rv:first-child{grid-column:1/-1;border-left:none;padding:0;text-align:center;margin-bottom:8px}
+.tpl-editorial #g-reviews .rv:first-child p{font-family:var(--font-head);font-size:clamp(23px,3.3vw,36px);line-height:1.45;font-weight:500;margin:14px auto;max-width:860px}
+.tpl-editorial #g-reviews .rv:nth-child(2):last-child{grid-column:1/-1}
+.tpl-editorial #g-reviews .rv:nth-child(n+4){display:none}
+.tpl-editorial #sec-why .benefits{grid-template-columns:1fr;gap:0;max-width:none;border-bottom:1px solid var(--line)}
+.tpl-editorial .ben{display:grid;grid-template-columns:56px minmax(0,1fr) minmax(0,1.4fr);align-items:baseline;gap:18px;text-align:left;background:none;border:none;border-top:1px solid var(--line);border-radius:0;padding:22px 0}
+.tpl-editorial .ben .ic{background:none;width:auto;height:auto;margin:0;font-size:26px;justify-content:flex-start}
+.tpl-editorial .ben .t{font-family:var(--font-head);font-size:clamp(19px,2.3vw,25px);margin:0}
+.tpl-editorial .ben .d{font-size:15px}
+.tpl-editorial .about{grid-template-columns:1fr;gap:30px}
+.tpl-editorial .about .img{aspect-ratio:21/9}
+.tpl-editorial .about .txt{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:6px 48px;align-items:start}
+.tpl-editorial .about .txt .kick,.tpl-editorial .about .txt h2{grid-column:1;text-align:left}
+.tpl-editorial .about .txt h2{font-size:clamp(28px,3.6vw,42px);line-height:1.15}
+.tpl-editorial .about .txt p{grid-column:2;grid-row:1/span 3;font-size:16px;line-height:1.9}
+.tpl-editorial .about .txt .amen-chips{grid-column:1/-1;justify-content:flex-start}
+.tpl-editorial .about.noimg{max-width:none;text-align:left}
+.tpl-editorial .amen{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:26px}
+.tpl-editorial .am{border:none;background:none;border-radius:0}
+.tpl-editorial .am .ic{aspect-ratio:4/5;border-radius:4px}
+.tpl-editorial .am .ic:not([style*="url("]){aspect-ratio:16/10}
+.tpl-editorial .am .tx{padding:12px 0 0}
+.tpl-editorial .am .t{font-family:var(--font-head);font-size:17px}
+.tpl-editorial .am .p{color:var(--accent-ink)}
+.tpl-editorial .stay{grid-template-columns:1fr;gap:0;border-bottom:1px solid var(--line)}
+.tpl-editorial .stay .it{display:grid;grid-template-columns:minmax(160px,1fr) minmax(0,2.4fr);column-gap:40px;align-content:start;background:none;border:none;border-top:1px solid var(--line);border-radius:0;padding:22px 0}
+.tpl-editorial .stay .it .ic{display:none}
+.tpl-editorial .stay .it .h{grid-column:1;grid-row:1/span 3;font-family:var(--font-head);font-size:18px}
+.tpl-editorial .stay .it>*:not(.h){grid-column:2}
+.tpl-editorial .stay .it .btn{justify-self:start}
+.tpl-editorial .contact-band{background:#fff;text-align:left;max-width:1160px;margin:0 auto;padding:72px 20px}
+.tpl-editorial .contact-band:before{content:"";display:block;border-top:1px solid var(--ink);margin-bottom:34px}
+.tpl-editorial .contact-band h2{font-size:clamp(32px,5.4vw,60px);letter-spacing:-.02em;line-height:1.08;margin-bottom:12px}
+.tpl-editorial .contact-band .acts{justify-content:flex-start}
+.tpl-editorial .gfoot{background:#fff;color:var(--muted);border-top:1px solid var(--ink)}
+.tpl-editorial .gfoot .logo,.tpl-editorial .gfoot b,.tpl-editorial .gfoot a{color:var(--ink)}
+.tpl-editorial .gfoot a:hover{color:var(--brand-ink)}
+.tpl-editorial .gfoot .pw{border-top-color:var(--line);color:var(--muted)}
+@media(max-width:700px){
+  .tpl-editorial .sec .sh{column-gap:14px;margin-bottom:26px}
+  .tpl-editorial .gal{grid-template-columns:1fr 1fr;grid-auto-rows:120px;gap:10px}
+  .tpl-editorial .gal .gt:first-child{grid-column:span 2;grid-row:span 2}
+  .tpl-editorial #g-reviews{grid-template-columns:1fr}
+  .tpl-editorial .ben{grid-template-columns:40px minmax(0,1fr);row-gap:2px;padding:18px 0}.tpl-editorial .ben .d{grid-column:2}
+  .tpl-editorial .about .img{aspect-ratio:4/3}
+  .tpl-editorial .about .txt{grid-template-columns:1fr}.tpl-editorial .about .txt p{grid-column:1;grid-row:auto}
+  .tpl-editorial .stay .it{grid-template-columns:1fr}.tpl-editorial .stay .it .h{grid-row:auto;margin-bottom:6px}.tpl-editorial .stay .it>*{grid-column:1!important}
+  .tpl-editorial .contact-band{padding:52px 16px}
+}
+
+/* ---- MAGAZINE: ป้ายหัวข้อเอียงสีสด · รูปโพลารอยด์ · รีวิวเป็นบับเบิลแชท · การ์ดหลากสี ---- */
+.tpl-magazine .sec.tint{background:color-mix(in srgb,var(--accent) 12%,#fff)}
+.tpl-magazine .sec .sh{text-align:center;margin-bottom:32px}
+.tpl-magazine .kick{display:inline-block;background:var(--accent);color:var(--on-accent);padding:5px 15px;border-radius:999px;transform:rotate(-2.5deg);font-weight:800;margin-bottom:12px}
+.tpl-magazine .gal{display:flex;flex-wrap:wrap;justify-content:center;gap:28px 24px;padding:8px 0 4px}
+.tpl-magazine .gal .gt{box-sizing:content-box;flex:0 0 clamp(130px,19vw,210px);aspect-ratio:1;border:10px solid #fff;border-bottom-width:38px;border-radius:3px;box-shadow:0 18px 30px -16px rgba(20,20,40,.45);transform:rotate(-3deg);transition:transform .2s}
+.tpl-magazine .gal .gt:nth-child(2n){transform:rotate(2.6deg)}
+.tpl-magazine .gal .gt:nth-child(3n){transform:rotate(-1deg) translateY(10px)}
+.tpl-magazine .gal .gt:hover{transform:rotate(0) scale(1.04);z-index:2}
+.tpl-magazine .gal .gt:first-child{grid-column:auto;grid-row:auto}
+.tpl-magazine #g-reviews{grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:26px 20px;max-width:1000px}
+.tpl-magazine #g-reviews .rv{position:relative;border:none;border-radius:24px 24px 24px 6px;background:#fff;box-shadow:0 14px 30px -18px rgba(20,20,40,.35)}
+.tpl-magazine #g-reviews .rv:after{content:"";position:absolute;left:0;bottom:-11px;border-left:16px solid #fff;border-bottom:12px solid transparent}
+.tpl-magazine #g-reviews .rv:nth-child(even){background:var(--brand);color:var(--on-brand);border-radius:24px 24px 6px 24px}
+.tpl-magazine #g-reviews .rv:nth-child(even):after{left:auto;right:0;border-left:none;border-right:16px solid var(--brand)}
+.tpl-magazine #g-reviews .rv:nth-child(even) .who{color:inherit;opacity:.8}
+.tpl-magazine #g-reviews .rv p{font-size:16px;font-weight:600}
+.tpl-magazine .ben{border:none;border-radius:28px;padding:28px 22px;background:color-mix(in srgb,var(--brand) 12%,#fff)}
+.tpl-magazine .ben:nth-child(2){background:color-mix(in srgb,var(--accent) 22%,#fff);transform:rotate(1.2deg)}
+.tpl-magazine .ben:nth-child(3){background:color-mix(in srgb,var(--accent2) 30%,#fff);transform:rotate(-1.2deg)}
+.tpl-magazine .ben .ic{background:#fff;border-radius:50%;width:62px;height:62px;font-size:30px}
+.tpl-magazine .ben .t{font-size:18px}
+.tpl-magazine .about .img{aspect-ratio:1;border-radius:58% 42% 50% 50%/46% 52% 48% 54%;box-shadow:22px 22px 0 color-mix(in srgb,var(--accent) 38%,#fff)}
+.tpl-magazine .about .txt h2{font-size:clamp(30px,4.5vw,48px);letter-spacing:-.01em}
+.tpl-magazine .am{border:none;border-radius:22px;background:#fff;box-shadow:0 12px 26px -18px rgba(20,20,40,.4)}
+.tpl-magazine .am .ic{margin:12px 12px 0;border-radius:16px}
+.tpl-magazine .stay .it{border:none;border-radius:22px;box-shadow:0 12px 26px -18px rgba(20,20,40,.4)}
+.tpl-magazine .stay .it .ic{background:var(--accent);border-radius:50%;width:46px;height:46px}
+.tpl-magazine .stay .it:nth-child(2) .ic{background:var(--accent2)}
+.tpl-magazine .stay .it:nth-child(3) .ic{background:color-mix(in srgb,var(--brand) 22%,#fff)}
+.tpl-magazine .contact-band{position:relative;overflow:hidden;isolation:isolate;background:var(--brand);color:var(--on-brand);padding:76px 20px}
+.tpl-magazine .contact-band:before,.tpl-magazine .contact-band:after{content:"";position:absolute;border-radius:50%;z-index:-1}
+.tpl-magazine .contact-band:before{width:320px;height:320px;background:var(--accent);opacity:.35;top:-150px;left:-90px}
+.tpl-magazine .contact-band:after{width:220px;height:220px;background:var(--accent2);opacity:.3;bottom:-100px;right:8%}
+.tpl-magazine .contact-band h2{font-size:clamp(28px,4.6vw,46px)}
+.tpl-magazine .contact-band p{color:inherit;opacity:.85}
+.tpl-magazine .gfoot{border-top:8px solid var(--accent)}
+@media(max-width:700px){
+  .tpl-magazine .gal{gap:22px 16px}.tpl-magazine .gal .gt{flex-basis:calc(50% - 30px);border-width:7px;border-bottom-width:28px}
+  .tpl-magazine .about .img{max-width:86%;margin:0 auto;box-shadow:14px 14px 0 color-mix(in srgb,var(--accent) 38%,#fff)}
+  .tpl-magazine .ben:nth-child(2),.tpl-magazine .ben:nth-child(3){transform:none}
+}
+
+/* ---- SPLIT: สองคอลัมน์ไปจนจบหน้า — หัวข้อค้างอยู่ซ้าย เนื้อหาอยู่ขวา ---- */
+.tpl-split #g-reviews{grid-template-columns:1fr 1fr;gap:18px 28px;max-width:none}
+.tpl-split #g-reviews .rv{border:none;border-left:3px solid var(--accent);border-radius:0;background:none;padding:4px 0 4px 18px}
+.tpl-split #g-reviews .rv p{font-size:15.5px}
+.tpl-split #sec-reviews .sec-in>div:last-child{text-align:left!important}
+.tpl-split .gal{grid-template-columns:repeat(3,1fr);grid-auto-rows:auto}
+.tpl-split .gal .gt{aspect-ratio:1}
+.tpl-split .gal .gt:first-child{grid-column:auto;grid-row:auto}
+.tpl-split .stay{grid-template-columns:1fr 1fr}
+.tpl-split .stay .it{border:none;border-left:3px solid var(--brand);border-radius:0;background:color-mix(in srgb,var(--brand) 4%,#fff)}
+.tpl-split .sec.tint .stay .it{background:#fff}
+.tpl-split .am{flex-direction:row;align-items:center;gap:12px;padding:10px}
+.tpl-split .am .ic{flex:none;width:64px;height:64px;aspect-ratio:auto;border-radius:12px;font-size:26px}
+.tpl-split .am .tx{padding:0}
+.tpl-split .amen{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.tpl-split .gfoot{background:color-mix(in srgb,var(--brand) 26%,#0d1117)}
+@media(min-width:901px){
+  .tpl-split .sec .sec-in{display:grid;grid-template-columns:minmax(230px,300px) minmax(0,1fr);column-gap:56px;align-items:start}
+  .tpl-split .sec .sec-in>.sh{grid-column:1;grid-row:1/span 6;position:sticky;top:28px;text-align:left;margin:0}
+  .tpl-split .sec .sec-in>:not(.sh){grid-column:2}
+  .tpl-split .sec .sh .kick,.tpl-split .sec .sh h2,.tpl-split .sec .sh .lead{text-align:left;margin-left:0}
+  .tpl-split .sec .sh h2{font-size:clamp(24px,2.4vw,30px)}
+  .tpl-split .sec .sh .lead{margin:8px 0 0}
+  .tpl-split .sec .sh:after{content:"";display:block;width:40px;height:3px;border-radius:2px;background:var(--brand);margin-top:18px}
+  .tpl-split #sec-about .sec-in{display:block}
+  .tpl-split .about{grid-template-columns:minmax(230px,300px) minmax(0,1fr);column-gap:56px}
+  .tpl-split .about .img{aspect-ratio:3/4}
+  .tpl-split .contact-band{text-align:left;padding:60px max(20px,calc((100% - 1120px)/2)) 60px calc(max(20px,calc((100% - 1120px)/2)) + 356px)}
+  .tpl-split .contact-band .acts{justify-content:flex-start}
+}
+@media(max-width:900px){
+  .tpl-split .sec .sh{text-align:left}.tpl-split .sec .sh .kick,.tpl-split .sec .sh h2,.tpl-split .sec .sh .lead{text-align:left;margin-left:0}
+  .tpl-split #g-reviews,.tpl-split .stay{grid-template-columns:1fr}
+}
+
+/* ---- SIMPLE: คอลัมน์แคบ แต่ละส่วนเป็นการ์ดเรียงลงมา (แบบลิงก์ในไบโอ) ---- */
+.tpl-simple .sec{padding:8px 16px}
+.tpl-simple .sec .sec-in{max-width:540px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px 18px}
+.tpl-simple #sec-act .sec-in{background:none;border:none;padding:8px 0}
+.tpl-simple .sec .sh{text-align:left;margin-bottom:14px}
+.tpl-simple .sec .sh .kick{display:none}
+.tpl-simple .sec .sh h2{text-align:left;font-size:19px;margin:0}
+.tpl-simple .sec .sh .lead{text-align:left;margin:4px 0 0;font-size:13.5px;max-width:none}
+.tpl-simple .gal{display:flex;overflow-x:auto;gap:10px;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -18px;padding:0 18px}
+.tpl-simple .gal::-webkit-scrollbar{display:none}
+.tpl-simple .gal .gt{flex:0 0 140px;height:140px;border-radius:14px;scroll-snap-align:start}
+.tpl-simple .gal .gt:first-child{grid-column:auto;grid-row:auto}
+.tpl-simple #g-reviews{grid-template-columns:1fr;gap:0;max-width:none}
+.tpl-simple #g-reviews .rv{border:none;border-top:1px solid var(--line);border-radius:0;padding:14px 0;background:none}
+.tpl-simple #g-reviews .rv:first-child{border-top:none;padding-top:2px}
+.tpl-simple #g-reviews .rv:nth-child(n+4){display:none}
+.tpl-simple #sec-reviews .sec-in>div:last-child{text-align:left!important;margin-top:10px!important}
+.tpl-simple .about{grid-template-columns:1fr;gap:14px;text-align:left}
+.tpl-simple .about .img{aspect-ratio:16/9;border-radius:14px}
+.tpl-simple .about .txt .kick{display:none}
+.tpl-simple .about .txt h2{text-align:left;font-size:19px}
+.tpl-simple .about p{font-size:14.5px}
+.tpl-simple .about.noimg{max-width:none;text-align:left}.tpl-simple .about.noimg .amen-chips{justify-content:flex-start}
+.tpl-simple .stay{grid-template-columns:1fr;gap:0}
+.tpl-simple .stay .it{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:12px;align-content:start;border:none;border-top:1px solid var(--line);border-radius:0;padding:14px 0;background:none}
+.tpl-simple .stay .it:first-child{border-top:none;padding-top:2px}
+.tpl-simple .stay .it>*{grid-column:2}
+.tpl-simple .stay .it .ic{grid-column:1;grid-row:1/span 4;width:40px;height:40px;margin:0}
+.tpl-simple .stay .it .big{font-size:20px}
+.tpl-simple .stay .it .btn{justify-self:start}
+.tpl-simple .contact-band{max-width:540px;margin:8px auto 0;background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px 18px}
+.tpl-simple .contact-band h2{font-size:20px}
+.tpl-simple .contact-band p{margin-bottom:14px}
+.tpl-simple .contact-band .acts{flex-direction:column;gap:10px}
+.tpl-simple .contact-band .acts .btn{width:100%}
+.tpl-simple .gfoot{background:none;color:var(--muted);text-align:center;padding:30px 16px 100px}
+.tpl-simple .gfoot .in{grid-template-columns:1fr;gap:16px;max-width:540px}
+.tpl-simple .gfoot .logo{justify-content:center;color:var(--ink)}
+.tpl-simple .gfoot b{color:var(--ink)}
+.tpl-simple .gfoot a{color:var(--ink);display:inline-block;padding:4px 8px}
+.tpl-simple .gfoot .pw{justify-content:center;border-top-color:var(--line);color:var(--muted);max-width:540px}
+@media(max-width:572px){.tpl-simple .contact-band{margin:8px 16px 0}}
+
+/* ---- CATALOG: เน้นข้อมูลแบบ Airbnb — ชิดซ้าย เส้นคั่นบาง รีวิวมีรูปย่อ ข้อมูลเป็นตาราง ---- */
+.tpl-catalog .sec-in{max-width:1160px}
+.tpl-catalog .sec.tint{background:#fff}
+.tpl-catalog .sec:not(#sec-rooms){padding:0 20px}
+.tpl-catalog .sec:not(#sec-rooms)>.sec-in{border-top:1px solid var(--line);padding:40px 0}
+.tpl-catalog .sec .sh{text-align:left;margin-bottom:22px}
+.tpl-catalog .sec .sh .kick{display:none}
+.tpl-catalog .sec .sh h2{text-align:left;font-size:clamp(21px,2.4vw,26px);margin:0}
+.tpl-catalog .sec .sh .lead{text-align:left;margin:6px 0 0;max-width:none}
+.tpl-catalog .gal{grid-template-columns:2fr 1fr 1fr;grid-template-rows:repeat(2,clamp(130px,15vw,200px));grid-auto-rows:0;gap:8px;border-radius:var(--card-radius);overflow:hidden}
+.tpl-catalog .gal .gt{border-radius:0;position:relative}
+.tpl-catalog .gal .gt:first-child{grid-column:1;grid-row:1/span 2}
+.tpl-catalog .gal .gt:nth-child(4):last-child{grid-column:span 2}
+.tpl-catalog .gal .gt:nth-child(n+6){display:none}
+.tpl-catalog #g-rv-lead{font-size:17px;font-weight:800;color:var(--ink)}
+.tpl-catalog #g-reviews{grid-template-columns:1fr 1fr;gap:30px 56px;max-width:none}
+.tpl-catalog #g-reviews .rv{background:none;border:none;border-radius:0;padding:0;display:flex;flex-direction:column}
+.tpl-catalog #g-reviews .rv .who{order:-1;display:flex;align-items:center;gap:12px;color:var(--ink);font-weight:700;font-size:15px;margin-bottom:6px}
+.tpl-catalog .rv .av{display:flex;width:42px;height:42px;flex:none;border-radius:50%;background:var(--ink);color:#fff;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+.tpl-catalog .rv .dash{display:none}
+.tpl-catalog #g-reviews .rv .st{font-size:13px}
+.tpl-catalog #g-reviews .rv p{margin:4px 0 0;font-size:15px;line-height:1.65}
+.tpl-catalog #sec-reviews .sec-in>div:last-child{text-align:left!important}
+.tpl-catalog #sec-why .benefits{grid-template-columns:repeat(3,1fr);gap:24px;max-width:none}
+.tpl-catalog .ben{display:grid;grid-template-columns:44px minmax(0,1fr);column-gap:14px;align-items:start;text-align:left;background:none;border:none;border-radius:0;padding:0}
+.tpl-catalog .ben .ic{grid-row:span 2;margin:0;width:44px;height:44px;border-radius:12px;background:#f3f4f6;font-size:22px}
+.tpl-catalog .ben .t{margin:1px 0 0}
+.tpl-catalog .about{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:48px;align-items:start}
+.tpl-catalog .about .img{order:2;aspect-ratio:4/3}
+.tpl-catalog .about .txt .kick{display:none}
+.tpl-catalog .about .txt h2{font-size:clamp(21px,2.4vw,26px)}
+.tpl-catalog .about .amen-chips{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin-top:18px;padding-top:20px;border-top:1px solid var(--line)}
+.tpl-catalog .about .amen-chips span{background:none;border:none;padding:0;font-size:15px;color:var(--ink)}
+.tpl-catalog .about.noimg{max-width:none;text-align:left}.tpl-catalog .about.noimg .txt h2{text-align:left}
+.tpl-catalog .amen{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.tpl-catalog .am{flex-direction:row;align-items:center;gap:14px;padding:10px;border-radius:14px}
+.tpl-catalog .am .ic{flex:none;width:76px;height:76px;aspect-ratio:auto;border-radius:10px;font-size:30px}
+.tpl-catalog .am .tx{padding:0}
+.tpl-catalog .stay{display:block;border:1px solid var(--line);border-radius:var(--card-radius);overflow:hidden}
+.tpl-catalog .stay .it{display:grid;grid-template-columns:minmax(150px,240px) minmax(0,1fr);column-gap:24px;align-content:start;border:none;border-top:1px solid var(--line);border-radius:0;padding:18px 22px;background:#fff}
+.tpl-catalog .stay .it:first-child{border-top:none}
+.tpl-catalog .stay .it:nth-child(even){background:#fafafa}
+.tpl-catalog .stay .it .ic{display:none}
+.tpl-catalog .stay .it .h{grid-column:1;grid-row:1/span 3;margin:0}
+.tpl-catalog .stay .it>*:not(.h){grid-column:2}
+.tpl-catalog .stay .it .big{font-size:20px;margin:0 0 2px}
+.tpl-catalog .stay .it .btn{justify-self:start;margin-top:10px}
+.tpl-catalog .contact-band{background:#fff;text-align:left;max-width:1200px;margin:0 auto;padding:0 20px 52px}
+.tpl-catalog .contact-band:before{content:"";display:block;border-top:1px solid var(--line);margin-bottom:40px}
+.tpl-catalog .contact-band h2{font-size:clamp(21px,2.4vw,26px)}
+.tpl-catalog .contact-band .acts{justify-content:flex-start}
+.tpl-catalog .gfoot{background:#f7f7f7;color:#555;border-top:1px solid var(--line)}
+.tpl-catalog .gfoot .logo,.tpl-catalog .gfoot b,.tpl-catalog .gfoot a{color:#222}
+.tpl-catalog .gfoot .pw{border-top-color:#e5e5e5;color:#777}
+.tpl-catalog .gfoot .in,.tpl-catalog .gfoot .pw{max-width:1160px}
+@media(max-width:700px){
+  .tpl-catalog .sec:not(#sec-rooms){padding:0 16px}
+  .tpl-catalog .sec:not(#sec-rooms)>.sec-in{padding:32px 0}
+  .tpl-catalog .gal{grid-template-columns:1fr 1fr;grid-template-rows:200px 110px}
+  .tpl-catalog .gal .gt:first-child{grid-column:1/-1;grid-row:1}
+  .tpl-catalog .gal .gt:nth-child(n+4){display:none}
+  .tpl-catalog .gal .gt:nth-child(5)[data-more]:after{display:none}
+  .tpl-catalog .gal .gt:nth-child(3)[data-more]:after{content:"📷 " attr(data-more);position:absolute;right:10px;bottom:10px;background:rgba(10,12,16,.74);color:#fff;font:700 13px/1 var(--font);padding:7px 11px;border-radius:999px}
+  .tpl-catalog #g-reviews,.tpl-catalog #sec-why .benefits{grid-template-columns:1fr}
+  .tpl-catalog .about{grid-template-columns:1fr;gap:20px}.tpl-catalog .about .img{order:0}
+  .tpl-catalog .stay .it{grid-template-columns:1fr;padding:16px}.tpl-catalog .stay .it .h{grid-row:auto;margin-bottom:6px}.tpl-catalog .stay .it>*{grid-column:1!important}
+  .tpl-catalog .contact-band{padding:0 16px 44px}
+}
+
+/* ---- FULLSCREEN: หัวข้อมีขีดใต้ · แถบรูปเต็มจอคั่น · แกลเลอรีชิดขอบ · ชวนจองบนรูปปก ---- */
+.tpl-fullscreen .sec{padding:84px 20px}
+.tpl-fullscreen .sec .sh{margin-bottom:34px}
+.tpl-fullscreen .sec .sh h2{font-size:clamp(28px,4vw,42px)}
+.tpl-fullscreen .sec .sh h2:after,.tpl-fullscreen .contact-band h2:after{content:"";display:block;width:56px;height:3px;border-radius:2px;background:var(--accent);margin:14px auto 0}
+html[lang="en"] .tpl-fullscreen .kick{letter-spacing:.26em}
+.tpl-fullscreen .pband.on{display:block;height:clamp(240px,46vh,480px);background:var(--sc-img) center/cover no-repeat}
+.tpl-fullscreen #sec-why{background:var(--brand);color:var(--on-brand)}
+.tpl-fullscreen #sec-why .kick{color:inherit;opacity:.8}
+.tpl-fullscreen #sec-why .sh h2:after{background:currentColor;opacity:.55}
+.tpl-fullscreen #sec-why .benefits{max-width:1040px}
+.tpl-fullscreen #sec-why .ben{background:none;border:none;color:inherit;padding:10px 18px}
+.tpl-fullscreen #sec-why .ben .ic{background:rgba(255,255,255,.15);border-radius:50%;width:66px;height:66px;font-size:28px}
+.tpl-fullscreen #sec-why .ben .d{color:inherit;opacity:.82}
+.tpl-fullscreen #sec-why .ben .d a{color:inherit;text-decoration:underline}
+.tpl-fullscreen #g-rv-lead{font-size:19px;font-weight:800;color:var(--accent-ink)}
+.tpl-fullscreen #g-reviews .rv,.tpl-fullscreen .stay .it{border:none;border-top:4px solid var(--accent);border-radius:4px;box-shadow:0 18px 40px -26px rgba(15,23,42,.45);padding:24px}
+.tpl-fullscreen #g-reviews .rv p{font-size:16px;line-height:1.7}
+.tpl-fullscreen #sec-gal{padding:84px 0 0}
+.tpl-fullscreen #sec-gal .sec-in{max-width:none}
+.tpl-fullscreen #sec-gal .sh{padding:0 20px}
+.tpl-fullscreen .gal{grid-template-columns:repeat(4,1fr);grid-auto-rows:clamp(150px,21vw,320px);gap:0}
+.tpl-fullscreen .gal .gt{border-radius:0}
+.tpl-fullscreen .gal .gt:nth-child(4):last-child{grid-column:span 2}
+.tpl-fullscreen .gal .gt:nth-child(n+6){display:none}
+.tpl-fullscreen #sec-about{padding:0 0 84px}
+.tpl-fullscreen #sec-about .sec-in{max-width:none}
+.tpl-fullscreen .about{display:block}
+.tpl-fullscreen .about .img{aspect-ratio:auto;height:clamp(300px,62vh,620px);border-radius:0}
+.tpl-fullscreen .about .txt{position:relative;max-width:640px;margin:-140px auto 0;background:#fff;padding:40px 40px 34px;box-shadow:0 30px 60px -30px rgba(15,23,42,.45);text-align:center;border-radius:var(--card-radius)}
+.tpl-fullscreen .about .txt .kick,.tpl-fullscreen .about .txt h2{text-align:center}
+.tpl-fullscreen .about .amen-chips{justify-content:center}
+.tpl-fullscreen .about.noimg{padding-top:84px}.tpl-fullscreen .about.noimg .txt{margin-top:0;box-shadow:none}
+.tpl-fullscreen .am{border:none;background:none;align-items:center;text-align:center}
+.tpl-fullscreen .am .ic{width:120px;height:120px;aspect-ratio:auto;border-radius:50%;margin:0 auto;font-size:40px}
+.tpl-fullscreen .ctaband{color:#fff;background:linear-gradient(rgba(8,12,20,.5),rgba(8,12,20,.62)),var(--sc-img,linear-gradient(135deg,var(--brand),var(--brand2)));background-size:cover;background-position:center;padding:17vh 20px}
+.tpl-fullscreen .ctaband h2{font-size:clamp(28px,4.6vw,48px)}
+.tpl-fullscreen .stay .it{text-align:center}
+.tpl-fullscreen .stay .it .ic{margin:0 auto 12px;border-radius:50%}
+.tpl-fullscreen .contact-band{background:#fff;padding:84px 20px}
+.tpl-fullscreen .contact-band h2{font-size:clamp(28px,4vw,42px);margin-bottom:12px}
+.tpl-fullscreen .gfoot .logo .nm{font-size:24px}
+@media(min-width:900px){.tpl-fullscreen .pband.on,.tpl-fullscreen .ctaband{background-attachment:fixed}}
+@media(max-width:700px){
+  .tpl-fullscreen .sec{padding:60px 18px}
+  .tpl-fullscreen #sec-gal{padding:60px 0 0}
+  .tpl-fullscreen #sec-about{padding:0 0 60px}
+  .tpl-fullscreen .gal{grid-template-columns:1fr 1fr;grid-auto-rows:150px}
+  .tpl-fullscreen .about .txt{margin:-70px 14px 0;padding:26px 20px}
+  .tpl-fullscreen .about.noimg{padding-top:60px}
+  .tpl-fullscreen .contact-band{padding:60px 18px}
+}
 </style>
 </head>
 <body>
@@ -473,20 +956,23 @@ function fMenu(){ return '<nav class="menu"><a href="#sec-rooms">'+T("ห้อ�
 function fNav(){ return '<header class="gnav"><div class="in">'+fLogo()+fMenu()+bookBtn()+'</div></header>'; }
 function fHero(o){ o=o||{}; return '<section class="ghero'+hasImg()+'" id="ghero"'+coverStyle()+'>'+(o.top||'')+'<div class="in">'+eyebrow()+'<h1>'+esc(HOTEL.name)+'</h1>'+tagP()+(o.cta?'<div style="margin-top:24px"><button class="btn lg light" onclick="scrollToSearch()">'+T("เลือกวันเข้าพัก","Check availability")+' →</button></div>':'')+'</div>'+(o.after||'')+'</section>'; }
 function fSearch(){ return '<div class="searchbar" id="searchbar"><div class="f"><label for="g-din">'+T("เช็คอิน","Check-in")+'</label><input id="g-din" type="date" onchange="onDin()"></div><div class="f"><label for="g-dout">'+T("เช็คเอาท์","Check-out")+'</label><input id="g-dout" type="date" onchange="gSearch()"></div><div class="f"><label for="g-pax">'+T("ผู้เข้าพัก","Guests")+'</label><select id="g-pax" onchange="gSearch()">'+paxOpts()+'</select></div><button class="btn go" onclick="gSearch(true)">'+T("ค้นหาห้องว่าง","Search")+'</button></div>'; }
-function secHead(k,h,lead,id){ return '<div class="kick">'+k+'</div><h2>'+h+'</h2>'+(lead!=null?'<p class="lead"'+(id?' id="'+id+'"':'')+'>'+lead+'</p>':''); }
+function secHead(k,h,lead,id){ return '<div class="sh"><div class="kick">'+k+'</div><h2>'+h+'</h2>'+(lead!=null?'<p class="lead"'+(id?' id="'+id+'"':'')+'>'+lead+'</p>':'')+'</div>'; }
 function promoImg(){ return /^https:\/\//i.test(HOTEL.promoImage||"")?'<img class="promo-img" src="'+esc(HOTEL.promoImage)+'" alt="'+esc(HOTEL.promoText||"promotion")+'" loading="lazy">':''; }
 function fRooms(o){ o=o||{}; return '<section class="sec" id="sec-rooms"><div class="sec-in">'+secHead(T("ห้องพัก","Rooms & rates"),T("เลือกห้องพักของคุณ","Choose your room"),"","g-note2")+promoImg()+(o.filters?fFilters():'')+'<div id="g-soldall"></div><div class="rooms" id="g-rooms"></div></div></section>'; }
 function fRoomsBare(o){ o=o||{}; return '<div id="sec-rooms"><p class="lead" id="g-note2"></p>'+promoImg()+(o.filters?fFilters():'')+'<div id="g-soldall"></div><div class="rooms" id="g-rooms"></div></div>'; }
 function fFilters(){ return '<div class="fil" id="g-fil">'+[["all",T("ทั้งหมด","All")],["price",T("ราคาต่ำ → สูง","Price: low → high")],["avail",T("ว่างเท่านั้น","Available only")],["bf",T("มีอาหารเช้า","With breakfast")]].map(([k,l])=>'<button type="button" data-f="'+k+'" class="'+(k===FILTER?'on':'')+'" onclick="setFilter(\''+k+'\')">'+l+'</button>').join('')+'</div>'; }
 function fActs(){ return '<section class="sec" id="sec-act" style="display:none"><div class="sec-in">'+secHead(T("กิจกรรม","Experiences"),T("กิจกรรม & ประสบการณ์","Activities & experiences"),T("จองได้เลย แม้ไม่ได้เข้าพัก","Book even if you are not staying"))+'<div class="rooms" id="g-acts"></div></div></section>'; }
 function fSvc(){ return '<section class="sec tint" id="sec-amen" style="display:none"><div class="sec-in">'+secHead(T("บริการเสริม","Extras"),T("บริการเสริมระหว่างเข้าพัก","Add to your stay"),T("เลือกเพิ่มได้ตอนจองห้อง","Add them while booking your room"))+'<div class="amen" id="g-amen"></div></div></section>'; }
-function fGallery(){ return '<section class="sec" id="sec-gal" style="display:none"><div class="sec-in">'+secHead(T("แกลเลอรี","Gallery"),T("บรรยากาศที่พัก","Our space"),null)+'<div class="gal" id="g-gal"></div></div></section>'; }
+function fGallery(){ return '<section class="sec" id="sec-gal" style="display:none"><div class="sec-in">'+secHead(T("แกลเลอรี","Gallery"),T("บรรยากาศที่พัก","Our space"),null)+'<div class="gal" id="g-gal"></div><div class="gal-arrows"><button type="button" aria-label="'+T("รูปก่อนหน้า","Previous photo")+'" onclick="galBy(-1)">‹</button><button type="button" aria-label="'+T("รูปถัดไป","Next photo")+'" onclick="galBy(1)">›</button></div></div></section>'; }
 function fReviews(){ return '<section class="sec tint" id="sec-reviews" style="display:none"><div class="sec-in">'+secHead(T("รีวิว","Reviews"),T("เสียงจากผู้เข้าพัก","What guests say"),"","g-rv-lead")+'<div class="benefits" id="g-reviews"></div><div style="text-align:center;margin-top:22px"><button class="btn ghost" onclick="openReview()">✍️ '+T("เขียนรีวิว","Write a review")+'</button></div></div></section>'; }
 function fWhy(){ return '<section class="sec" id="sec-why"><div class="sec-in">'+secHead(T("ทำไมจองตรง","Why book direct"),T("จองตรงกับเรา คุ้มกว่า","Better when you book direct"),null)+'<div class="benefits" id="g-benefits"></div></div></section>'; }
 function fCta(){ return '<section class="ctaband"><h2>'+T("พร้อมพักผ่อนแล้วหรือยัง?","Ready for a getaway?")+'</h2><button class="btn lg light" onclick="scrollToSearch()">'+T("เลือกวันเข้าพัก →","Check availability →")+'</button></section>'; }
 function fAbout(){ return '<section class="sec" id="sec-about" style="display:none"><div class="sec-in"><div class="about" id="g-about"></div></div></section>'; }
 function fStay(){ return '<section class="sec tint" id="sec-stay" style="display:none"><div class="sec-in">'+secHead(T("ข้อมูลการเข้าพัก","Good to know"),T("ก่อนเข้าพัก ควรรู้","Before you arrive"),null)+'<div class="stay" id="g-stay"></div></div></section>'; }
-function fTail(o){ o=o||{}; return fActs()+(o.svc===false?'':fSvc())+(o.gal===false?'':fGallery())+fReviews()+(o.why===false?'':fWhy())+(o.cta?fCta():'')+fAbout()+fStay()+'<section class="contact-band" id="sec-contact" style="display:none"></section><footer class="gfoot" id="footer"></footer>'; }
+const TAIL_ORDER=["acts","svc","gal","reviews","why","cta","about","stay"];
+function fBand(){ return '<div class="pband" aria-hidden="true"></div>'; }
+function fTail(o){ o=o||{}; const P={acts:fActs,svc:fSvc,gal:fGallery,reviews:fReviews,why:fWhy,cta:fCta,about:fAbout,stay:fStay,band:fBand};
+  return (o.order||TAIL_ORDER).filter(k=>k==="cta"?o.cta:o[k]!==false).map(k=>P[k]()).join("")+'<section class="contact-band" id="sec-contact" style="display:none"></section><footer class="gfoot" id="footer"></footer>'; }
 
 // ================= 10 เทมเพลต =================
 const TPL={
@@ -494,14 +980,14 @@ const TPL={
  editorial:()=> '<header class="ed-top">'+fLogo()+bookBtn("ghost")+'</header>'+fHero()+'<div class="wrapx srch">'+fSearch()+'</div>'+fRooms()+fTail({}),
  magazine:()=> '<header class="mag-head"><span class="blob b1"></span><span class="blob b2"></span>'+eyebrow()+'<h1>'+esc(HOTEL.name)+'</h1>'+tagP()+'</header>'+(HOTEL.coverUrl?'<div class="wrapx"><div class="mag-cover"'+coverStyle()+'></div></div>':'')+'<div class="wrapx srch'+(HOTEL.coverUrl?'':' flat')+'">'+fSearch()+'</div>'+fRooms()+fTail({}),
  split:()=> '<div class="splitwrap"><aside class="sleft'+hasImg()+'" id="g-sleft"'+(HOTEL.coverUrl?' style="background-image:linear-gradient(rgba(8,12,20,.5),rgba(8,12,20,.78)),url(\''+cu(HOTEL.coverUrl)+'\')"':'')+'>'+fLogo()+eyebrow()+'<h1>'+esc(HOTEL.name)+'</h1>'+tagP()+fSearch()+'<div class="perks" id="g-perks"></div></aside><main class="sright">'+fRoomsBare()+'</main></div>'+fTail({why:false}),
- simple:()=> '<div class="sim-cover"'+coverStyle()+'></div><div class="sim-col"><div class="sim-av">'+esc(initial(HOTEL.name))+'</div><h1>'+esc(HOTEL.name)+'</h1><p class="bio">'+[HOTEL.location?'📍 '+esc(HOTEL.location):'',HOTEL.tagline?esc(HOTEL.tagline):''].filter(Boolean).join(' · ')+'</p><div class="quick" id="g-quick"></div>'+fSearch()+fRoomsBare()+'</div>'+fTail({gal:false,why:false,svc:false}),
+ simple:()=> '<div class="sim-cover"'+coverStyle()+'></div><div class="sim-col"><div class="sim-av">'+esc(initial(HOTEL.name))+'</div><h1>'+esc(HOTEL.name)+'</h1><p class="bio">'+[HOTEL.location?'📍 '+esc(HOTEL.location):'',HOTEL.tagline?esc(HOTEL.tagline):''].filter(Boolean).join(' · ')+'</p><div class="quick" id="g-quick"></div>'+fSearch()+fRoomsBare()+'</div>'+fTail({why:false,svc:false}),
  catalog:()=> '<header class="cat-bar"><div class="in">'+fLogo()+fSearch()+'</div></header><div class="cat-hero"><div class="bn'+hasImg()+'"'+coverStyle()+'><div>'+eyebrow()+'<h1>'+esc(HOTEL.name)+'</h1>'+tagP()+'</div></div></div>'+fRooms({filters:true})+fTail({}),
  classic:()=> '<header class="cla-nav"><nav class="l"><a href="#sec-rooms">'+T("ห้องพัก","Rooms")+'</a><a href="#sec-about">'+T("เกี่ยวกับเรา","About")+'</a></nav>'+fLogo()+'<div class="r"><a href="#sec-stay">'+T("ข้อมูลการเข้าพัก","Good to know")+'</a>'+bookBtn()+'</div></header><section class="cla-hero'+hasImg()+'"'+coverStyle()+'><div class="frame">'+(HOTEL.location?'<div class="loc">'+esc(HOTEL.location)+'</div>':'')+'<h1>'+esc(HOTEL.name)+'</h1><div class="orn">❧</div>'+tagP()+'</div></section><div class="wrapx srch">'+fSearch()+'</div>'+fRooms()+fTail({}),
- bento:()=> '<div class="bento"><div class="bt photo'+hasImg()+'"'+coverStyle()+'>'+eyebrow()+'<h1>'+esc(HOTEL.name)+'</h1></div><div class="bt name"><div class="kick">'+T("ยินดีต้อนรับ","Welcome")+'</div><p>'+esc(HOTEL.tagline||cutText(HOTEL.about,140)||T("ที่พักของเรายินดีต้อนรับทุกท่าน","We look forward to hosting you"))+'</p><button class="btn sm" onclick="scrollToId(\'sec-rooms\')">'+T("ดูห้องพัก ↓","See rooms ↓")+'</button></div><div class="bt srch">'+fSearch()+'</div><div id="g-binfo" style="display:contents"></div><div class="bt rooms-tile">'+fRoomsBare()+'</div></div>'+fTail({}),
- fullscreen:()=> fHero({top:'<div class="fs-nav">'+fLogo()+bookBtn("glass")+'</div>',cta:true,after:'<div class="hint">'+T("เลื่อนลงเพื่อดูห้องพัก","Scroll to see rooms")+' ↓</div>'})+'<div class="fs-search">'+fSearch()+'</div>'+fRooms()+fTail({cta:true}),
+ bento:()=> '<div class="bento"><div class="bt photo'+hasImg()+'"'+coverStyle()+'>'+eyebrow()+'<h1>'+esc(HOTEL.name)+'</h1></div><div class="bt name"><div class="kick">'+T("ยินดีต้อนรับ","Welcome")+'</div><p>'+esc(HOTEL.tagline||cutText(HOTEL.about,140)||T("ที่พักของเรายินดีต้อนรับทุกท่าน","We look forward to hosting you"))+'</p><button class="btn sm" onclick="scrollToId(\'sec-rooms\')">'+T("ดูห้องพัก ↓","See rooms ↓")+'</button></div><div class="bt srch">'+fSearch()+'</div><div id="g-binfo" style="display:contents"></div><div class="bt rooms-tile">'+fRoomsBare()+'</div></div><div class="btail">'+fTail({})+'</div>',
+ fullscreen:()=> fHero({top:'<div class="fs-nav">'+fLogo()+bookBtn("glass")+'</div>',cta:true,after:'<div class="hint">'+T("เลื่อนลงเพื่อดูห้องพัก","Scroll to see rooms")+' ↓</div>'})+'<div class="fs-search">'+fSearch()+'</div>'+fRooms()+fTail({cta:true,order:["acts","svc","why","band","reviews","gal","about","cta","stay"]}),
  immersive:()=> '<header class="im-nav">'+fLogo()+bookBtn("glass")+'</header><section class="im-sc'+hasImg()+'"'+coverStyle()+'><div class="im-cap"><div class="e">'+(HOTEL.location?'📍 '+esc(HOTEL.location):T("ยินดีต้อนรับ","Welcome"))+'</div><h1>'+esc(HOTEL.name)+'</h1>'+(HOTEL.tagline?'<p>'+esc(HOTEL.tagline)+'</p>':'')+'<button class="btn lg light" onclick="scrollToSearch()">'+T("เลือกวันเข้าพัก","Check availability")+'</button></div></section>'+
    (HOTEL.about?'<section class="im-sc alt" id="im-s2"><div class="im-cap"><div class="e">'+T("เรื่องราวของเรา","Our story")+'</div><p class="quote">“'+esc(cutText(HOTEL.about,260))+'”</p><button class="btn glass" onclick="scrollToId(\'sec-rooms\')">'+T("ดูห้องพัก ↓","See rooms ↓")+'</button></div></section>':'')+
-   '<section class="im-book"><div class="sec-in">'+secHead(T("ห้องพัก","Rooms & rates"),T("เลือกห้องพักของคุณ","Choose your room"),null)+fSearch()+fRoomsBare()+'</div></section>'+fTail({}),
+   '<section class="im-book"><div class="sec-in">'+secHead(T("ห้องพัก","Rooms & rates"),T("เลือกห้องพักของคุณ","Choose your room"),null)+fSearch()+fRoomsBare()+'</div></section>'+fTail({order:["acts","svc","gal","reviews","about","why","stay"]}),
 };
 
 // ================= เริ่มหน้าเว็บ =================
@@ -586,13 +1072,22 @@ function renderSvc(){ const sec=$("sec-amen"); if(!sec) return; if(!SVC.length){
 function renderGallery(){ const sec=$("sec-gal"); if(!sec) return; const list=[]; const add=(u)=>{ if(u&&!list.includes(u)&&list.length<9) list.push(u); };
   add(HOTEL.coverUrl); AVAIL.forEach(r=>imgsOf(r).forEach(add)); SVC.concat(ACT).forEach(s=>add(s.imageUrl));
   if(list.length<4){ sec.style.display="none"; return; } sec.style.display="block"; GAL=list.slice(0,7);
-  $("g-gal").innerHTML=GAL.map((u,i)=>'<button type="button" class="gt" aria-label="'+T("ดูรูป","View photo")+'" onclick="openLb(GAL,'+i+')" style="background-image:url(\''+cu(u)+'\')"></button>').join(""); }
+  $("g-gal").innerHTML=GAL.map((u,i)=>'<button type="button" class="gt"'+(GAL.length>i+1?' data-more="+'+(GAL.length-i-1)+'"':'')+' aria-label="'+T("ดูรูป","View photo")+'" onclick="openLb(GAL,'+i+')" style="background-image:url(\''+cu(u)+'\')"></button>').join(""); }
 let GAL=[];
+function galBy(d){ const g=$("g-gal"); if(g) g.scrollBy({left:d*Math.max(240,g.clientWidth*.7),behavior:"smooth"}); }
+// Immersive: ฉากรีวิว/ฉากติดต่อ ใช้รูปจริงของที่พักเป็นพื้นหลัง (ไม่มีรูป = ไล่สีแบรนด์)
+function setScenes(){ const pg=$("page"); if(!pg) return; const imm=pg.classList.contains("tpl-immersive"), fs=pg.classList.contains("tpl-fullscreen"); if(!imm&&!fs) return;
+  const pool=[], add=u=>{ if(u&&!pool.includes(u)) pool.push(u); }; add(HOTEL.coverUrl); AVAIL.forEach(r=>imgsOf(r).forEach(add));
+  const ab=aboutImage(), rest=pool.filter(u=>u!==ab&&u!==HOTEL.coverUrl);
+  const set=(id,u)=>{ const e=$(id); if(e&&u) e.style.setProperty("--sc-img","url('"+cu(u)+"')"); };
+  if(imm){ set("sec-reviews",rest[0]||ab||HOTEL.coverUrl); set("sec-contact",HOTEL.coverUrl||rest[1]||rest[0]||ab); return; }
+  document.querySelectorAll(".pband").forEach((b,i)=>{ const u=rest[i]; if(u){ b.style.setProperty("--sc-img","url('"+cu(u)+"')"); b.classList.add("on"); } });
+  const c=document.querySelector(".ctaband"); if(c&&HOTEL.coverUrl) c.style.setProperty("--sc-img","url('"+cu(HOTEL.coverUrl)+"')"); }
 async function renderReviews(){ const sec=$("sec-reviews"); if(!sec) return; let rv=[]; try{ rv=await API.pubReviews(slug); }catch{ rv=[]; }
   if(!rv.length){ sec.style.display="none"; return; } sec.style.display="block";
   const avg=rv.reduce((s,r)=>s+(+r.rating||0),0)/rv.length; $("g-rv-lead").textContent="★ "+avg.toFixed(1)+" · "+T(rv.length+" รีวิวจากผู้เข้าพักจริง",rv.length+" verified reviews");
   const stars=n=>"★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n);
-  $("g-reviews").innerHTML=rv.slice(0,6).map(r=>'<div class="rv"><div class="st">'+stars(+r.rating||5)+'</div>'+(r.text?'<p>“'+esc(r.text)+'”</p>':'')+'<div class="who">— '+esc(r.guestName||T("ผู้เข้าพัก","Guest"))+'</div></div>').join(""); }
+  $("g-reviews").innerHTML=rv.slice(0,6).map(r=>'<div class="rv"><div class="st">'+stars(+r.rating||5)+'</div>'+(r.text?'<p>“'+esc(r.text)+'”</p>':'')+'<div class="who"><span class="av" aria-hidden="true">'+esc(initial(String(r.guestName||"").replace(/^คุณ\s*/,"")||"G"))+'</span><span class="dash">— </span>'+esc(r.guestName||T("ผู้เข้าพัก","Guest"))+'</div></div>').join(""); }
 
 // ================= ค้นหา + ห้องพัก =================
 function onDin(){ const a=$("g-din"), b=$("g-dout"); if(!a.value) return; const keep=gN>0?gN:2; b.min=addYmd(a.value,1); if(!b.value||b.value<=a.value) b.value=addYmd(a.value,keep); gSearch(); }
@@ -603,7 +1098,7 @@ async function gSearch(scroll){
   if(note) note.textContent=dayShort(din)+" → "+dayShort(dout)+" · "+uNight(gN)+" · "+uPax(paxNum());
   $("g-rooms").innerHTML=empty(T("กำลังตรวจห้องว่าง…","Checking availability…"));
   try { AVAIL=await API.pubAvailability(slug,din,dout); } catch(e){ $("g-rooms").innerHTML=empty(T("โหลดห้องไม่สำเร็จ ลองใหม่อีกครั้ง","Couldn't load rooms, please try again")); return; }
-  renderRooms(); renderGallery(); setStoryImg();
+  renderRooms(); renderGallery(); setStoryImg(); setScenes();
   if(!aboutImgSet){ aboutImgSet=true; renderAbout(); }
   if(scroll===true) scrollToId("sec-rooms");
 }
