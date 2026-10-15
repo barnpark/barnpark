@@ -16,8 +16,6 @@ services:
         sync: false
       - key: BREVO_SENDER_NAME
         value: BARN-PARK
-      - key: BREVO_SMS_SENDER
-        value: BARNPARK
       - key: LINE_CHANNEL_TOKEN
         sync: false
       - key: LINE_CHANNEL_SECRET

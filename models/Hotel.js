@@ -12,7 +12,7 @@ const schema = new mongoose.Schema({
   name:        String,
   location:    String,
   phone:       String,
-  lineId:      String,             // @id ของ LINE OA (ไว้ให้แขกแอด/แสดง)
+  lineId:      String,             // LINE OA ของที่พักให้แขกทักแชท: @id หรือลิงก์ lin.ee/line.me (ปุ่ม LINE ลอยบนหน้าจอง)
   // ===== ธีมแบรนด์ต่อโรงแรม =====
   brandColor:  { type: String, default: "#0d9488" }, // สีหลัก 1
   brandColor2: { type: String, default: "#2563eb" }, // สีหลัก 2 (คู่ไล่เฉด)
@@ -32,6 +32,13 @@ const schema = new mongoose.Schema({
   notifyLineTo: String,            // LINE userId/groupId ของโรงแรม ที่จะรับแจ้งเตือนเมื่อมีจองใหม่
   promptpayId: String,             // เบอร์พร้อมเพย์ (08x) หรือเลขบัตร ปชช. ของโรงแรม สำหรับสร้าง QR รับเงิน
   promptpayName: String,           // ชื่อบัญชี/ชื่อร้าน แสดงคู่ QR
+  // ===== วิธีรับเงินจากแขก (ที่พักเปิด/ปิดเองทีละช่องทาง — ดู lib/pay.js) =====
+  payPromptpay: { type: Boolean, default: true },  // 📱 พร้อมเพย์ (ต้องมี promptpayId)
+  payTransfer:  { type: Boolean, default: true },  // 🏦 โอนเข้าบัญชี (ต้องมีเลขบัญชี)
+  payOnsite:    { type: Boolean, default: false }, // 💵 จ่ายที่เคาน์เตอร์ตอนเช็คอิน (ระบบไม่ยกเลิกเอง)
+  bankName:        String,         // ธนาคาร เช่น กสิกรไทย
+  bankAccountNo:   String,         // เลขบัญชี (ตัวเลขล้วน)
+  bankAccountName: String,         // ชื่อบัญชี
   taxId:       String,             // เลขประจำตัวผู้เสียภาษี (สำหรับใบเสร็จ/ใบกำกับภาษี)
   address:     String,             // ที่อยู่โรงแรม (แสดงบนใบเสร็จ + หน้าจอง)
   // ===== ข้อมูลการเข้าพัก (แสดงบนหน้าจอง + อีเมลยืนยัน + หน้ายืนยันการจอง) =====

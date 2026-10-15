@@ -1,14 +1,15 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import User from "../models/User.js";
 import Hotel from "../models/Hotel.js";
 import { sign, requireAuth } from "../lib/auth.js";
-import { sendOtp, brevoReady } from "../lib/mailer.js";
+import { sendOtp, sendResetCode, brevoReady } from "../lib/mailer.js";
 import { notifyNewHotel } from "../lib/notify.js";
 import { consumeMagic } from "../lib/onboard.js";
 
 const r = Router();
-const genCode = () => String(Math.floor(100000 + Math.random() * 900000));
+const genCode = () => String(crypto.randomInt(100000, 1000000)); // สุ่มแบบปลอดภัย (ไม่ใช้ Math.random)
 const userOut = (u) => ({ id: u._id, email: u.email, role: u.role, hotel: u.hotel, name: u.name });
 
 const slugify = (s) =>
@@ -91,6 +92,57 @@ r.post("/magic", async (req, res) => {
   const u = await User.findById(lc.user);
   if (!u || String(u.hotel) !== String(lc.hotel)) return res.status(401).json({ error: "ไม่พบบัญชีของที่พักนี้" });
   res.json({ token: sign(u), user: userOut(u) });
+});
+
+// ===== ลืมรหัสผ่าน: ขอรหัส 6 หลักทางอีเมล → ตั้งรหัสผ่านใหม่ =====
+// ตอบเหมือนกันเสมอ ไม่บอกว่ามีอีเมลนี้ในระบบหรือไม่ (กันสุ่มหาอีเมล)
+r.post("/forgot", async (req, res) => {
+  const em = String((req.body || {}).email || "").toLowerCase().trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return res.status(400).json({ error: "อีเมลไม่ถูกต้อง" });
+  if (!brevoReady()) return res.status(503).json({ error: "ระบบส่งอีเมลยังไม่เปิด — เข้าเว็บหลังบ้านผ่าน LINE Barn Park (บัญชี → เข้าเว็บหลังบ้าน) แล้วตั้งรหัสใหม่ที่ ตั้งค่า → รหัสผ่าน หรือทักทีมงาน" });
+  const u = await User.findOne({ email: em });
+  if (u) {
+    const code = genCode();
+    u.resetHash = bcrypt.hashSync(code, 10); u.resetExpires = new Date(Date.now() + 15 * 60 * 1000); u.resetTries = 0;
+    await u.save();
+    try { await sendResetCode(u.email, code); } catch (e) { console.error("reset mail", e.message); return res.status(500).json({ error: "ส่งอีเมลไม่สำเร็จ ลองใหม่อีกครั้ง" }); }
+  }
+  res.json({ ok: true, message: "ถ้าอีเมลนี้มีบัญชีอยู่ เราส่งรหัส 6 หลักไปให้แล้ว (อายุ 15 นาที) — เช็กกล่องจดหมาย/สแปม" });
+});
+r.post("/reset", async (req, res) => {
+  const { email, code, password } = req.body || {};
+  const em = String(email || "").toLowerCase().trim();
+  if (String(password || "").length < 6) return res.status(400).json({ error: "รหัสผ่านใหม่อย่างน้อย 6 ตัวอักษร" });
+  const u = await User.findOne({ email: em }).select("+resetHash");
+  if (!u || !u.resetHash || !u.resetExpires || u.resetExpires < new Date()) return res.status(401).json({ error: "รหัสหมดอายุหรือไม่ถูกต้อง — ขอรหัสใหม่" });
+  if ((u.resetTries || 0) >= 5) {
+    u.resetHash = undefined; u.resetExpires = undefined; u.resetTries = 0; await u.save();
+    return res.status(429).json({ error: "กรอกรหัสผิดหลายครั้ง — ขอรหัสใหม่อีกครั้ง" });
+  }
+  if (!bcrypt.compareSync(String(code || ""), u.resetHash)) {
+    u.resetTries = (u.resetTries || 0) + 1; await u.save();
+    return res.status(401).json({ error: "รหัสไม่ถูกต้อง (เหลืออีก " + Math.max(0, 5 - u.resetTries) + " ครั้ง)" });
+  }
+  u.passwordHash = bcrypt.hashSync(String(password), 10);
+  u.resetHash = undefined; u.resetExpires = undefined; u.resetTries = 0;
+  u.otpHash = undefined; u.otpExpires = undefined; u.otpTries = 0;
+  await u.save();
+  res.json({ ok: true, token: sign(u), user: userOut(u) }); // ยืนยันอีเมลแล้ว → เข้าระบบให้เลย
+});
+// เปลี่ยนรหัสผ่าน (ล็อกอินอยู่) — บัญชีที่สมัครผ่าน LINE และยังไม่เคยตั้งรหัส ตั้งได้เลยโดยไม่ต้องใส่รหัสเดิม
+r.post("/change-password", requireAuth, async (req, res) => {
+  const { current = "", password = "" } = req.body || {};
+  if (String(password).length < 6) return res.status(400).json({ error: "รหัสผ่านใหม่อย่างน้อย 6 ตัวอักษร" });
+  const u = await User.findById(req.user.id).select("+passwordHash");
+  if (!u) return res.status(404).json({ error: "ไม่พบบัญชี" });
+  if (u.passwordHash && !bcrypt.compareSync(String(current), u.passwordHash)) return res.status(400).json({ error: "รหัสผ่านปัจจุบันไม่ถูกต้อง" });
+  u.passwordHash = bcrypt.hashSync(String(password), 10);
+  await u.save();
+  res.json({ ok: true });
+});
+r.get("/has-password", requireAuth, async (req, res) => {
+  const u = await User.findById(req.user.id).select("+passwordHash email");
+  res.json({ hasPassword: !!(u && u.passwordHash), email: u ? u.email : "" });
 });
 
 r.get("/me", requireAuth, async (req, res) => {

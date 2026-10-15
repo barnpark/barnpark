@@ -47,7 +47,12 @@
         <div><label>เบอร์โทร</label><input id="e-phone"></div>
         <div><label>สถานะ</label><select id="e-status"><option value="active">ใช้งาน</option><option value="onboarding">กำลังตั้งค่า</option><option value="paused">พัก</option></select></div>
         <div><label>ค่าบริการ/เดือน (บาท)</label><input id="e-fee" type="number"></div>
-        <div><label>PromptPay (เบอร์/เลขบัตร)</label><input id="e-pp" placeholder="0812345678"></div>
+        <div><label>💬 LINE ให้แขกทักแชท (@ID / lin.ee)</label><input id="e-line" placeholder="@yourhotel"></div>
+        <div><label>📱 PromptPay (เบอร์/เลขบัตร)</label><input id="e-pp" placeholder="0812345678"></div>
+        <div><label>🏦 ธนาคาร (รับโอน)</label><input id="e-bank" placeholder="เช่น กสิกรไทย"></div>
+        <div><label>🏦 เลขบัญชี</label><input id="e-bank-no" placeholder="123-4-56789-0"></div>
+        <div><label>🏦 ชื่อบัญชี</label><input id="e-bank-acct"></div>
+        <div style="grid-column:1/-1"><label>วิธีรับเงินที่เปิดให้แขก</label><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:14px"><label style="display:flex;gap:6px;align-items:center;margin:0;font-weight:400"><input type="checkbox" id="e-pay-pp" style="width:auto"> พร้อมเพย์</label><label style="display:flex;gap:6px;align-items:center;margin:0;font-weight:400"><input type="checkbox" id="e-pay-tr" style="width:auto"> โอนเข้าบัญชี</label><label style="display:flex;gap:6px;align-items:center;margin:0;font-weight:400"><input type="checkbox" id="e-pay-os" style="width:auto"> จ่ายที่เคาน์เตอร์</label></div></div>
         <div><label>🧱 เทมเพลตหน้า</label><select id="e-template"><option value="rich">Rich</option><option value="editorial">Editorial</option><option value="magazine">Magazine</option><option value="split">Split-screen</option><option value="simple">Simple</option><option value="catalog">Catalog</option><option value="classic">Classic</option><option value="bento">Bento</option><option value="fullscreen">Full-screen</option><option value="immersive">Immersive</option></select></div>
         <div><label>🎨 ชุดสี/ฟอนต์ (10 สไตล์)</label><select id="e-preset" onchange="applyPresetAdmin(this.value)"><option value="">— เลือกสไตล์ —</option></select></div>
         <div><label>สีหลัก 1</label><input id="e-color" type="color" style="height:42px;padding:4px" oninput="prevAdmin()"></div>
@@ -59,10 +64,10 @@
         <div><label>ให้แขกยกเลิกออนไลน์</label><select id="e-cancel-allow"><option value="yes">อนุญาต</option><option value="no">ไม่อนุญาต</option></select></div>
         <div><label>ยกเลิกฟรีก่อนเช็คอิน (วัน)</label><input id="e-cancel-days" type="number" min="0"></div>
         <div style="grid-column:1/-1"><label>คำโปรย (tagline)</label><input id="e-tagline" placeholder="เช่น ที่พักริมน้ำ บรรยากาศบ้านสวน"></div>
-        <div style="grid-column:1/-1"><label>ลิงก์ภาพหน้าปก (cover URL)</label><input id="e-cover" placeholder="https://..."></div>
+        <div style="grid-column:1/-1"><label>ภาพหน้าปก — วางลิงก์ หรืออัปโหลดไฟล์</label><div style="display:flex;gap:6px;align-items:center"><input id="e-cover" placeholder="https://..." style="flex:1"><label class="btn ghost sm" style="cursor:pointer;margin:0;white-space:nowrap">📤 อัปโหลด<input type="file" accept="image/*" style="display:none" onchange="adminCover(this)"></label></div></div>
         <div style="grid-column:1/-1"><label>เกี่ยวกับที่พัก (about)</label><textarea id="e-about" rows="3" placeholder="แนะนำที่พักสั้น ๆ"></textarea></div>
-        <div style="grid-column:1/-1"><label>ข้อความโปรโมชัน</label><input id="e-promo" placeholder="เช่น จองตรง ลด 10%"></div>
-        <div style="grid-column:1/-1"><label>ลิงก์ภาพโปรโมชัน</label><input id="e-promoimg" placeholder="https://..."></div>
+        <div style="grid-column:1/-1"><label>แถบโปรโมชันบนสุดของหน้าจอง (เจ้าของแก้เองได้ในตั้งค่า)</label><input id="e-promo" maxlength="120" placeholder="เช่น จองตรง ลด 10% ใส่โค้ด DIRECT10"></div>
+        <div style="grid-column:1/-1"><label>ลิงก์ภาพแบนเนอร์โปรโมชัน (แสดงเหนือรายการห้อง · https)</label><input id="e-promoimg" placeholder="https://..."></div>
       </div>
       <button class="btn" style="margin-top:12px" onclick="saveHotel()">✔ บันทึกข้อมูลโรงแรม</button></div>
     <div class="panel"><h3>การเชื่อม OTA</h3><div id="d-ota"></div></div>
@@ -120,7 +125,7 @@
     <div class="field"><label>อีเมล</label><input id="bk-email"></div>
     <div class="field"><label>ประเภทห้อง</label><select id="bk-rt"></select></div>
     <div class="field"><label>ช่องทาง</label><select id="bk-ch"></select></div>
-    <div class="field"><label>แจ้งเตือนแขกทาง</label><select id="bk-notify"><option value="email">อีเมล</option><option value="sms">SMS</option><option value="line">LINE</option><option value="none">ไม่ส่ง</option></select></div>
+    <div class="field"><label>แจ้งเตือนแขกทาง</label><select id="bk-notify"><option value="email">ส่งอีเมลยืนยัน (ถ้ามีอีเมล)</option><option value="none">ไม่ต้องส่ง</option></select></div>
     <div class="field"><label>เช็คอิน</label><input id="bk-in" type="date"></div>
     <div class="field"><label>เช็คเอาท์</label><input id="bk-out" type="date"></div>
     <div class="field"><label>จำนวนคน</label><input id="bk-pax" type="number" value="2"></div>
@@ -236,6 +241,9 @@ async function fbAsk(dry){ const out=document.getElementById('fb-askres');
     if(dry){ FB_ASKDRY=r; out.innerHTML='👀 เดือน'+r.monthLabel+': จะส่งถึง <b>'+r.lineUsers+'</b> คนใน LINE'+(r.emails?' + อีเมล '+r.emails+' ที่ (ที่พักที่ไม่ได้เชื่อม LINE)':'')+(r.alreadyAsked?'<br>⚠️ เดือนนี้ส่งไปแล้ว — ถ้ากดส่งจะเป็นการส่งซ้ำ':''); }
     else { FB_ASKDRY=null; out.innerHTML=r.skipped?'เดือนนี้ส่งไปแล้ว ไม่ได้ส่งซ้ำ':'✅ ส่งแล้ว: LINE '+r.sentLine+' คน · อีเมล '+r.sentEmail+' ที่'+(r.errors.length?'<br>⚠️ '+r.errors.map(esc).join('<br>'):''); loadFb(); }
   }catch(e){ out.textContent='✗ '+e.message; } }
+async function adminCover(input){ const f=input.files&&input.files[0]; input.value=''; if(!f||!cur) return;
+  try{ API.toast('กำลังอัปโหลดรูปปก…'); const data=await API.resizeImage(f,1600,0.85); const r=await API.post('/hotels/'+cur._id+'/cover',{image:data}); document.getElementById('e-cover').value=r.coverUrl; cur.coverUrl=r.coverUrl; API.toast('อัปโหลดรูปปกแล้ว','ok'); }
+  catch(e){ API.toast(e.message||'อัปโหลดไม่สำเร็จ','err'); } }
 function downloadBackup(){ const t=API.token(); fetch('/api/admin/export',{headers:{authorization:'Bearer '+t}}).then(r=>r.blob()).then(b=>{const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='barnpark-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(u);API.toast('ดาวน์โหลดสำรองข้อมูลแล้ว','ok');}).catch(e=>API.toast('สำรองข้อมูลไม่สำเร็จ','err')); }
 // ---- onboard new hotel ----
 function val(id){return document.getElementById(id).value.trim();}
@@ -266,7 +274,8 @@ function fillEdit(){
   document.getElementById('e-ui').innerHTML=Object.entries(API.UI_STYLES).map(([k,v])=>'<option value="'+k+'"'+((cur.uiStyle||'pill')===k?' selected':'')+'>'+v.label+'</option>').join('');
   document.getElementById('e-cancel-allow').value=(cur.allowGuestCancel===false)?'no':'yes';
   V('e-cancel-days',cur.cancelDays??3);
-  V('e-pp',cur.promptpayId);
+  V('e-pp',cur.promptpayId); V('e-line',cur.lineId); V('e-bank',cur.bankName); V('e-bank-no',cur.bankAccountNo); V('e-bank-acct',cur.bankAccountName);
+  document.getElementById('e-pay-pp').checked=cur.payPromptpay!==false; document.getElementById('e-pay-tr').checked=cur.payTransfer!==false; document.getElementById('e-pay-os').checked=cur.payOnsite===true;
   V('e-tagline',cur.tagline); V('e-cover',cur.coverUrl); V('e-about',cur.about); V('e-promo',cur.promoText); V('e-promoimg',cur.promoImage);
   const link=document.getElementById('d-booklink'); link.href='book.html?h='+encodeURIComponent(cur.slug);
 }
@@ -287,6 +296,8 @@ async function saveHotel(){
     allowGuestCancel:document.getElementById('e-cancel-allow').value==='yes', cancelDays:+val('e-cancel-days')||0,
     tagline:val('e-tagline'),
     coverUrl:val('e-cover'), about:val('e-about'), promoText:val('e-promo'), promoImage:val('e-promoimg'), promptpayId:val('e-pp'),
+    lineId:val('e-line'), bankName:val('e-bank'), bankAccountNo:val('e-bank-no'), bankAccountName:val('e-bank-acct'),
+    payPromptpay:document.getElementById('e-pay-pp').checked, payTransfer:document.getElementById('e-pay-tr').checked, payOnsite:document.getElementById('e-pay-os').checked,
   };
   if(!body.name){API.toast('ต้องมีชื่อโรงแรม','err');return;}
   try{

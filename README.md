@@ -1,7 +1,7 @@
 # BARN-PARK (Node/Express + MongoDB + Brevo)
 
 ระบบจองที่พักสำหรับที่พักชุมชนและ SME — สตริกเดียวกับ BARNBARN
-Deploy: GitHub → Render · ฐานข้อมูล MongoDB Atlas · อีเมล/SMS ผ่าน Brevo
+Deploy: GitHub → Render · ฐานข้อมูล MongoDB Atlas · อีเมลผ่าน Brevo (ไม่มี SMS)
 
 ## โครงสร้าง
 ```
@@ -29,7 +29,7 @@ npm start                 # เปิด http://localhost:3000
 3. Render → **New → Web Service** → เลือก repo → Runtime Node
    - Build: `npm install` · Start: `npm start`
    - ใส่ Environment variables ตาม `.env.example` (MONGODB_URI, JWT_SECRET, BREVO_*)
-4. deploy เสร็จได้ URL `https://barn-park.onrender.com` (ต่อโดเมนเองภายหลังได้)
+4. deploy เสร็จได้ URL แบบ `https://<ชื่อ-service>.onrender.com` (ตอนนี้ใช้ `https://barnpark.onrender.com` · ต่อโดเมนเองภายหลังได้)
 5. รัน seed ครั้งแรก: Render → Shell → `npm run seed` (หรือรันจากเครื่องที่ชี้ MONGODB_URI เดียวกัน)
 
 ## API ย่อ
@@ -57,9 +57,20 @@ npm start                 # เปิด http://localhost:3000
 - **อาหารเช้าต่อห้อง** (`RoomType.breakfast` = none | included | optional + `breakfastPrice` ต่อท่าน/คืน) — คิดราคาฝั่งเซิร์ฟเวอร์ (`lib/stay.js`)
 - **ข้อมูลการเข้าพัก**: เวลาเช็คอิน/เอาท์ แผนที่ (ส่งตำแหน่งใน LINE ได้) กฎที่พัก → หน้าจอง + หน้ายืนยันการจอง + อีเมลยืนยัน
 - **หน้ายืนยันการจอง** หลังจองเสร็จ (เลขจอง, QR จ่ายทีหลัง, ปุ่มแจ้งโอน `POST /api/public/report-paid`)
-- **แจ้งเตือนเข้า LINE Barn Park** ของทุกคนที่เชื่อมที่พัก: จองใหม่ · แขกแจ้งโอน · แขกยกเลิก · ระบบปล่อยห้อง — มีปุ่ม ✅ รับเงิน / 🤝 ให้จ่ายที่ที่พัก (payStatus `onsite` ไม่ถูกปล่อยห้อง)
+- **แจ้งเตือนเข้า LINE Barn Park** ของทุกคนที่เชื่อมที่พัก: จองใหม่ · แขกแจ้งโอน · แขกยกเลิก · ระบบปล่อยห้อง — มีปุ่ม ✅ รับเงิน / 🤝 จ่ายที่เคาน์เตอร์ (payStatus `onsite` ไม่ถูกปล่อยห้อง)
 - **เช็กความครบ** (`lib/checklist.js`): แดชบอร์ดเว็บ · พิมพ์ "เช็กความครบ" ใน LINE · `GET /api/hotels/:id/checklist`
 - **แจ้งอัปเดตระบบ** (`lib/announce.js`): หน้าแอดมิน → 📣 แจ้งอัปเดต → ส่งประกาศ + เช็กลิสต์เฉพาะของแต่ละที่ (1 คน = 1 push)
 - env ใหม่ (ไม่บังคับ): `LINE_DAILY_DIGEST=1` ส่งสรุปเข้า-ออกรายวันเข้า LINE Barn Park ด้วย
 - ⚠️ โควตา LINE OA ฟรี 300 ข้อความ/เดือน — แจ้งเตือนจองใหม่ใช้โควตานี้ ถ้าเต็มระบบจะอีเมลเตือนแอดมิน
 - **ความเห็นจากที่พัก (feedback)** (`lib/feedback.js`, `routes/feedback.js`, `models/Feedback.js`): ส่งได้ใน LINE (“ส่งความเห็น” → หัวข้อ → ข้อความ → ภาพหน้าจอ) และเว็บหลังบ้าน (แท็บ 💡 ความเห็น) · แบบสอบถามรายเดือนกดคะแนน 1 คลิก (cron วันที่ `FEEDBACK_DAY`, ค่าเริ่มต้น 1) · หน้าแอดมิน → 💬 Feedback: สรุปคะแนน เปลี่ยนสถานะ ตอบกลับ → แจ้งคนส่งทาง LINE
+
+## อัปเดต 15 ต.ค. 2026 — รับเงิน 3 แบบ · ไม่มี SMS · ปุ่ม LINE ที่พัก · หน้าจองใหม่ 10 แบบ
+- **วิธีรับเงินต่อที่พัก** (`lib/pay.js`): `payPromptpay` · `payTransfer` (+ `bankName`/`bankAccountNo`/`bankAccountName`) · `payOnsite` — หน้าจองแสดงเฉพาะที่เปิด ไม่เปิดอะไรเลย = "ชำระกับที่พักโดยตรง" · `/api/public/book` รับ `payMethod` (promptpay|transfer|onsite) ตรวจกับที่เปิดจริง · จ่ายที่เคาน์เตอร์ = `payStatus: onsite` ไม่ถูกปล่อยห้อง · ตั้งได้ทั้งเว็บหลังบ้านและ LINE (🎨 ตั้งค่าเว็บ → 💳 วิธีรับเงิน)
+- **ไม่มี SMS แล้ว** — แขกได้อีเมล (ถ้ากรอก) + เช็กการจองเองที่ `POST /api/public/lookup` (เลขจอง + เบอร์) / ลิงก์ `book.html?h=<slug>&find=1` · ลบ env `BREVO_SMS_SENDER` ได้
+- **ปุ่ม “แชท LINE” ของที่พักลอยทุกหน้า** (`Hotel.lineId` รับ @ID หรือลิงก์ lin.ee/line.me — `cleanLineId`/`lineContactUrl` ใน `lib/stay.js`) · เชื่อม OA ของที่พักเองแล้วยังไม่ใส่ → ดึง @ID จาก `/v2/bot/info` ให้อัตโนมัติ
+- **หน้าจอง (book.html) ออกแบบใหม่ทั้ง 10 เทมเพลต**: แก้บั๊ก Immersive ตัวหนังสือขาวบนพื้นขาว · Catalog ล้นจอมือถือ + ตัวกรองใช้งานได้จริง · Classic เมนูล้น · Editorial มือถือ · Fullscreen แถบค้นหาบังจอมือถือ · ตัวอักษรไทยห่าง · ปุ่มขีดเส้นใต้ · โลโก้เป็นตัวอักษรแรกของที่พัก · แผ่นจองเลื่อนขึ้นบนมือถือ + ยอดรวม/ปุ่มติดล่าง · ดูรูปใหญ่ · แถบโปรโมชัน (`promoText`/`promoImage`) · ห้องเต็มไปท้ายรายการ
+- **ชุดสี 10 ชุดใหม่** (`public/api.js` + `lib/presets.js`) สีหลักตัดกับตัวหนังสือขาว ≥ 4.5:1 · `applyTheme` คำนวณสีตัวอักษรบนปุ่มให้อัตโนมัติ (`--on-brand`, `--brand-ink`) · ฟอนต์ตกแต่งใช้แค่หัวข้อ · ที่พักที่ใช้ชุดเดิมแบบไม่แก้เอง ได้ชุดใหม่ตอนเซิร์ฟเวอร์เริ่ม (`migratePalettes`)
+- **เว็บหลังบ้าน**: ยกเลิกการจองแบบเก็บประวัติ `POST /api/bookings/:id/cancel` (แจ้งแขกทางอีเมล) / กู้คืน `/restore` · ส่งออก CSV `GET /api/hotels/:id/bookings/export?from=&to=` (BOM สำหรับ Excel ไทย กันสูตรแฝง) · เปลี่ยนรหัสผ่าน `POST /api/auth/change-password`
+- **ลืมรหัสผ่าน**: `POST /api/auth/forgot` → อีเมลรหัส 6 หลัก (15 นาที, ผิดได้ 5 ครั้ง) → `POST /api/auth/reset` · ตอบเหมือนกันทุกอีเมล (กันสุ่มหาบัญชี) · rate limit 5 ครั้ง/15 นาที
+- **ลิงก์แชร์ขึ้นการ์ดสวย**: `lib/og.js` ใส่ og:title / og:description / og:image (รูปปก) ให้ `book.html?h=<slug>`
+- เช็กลิสต์เป็น 13 ข้อ (เพิ่ม “ปุ่ม LINE ให้แขกทักแชท” · ข้อ PromptPay เปลี่ยนเป็น “วิธีรับเงินอย่างน้อย 1 ช่องทาง”)

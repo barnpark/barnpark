@@ -2,7 +2,8 @@
   --accent:#f59e0b;--accent2:#ec4899;--line:#e6eef5;--green:#16a34a;--amber:#d97706;--red:#dc2626;
   --c0:#0d9488;--c1:#7c3aed;--c2:#2563eb;--c3:#d97706;--c4:#64748b;
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI","Sarabun",Roboto,Arial,sans-serif;
-  --btn-radius:999px;--card-radius:18px;--input-radius:9px}
+  --btn-radius:999px;--card-radius:18px;--input-radius:9px;
+  --on-brand:#fff;--brand-ink:#0b7a70;--on-accent:#13202e;--accent-ink:#b45309;--font-head:var(--font)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);line-height:1.6;font-family:var(--font)}
 .wrap{max-width:1140px;margin:0 auto;padding:0 16px}
@@ -14,16 +15,17 @@ body{margin:0;background:var(--bg);color:var(--ink);line-height:1.6;font-family:
 .nav{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:58px;z-index:20;overflow-x:auto}
 .nav .in{max-width:1140px;margin:0 auto;padding:0 10px;display:flex;gap:2px}
 .nav button{background:none;border:none;padding:13px 14px;font-size:14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;font-family:inherit}
-.nav button.on{color:var(--brand);border-bottom-color:var(--brand);font-weight:700}
+.nav button.on{color:var(--brand-ink,var(--brand));border-bottom-color:var(--brand);font-weight:700}
 main{padding:22px 0 60px}
 .view{display:none} .view.on{display:block}
 h1{font-size:22px;margin:0 0 4px} h2{font-size:20px;margin:6px 0 12px} h3{font-size:16px;margin:0 0 10px}
 .sub{color:var(--muted);font-size:13px;margin:-6px 0 16px}
 label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:4px}
 input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:var(--input-radius);font-size:14px;font-family:inherit;background:#fff}
-.btn{background:var(--brand);color:#fff;border:none;padding:11px 20px;border-radius:var(--btn-radius);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .12s,transform .08s;box-shadow:0 4px 14px rgba(13,148,136,.22)}
-.btn:hover{background:var(--brand2);transform:translateY(-1px)} .btn:disabled{background:#cbd5e1;cursor:not-allowed;box-shadow:none}
-.btn.ghost{background:#fff;color:var(--brand);border:1.5px solid var(--brand);box-shadow:none} .btn.ghost:hover{background:#f0fdfa}
+.btn{background:var(--brand);color:var(--on-brand,#fff);border:none;padding:11px 20px;border-radius:var(--btn-radius);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .12s,transform .08s;box-shadow:0 4px 14px rgba(13,148,136,.22)}
+.btn:hover{filter:brightness(.93);transform:translateY(-1px)} .btn:disabled{background:#cbd5e1;color:#fff;cursor:not-allowed;box-shadow:none;filter:none;transform:none}
+a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.ghost{background:#fff;color:var(--brand-ink,var(--brand));border:1.5px solid color-mix(in srgb,var(--brand) 55%,#fff);box-shadow:none} .btn.ghost:hover{background:color-mix(in srgb,var(--brand) 7%,#fff);filter:none}
 .btn.sm{padding:6px 13px;font-size:12px} .btn.lg{padding:14px 22px;font-size:16px} .btn.block{width:100%}
 .btn.danger{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;box-shadow:none} .btn.white{background:#fff;color:var(--brand2)}
 .panel{background:#fff;border:1px solid var(--line);border-radius:var(--card-radius);padding:20px 22px;margin-bottom:16px;box-shadow:0 6px 20px rgba(15,37,64,.05)}

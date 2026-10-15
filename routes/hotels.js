@@ -14,7 +14,9 @@ import { detachHotelFromChat } from "../lib/linebot.js";
 import { rememberBase } from "../lib/baseurl.js";
 import { badImageFields } from "../lib/security.js";
 import { normalizePromptPayId } from "../lib/promptpay.js";
-import { cleanStayFields } from "../lib/stay.js";
+import { cleanStayFields, cleanLineId } from "../lib/stay.js";
+import { cleanPayFields } from "../lib/pay.js";
+import { parseDataUrl, toDataUrl } from "../lib/images.js";
 import { checklist } from "../lib/checklist.js";
 import { announceUpdate, announceLog } from "../lib/announce.js";
 
@@ -113,9 +115,39 @@ r.patch("/hotels/:id", requireAuth, async (req, res) => {
     safe.promptpayId = pp;
   }
   const stayErr = cleanStayFields(safe); if (stayErr) return res.status(400).json({ error: stayErr });
+  const payErr = cleanPayFields(safe); if (payErr) return res.status(400).json({ error: payErr });
+  if (safe.lineId !== undefined) {
+    const v = cleanLineId(safe.lineId);
+    if (v === null) return res.status(400).json({ error: "LINE ไม่ถูกต้อง — ใส่ @ID ของ LINE OA (เช่น @baanbaan) หรือลิงก์ lin.ee / line.me" });
+    safe.lineId = v;
+  }
+  if (safe.promoText !== undefined) safe.promoText = String(safe.promoText || "").trim().slice(0, 120);
+  if (safe.about !== undefined) safe.about = String(safe.about || "").slice(0, 1000);
+  if (safe.tagline !== undefined) safe.tagline = String(safe.tagline || "").slice(0, 120);
+  if (safe.amenities !== undefined) safe.amenities = (Array.isArray(safe.amenities) ? safe.amenities : []).map((a) => String(a || "").trim().slice(0, 30)).filter(Boolean).slice(0, 20);
   if (safe.holdHours !== undefined) safe.holdHours = Math.max(0, Math.min(720, parseInt(safe.holdHours, 10) || 0));
   if (safe.cancelDays !== undefined) safe.cancelDays = Math.max(0, Math.min(60, parseInt(safe.cancelDays, 10) || 0));
   res.json(await Hotel.findByIdAndUpdate(req.params.id, safe, { new: true }));
+});
+
+// รูปหน้าปก — อัปโหลดจากเว็บหลังบ้าน (ย่อ + แปลงเป็น JPEG ฝั่งเซิร์ฟเวอร์ เก็บแบบเดียวกับที่ส่งผ่าน LINE)
+r.post("/hotels/:id/cover", requireAuth, async (req, res) => {
+  if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const p = parseDataUrl((req.body || {}).image);
+  if (!p || !/^image\/(jpe?g|png|webp)$/i.test(p.type)) return res.status(400).json({ error: "ไฟล์ต้องเป็นรูป JPG / PNG / WEBP" });
+  if (p.buf.length > 8 * 1024 * 1024) return res.status(413).json({ error: "รูปใหญ่เกินไป (ไม่เกิน 8MB)" });
+  let dataUrl;
+  try { dataUrl = await toDataUrl(p.buf, { max: 1600, quality: 82 }); }
+  catch { return res.status(400).json({ error: "อ่านไฟล์รูปไม่ได้ ลองไฟล์อื่น" }); }
+  const coverUrl = `/api/public/img/cover/${req.params.id}/0?v=${Date.now()}`;
+  const h = await Hotel.findByIdAndUpdate(req.params.id, { $set: { coverData: dataUrl, coverUrl } }, { new: true });
+  if (!h) return res.status(404).json({ error: "not found" });
+  res.json({ ok: true, coverUrl });
+});
+r.delete("/hotels/:id/cover", requireAuth, async (req, res) => {
+  if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  await Hotel.updateOne({ _id: req.params.id }, { $set: { coverUrl: "" }, $unset: { coverData: 1 } });
+  res.json({ ok: true });
 });
 
 // เช็กความครบของที่พัก (แดชบอร์ดเจ้าของ)
@@ -160,11 +192,28 @@ r.get("/hotels/:id/line", requireAuth, async (req, res) => {
 r.patch("/hotels/:id/line", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
   const { lineId, lineChannelToken, lineChannelSecret } = req.body || {};
-  const set = { lineId };
-  if (lineChannelToken !== undefined) set.lineChannelToken = lineChannelToken;
-  if (lineChannelSecret !== undefined) set.lineChannelSecret = lineChannelSecret;
+  const set = {};
+  if (lineId !== undefined) {
+    const v = cleanLineId(lineId);
+    if (v === null) return res.status(400).json({ error: "LINE ไม่ถูกต้อง — ใส่ @ID ของ LINE OA (เช่น @baanbaan) หรือลิงก์ lin.ee / line.me" });
+    set.lineId = v;
+  }
+  if (lineChannelToken !== undefined) set.lineChannelToken = String(lineChannelToken || "").trim();
+  if (lineChannelSecret !== undefined) set.lineChannelSecret = String(lineChannelSecret || "").trim();
+  // เชื่อม OA ของที่พักแล้ว แต่ยังไม่ได้ใส่ LINE ให้แขกทัก → ดึง @ID ของ OA นั้นมาใส่ให้อัตโนมัติ (ปุ่มแชท LINE บนหน้าจอง)
+  if (set.lineChannelToken && lineId === undefined) {
+    const cur = await Hotel.findById(req.params.id).select("lineId").lean();
+    if (cur && !cur.lineId) {
+      try {
+        const r2 = await fetch((process.env.LINE_API_BASE || "https://api.line.me") + "/v2/bot/info", { headers: { authorization: "Bearer " + set.lineChannelToken }, signal: AbortSignal.timeout(5000) });
+        const info = r2.ok ? await r2.json() : null;
+        const v = info && cleanLineId(info.basicId);
+        if (v) set.lineId = v;
+      } catch { /* ไม่เป็นไร ใส่เองได้ */ }
+    }
+  }
   await Hotel.findByIdAndUpdate(req.params.id, set);
-  res.json({ ok: true });
+  res.json({ ok: true, lineId: set.lineId });
 });
 
 export default r;

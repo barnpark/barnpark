@@ -15,7 +15,7 @@ const schema = new mongoose.Schema({
   note:        String,
   channel:     { type: String, default: "direct" },     // direct|walkin|phone|line|other
   status:      { type: String, default: "confirmed" },  // confirmed|cancelled
-  payStatus:   { type: String, default: "unpaid" },     // unpaid|reported|paid
+  payStatus:   { type: String, default: "unpaid" },     // unpaid|reported|paid|onsite(จ่ายที่เคาน์เตอร์)
   payRef:      String,
   payMethod:   { type: String, default: "" },
   ref:         String,

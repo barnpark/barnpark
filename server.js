@@ -7,6 +7,9 @@ import { connectDB } from "./lib/db.js";
 import { rateLimit } from "./lib/ratelimit.js";
 import { securityHeaders, blockOperators } from "./lib/security.js";
 import { releaseExpiredHolds } from "./lib/holds.js";
+import { bookPageHandler } from "./lib/og.js";
+import { migratePalettes } from "./lib/presets.js";
+import Hotel from "./models/Hotel.js";
 
 import authRoutes from "./routes/auth.js";
 import hotelRoutes from "./routes/hotels.js";
@@ -33,6 +36,8 @@ app.get("/api/health", (_req, res) => res.json({ ok: true, service: "barn-park" 
 app.use("/api/auth", rateLimit({ windowMs: 10 * 60 * 1000, max: 40, message: "พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/cancel", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/feedback", rateLimit({ windowMs: 10 * 60 * 1000, max: 20, message: "ส่งความเห็นบ่อยเกินไป กรุณารอสักครู่" }));
+app.use("/api/auth/forgot", rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: "ขอรหัสบ่อยเกินไป กรุณารอ 15 นาที" }));
+app.use("/api/public/lookup", rateLimit({ windowMs: 10 * 60 * 1000, max: 15, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/report-paid", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/review", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/promo", rateLimit({ windowMs: 10 * 60 * 1000, max: 30, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
@@ -51,6 +56,8 @@ app.use("/api", reviewRoutes);
 app.use("/api", activityRoutes);
 app.use("/api", feedbackRoutes);
 
+// หน้าจองของแต่ละที่พัก (ใส่ชื่อ/รูปปกใน meta ให้ลิงก์ที่แชร์ใน LINE/Facebook ขึ้นการ์ดสวย ๆ)
+app.get("/book.html", bookPageHandler(path.join(__dirname, "public", "book.html")));
 // เสิร์ฟหน้าเว็บ (static)
 app.use(express.static(path.join(__dirname, "public")));
 app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
@@ -73,6 +80,7 @@ const PORT = process.env.PORT || 3000;
 connectDB()
   .then(() => {
     app.listen(PORT, () => console.log("BARN-PARK running on :" + PORT));
+    migratePalettes(Hotel).catch((e) => console.error("palettes", e.message)); // ชุดสีรุ่นแรก → ชุดใหม่ที่อ่านง่ายกว่า
     // ปล่อยห้องค้างไม่จ่ายอัตโนมัติ: รันตอนเริ่ม + ทุก 15 นาที
     releaseExpiredHolds().catch((e) => console.error("holds", e));
     const t = setInterval(() => releaseExpiredHolds().catch((e) => console.error("holds", e)), 15 * 60 * 1000);

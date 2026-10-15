@@ -47,16 +47,35 @@ window.API = (function () {
     l.href = "https://fonts.googleapis.com/css2?family=" + g + ":wght@400;500;600;700;800&display=swap";
     document.head.appendChild(l);
   }
+  // ===== สีอ่านง่ายเสมอ: คำนวณสีตัวอักษรบนปุ่ม/ป้ายจากความสว่างของสีที่ที่พักเลือก (WCAG contrast) =====
+  function hexRgb(h) { const m = /^#?([0-9a-f]{6})$/i.exec(String(h || "").trim()); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+  function lum(c) { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); }
+  function contrast(a, b) { const A = lum(a), B = lum(b); return (Math.max(A, B) + 0.05) / (Math.min(A, B) + 0.05); }
+  const toHex = (c) => "#" + c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
+  // ตัวอักษรบนพื้นสีนี้: ขาว หรือ น้ำเงินเข้ม (ถ้าพื้นสว่างเกิน)
+  function inkOn(hex) { const c = hexRgb(hex); if (!c) return "#ffffff"; return contrast(c, [255, 255, 255]) >= 3.2 ? "#ffffff" : "#13202e"; }
+  // สีเดียวกันแต่เข้มพอจะเป็นตัวอักษรบนพื้นขาว (ราคา ลิงก์ หัวข้อเล็ก)
+  function readable(hex, min) { let c = hexRgb(hex); if (!c) return null; for (let i = 0; i < 24 && contrast(c, [255, 255, 255]) < (min || 4.5); i++) c = c.map((v) => v * 0.9); return toHex(c); }
+  // ฟอนต์หัวข้อ = ฟอนต์ที่เลือก · ฟอนต์เนื้อความ = ตัวเดียวกันถ้าอ่านง่าย ไม่งั้นใช้ Sarabun (ฟอนต์ลายมือ/ตกแต่งใช้แค่หัวข้อ)
+  const BODY_OK = ["Sarabun", "Prompt", "Kanit", "Mitr", "Bai Jamjuree", "IBM Plex Sans Thai", "Noto Sans Thai"];
   function applyTheme(h) {
     if (!h) return;
     const S = (k, v) => { if (v) document.documentElement.style.setProperty(k, v); };
-    S("--brand", h.brandColor);
-    S("--brand2", h.brandColor2 || h.brandColor);
-    S("--accent", h.accentColor || h.brandColor2 || h.brandColor);
-    S("--accent2", h.accentColor2 || h.accentColor);
+    const brand = h.brandColor, accent = h.accentColor || h.brandColor2 || h.brandColor;
+    S("--brand", brand);
+    S("--brand2", h.brandColor2 || brand);
+    S("--accent", accent);
+    S("--accent2", h.accentColor2 || accent);
+    S("--on-brand", inkOn(brand)); S("--brand-ink", readable(brand));
+    S("--on-accent", inkOn(accent)); S("--accent-ink", readable(accent, 3.6));
     const st = UI_STYLES[h.uiStyle] || UI_STYLES.pill;
     S("--btn-radius", st.btn); S("--card-radius", st.card); S("--input-radius", st.input);
-    if (h.fontFamily) { loadFont(h.fontFamily); S("--font", '"' + h.fontFamily + '","Sarabun",sans-serif'); }
+    if (h.fontFamily) {
+      const body = BODY_OK.includes(h.fontFamily) ? h.fontFamily : "Sarabun";
+      loadFont(h.fontFamily); if (body !== h.fontFamily) loadFont(body);
+      S("--font-head", '"' + h.fontFamily + '","Sarabun",sans-serif');
+      S("--font", '"' + body + '","Sarabun",sans-serif');
+    }
   }
   // ===== สองภาษา ไทย/อังกฤษ =====
   const LANGKEY = "bp_lang";
@@ -89,17 +108,19 @@ window.API = (function () {
   }
 
   // 10 สไตล์สำเร็จรูป (กดเลือกแล้วเซ็ต สี4 + ฟอนต์ + สไตล์มุม ให้ทันที — ปรับต่อเองได้)
+  // ⚠️ ชุดเดียวกับ lib/presets.js (บอท LINE) — แก้ที่หนึ่งต้องแก้อีกที่ด้วย
+  // ปรับปี 2026: สีหลักทุกชุดตัดกับตัวอักษรขาวได้ชัด (contrast ≥ 4.5) · ฟอนต์ตกแต่งใช้แค่หัวข้อ
   const STYLE_PRESETS = [
-    { key: "organic",  name: "Warm Organic · อบอุ่นธรรมชาติ", brandColor: "#6b7a4f", brandColor2: "#9aa86b", accentColor: "#c57b4e", accentColor2: "#caa23e", fontFamily: "Mitr",         uiStyle: "pill" },
-    { key: "zen",      name: "Zen Minimal · สงบมินิมอล",      brandColor: "#8a8172", brandColor2: "#b8ad99", accentColor: "#a98f6b", accentColor2: "#6f6757", fontFamily: "Taviraj",      uiStyle: "minimal" },
-    { key: "playful",  name: "Playful · สนุกสีสด",            brandColor: "#ff4d6d", brandColor2: "#ffb13d", accentColor: "#7c4dff", accentColor2: "#ffd23f", fontFamily: "Kanit",        uiStyle: "pill" },
-    { key: "heritage", name: "Heritage · คลาสสิกหรู",         brandColor: "#0f3d2e", brandColor2: "#1c5a44", accentColor: "#c8a24b", accentColor2: "#0a2b20", fontFamily: "Taviraj",      uiStyle: "sharp" },
-    { key: "wellness", name: "Wellness · สดชื่นสปา",          brandColor: "#2b8ca6", brandColor2: "#56c1d6", accentColor: "#7fd1b9", accentColor2: "#14506b", fontFamily: "Prompt",       uiStyle: "soft" },
-    { key: "luxe",     name: "Luxe Gold · หรูทอง",            brandColor: "#1f2430", brandColor2: "#3a4150", accentColor: "#d4af37", accentColor2: "#e8c766", fontFamily: "Chakra Petch", uiStyle: "sharp" },
-    { key: "tropical", name: "Tropical · เขตร้อนสดใส",        brandColor: "#0bc5b4", brandColor2: "#36d1a0", accentColor: "#ff6f5e", accentColor2: "#ffd23f", fontFamily: "Bai Jamjuree", uiStyle: "pill" },
-    { key: "scandi",   name: "Scandinavian · นอร์ดิก",        brandColor: "#8a9a86", brandColor2: "#a7b5a0", accentColor: "#c98a6b", accentColor2: "#2c3330", fontFamily: "Sarabun",      uiStyle: "soft" },
-    { key: "ryokan",   name: "Japanese Ryokan · ญี่ปุ่น",     brandColor: "#35495e", brandColor2: "#5a6e82", accentColor: "#a6563f", accentColor2: "#2e2b28", fontFamily: "Taviraj",      uiStyle: "minimal" },
-    { key: "boho",     name: "Bohemian · โบโฮฟาร์มสเตย์",     brandColor: "#b5533b", brandColor2: "#d98b5f", accentColor: "#caa23e", accentColor2: "#f3d9a4", fontFamily: "Mali",         uiStyle: "pill" },
+    { key: "organic",  name: "Warm Organic · อบอุ่นธรรมชาติ", brandColor: "#556b2f", brandColor2: "#8a9a5b", accentColor: "#c0673f", accentColor2: "#e0b04b", fontFamily: "Mitr",               uiStyle: "pill" },
+    { key: "zen",      name: "Zen Minimal · สงบมินิมอล",      brandColor: "#4a463f", brandColor2: "#8c8577", accentColor: "#a8834f", accentColor2: "#e7dfd2", fontFamily: "Noto Sans Thai",     uiStyle: "minimal" },
+    { key: "playful",  name: "Playful · สนุกสีสด",            brandColor: "#d6336c", brandColor2: "#ff8a3d", accentColor: "#6f4ef2", accentColor2: "#ffd23f", fontFamily: "Kanit",              uiStyle: "pill" },
+    { key: "heritage", name: "Heritage · คลาสสิกหรู",         brandColor: "#17483a", brandColor2: "#2f6b52", accentColor: "#b8913a", accentColor2: "#efe4cc", fontFamily: "Taviraj",            uiStyle: "sharp" },
+    { key: "wellness", name: "Wellness · สดชื่นสปา",          brandColor: "#1b6f80", brandColor2: "#4fb3bf", accentColor: "#7fcfbd", accentColor2: "#f2c6a0", fontFamily: "Prompt",             uiStyle: "soft" },
+    { key: "luxe",     name: "Luxe Gold · หรูทอง",            brandColor: "#1c1f26", brandColor2: "#3d4250", accentColor: "#c9a646", accentColor2: "#e8d48b", fontFamily: "Bai Jamjuree",       uiStyle: "sharp" },
+    { key: "tropical", name: "Tropical · เขตร้อนสดใส",        brandColor: "#0b6e6a", brandColor2: "#17a589", accentColor: "#f0604d", accentColor2: "#ffc94a", fontFamily: "Sriracha",           uiStyle: "pill" },
+    { key: "scandi",   name: "Scandinavian · นอร์ดิก",        brandColor: "#4f6352", brandColor2: "#8fa394", accentColor: "#c47d5e", accentColor2: "#e9e3d8", fontFamily: "IBM Plex Sans Thai", uiStyle: "soft" },
+    { key: "ryokan",   name: "Japanese Ryokan · ญี่ปุ่น",     brandColor: "#2c3e57", brandColor2: "#566e8c", accentColor: "#b0452c", accentColor2: "#ddcfb4", fontFamily: "Taviraj",            uiStyle: "minimal" },
+    { key: "boho",     name: "Bohemian · โบโฮฟาร์มสเตย์",     brandColor: "#9c4127", brandColor2: "#d0804f", accentColor: "#c99a35", accentColor2: "#f3e2c4", fontFamily: "Mali",               uiStyle: "pill" },
   ];
 
   function applyBrand(c) { if (c) document.documentElement.style.setProperty("--brand", c); }
@@ -161,7 +182,7 @@ window.API = (function () {
     pubPromo: async (b) => { const r = await fetch("/api/public/promo", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; },
     pubReviews: (slug) => pub("/reviews/" + encodeURIComponent(slug)),
     pubReview: async (b) => { const r = await fetch("/api/public/review", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; },
-    money, ymd, addDays, nights, thDate, esc, applyBrand, applyTheme, loadFont, resizeImage, lang, setLang, t, applyI18n, mountLangToggle, THEME_FONTS, UI_STYLES, STYLE_PRESETS, CHAN, chColor, shortCh, toast, signOut: () => { clear(); location.href = "login.html"; },
+    money, ymd, addDays, nights, thDate, esc, applyBrand, applyTheme, inkOn, readable, loadFont, resizeImage, lang, setLang, t, applyI18n, mountLangToggle, THEME_FONTS, UI_STYLES, STYLE_PRESETS, CHAN, chColor, shortCh, toast, signOut: () => { clear(); location.href = "login.html"; },
     mountSupport,
   };
 
