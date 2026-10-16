@@ -126,7 +126,7 @@ window.API = (function () {
   function applyBrand(c) { if (c) document.documentElement.style.setProperty("--brand", c); }
 
   // ย่อรูปในเบราว์เซอร์แล้วคืนเป็น data URL (ไม่ต้องใช้ที่เก็บรูปภายนอก)
-  function resizeImage(file, maxW = 1000, quality = 0.82) {
+  function resizeImage(file, maxW = 1000, quality = 0.82, type = "image/jpeg") {
     return new Promise((resolve, reject) => {
       if (!file) return reject(new Error("ไม่พบไฟล์"));
       if (!/^image\//.test(file.type)) return reject(new Error("กรุณาเลือกไฟล์รูปภาพ"));
@@ -136,11 +136,12 @@ window.API = (function () {
         const img = new Image();
         img.onerror = () => reject(new Error("ไฟล์รูปเสียหาย"));
         img.onload = () => {
-          let w = img.width, h = img.height;
+          let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+          if (!w || !h) { w = maxW; h = maxW; } // SVG ที่ไม่ระบุขนาด
           if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
           const c = document.createElement("canvas"); c.width = w; c.height = h;
           c.getContext("2d").drawImage(img, 0, 0, w, h);
-          resolve(c.toDataURL("image/jpeg", quality));
+          resolve(c.toDataURL(type, quality));
         };
         img.src = rd.result;
       };

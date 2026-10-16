@@ -24,6 +24,9 @@ const schema = new mongoose.Schema({
   tagline:     String,
   coverUrl:    String,
   coverData:   { type: String, select: false }, // รูปปกที่อัปผ่าน LINE (data URL) — เสิร์ฟที่ /api/public/img/cover/:id
+  logoUrl:     String,                          // โลโก้ที่พัก (หัวเว็บ/ท้ายเว็บ/ไอคอนแท็บ) — /api/public/img/logo/:id/0
+  logoData:    { type: String, select: false }, // data URL ของโลโก้ (PNG พื้นใสได้)
+  logoAspect:  Number,                          // กว้าง ÷ สูง ของโลโก้ (≥ 2 = โลโก้ตัวหนังสือยาว มีชื่ออยู่ในรูปแล้ว)
   about:       String,
   amenities:   { type: [String], default: [] }, // สิ่งอำนวยความสะดวกของที่พัก (สระว่ายน้ำ ที่จอดรถ ฯลฯ)
   promoText:   String,

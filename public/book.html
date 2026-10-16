@@ -7,6 +7,7 @@
 <title>จองที่พัก / Book a stay</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="icon" id="favi" href="media/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 <style>
 /* ================= หน้าจองของแขก — ฐานร่วมทุกเทมเพลต ================= */
@@ -37,6 +38,11 @@ input.bad{border-color:var(--red)!important;box-shadow:0 0 0 3px #fecaca}
 .logo{display:flex;align-items:center;gap:10px;font-family:var(--font-head);font-weight:800;font-size:17px;color:inherit;text-decoration:none;min-width:0}
 .logo .dot{width:36px;height:36px;flex:none;border-radius:calc(var(--card-radius)*.55);background:linear-gradient(135deg,var(--brand),var(--brand2));color:var(--on-brand);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800}
 .logo .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* โลโก้ที่พักอัปโหลดเอง: วางบนป้ายขาวมุมมน อ่านออกทุกพื้นหลัง (รูปปก/สีเข้ม) */
+.logo .lgi{height:40px;min-width:40px;max-width:184px;padding:3px 6px;border-radius:calc(var(--card-radius)*.5 + 2px);background:#fff;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 1px 4px rgba(15,23,42,.12)}
+.logo .lgi img{max-height:34px;max-width:172px;width:auto;height:auto;display:block;object-fit:contain}
+.logo.wide .nm{display:none}
+.gfoot .logo .lgi{height:46px;box-shadow:none}.gfoot .logo .lgi img{max-height:40px}
 .promo{background:var(--accent);color:var(--on-accent);text-align:center;font-weight:700;font-size:14px;padding:10px 46px;position:relative;line-height:1.45}
 .promo button{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:inherit;font-size:17px;cursor:pointer;padding:8px;opacity:.8}
 .promo-img{display:block;max-width:100%;border-radius:var(--card-radius);margin:0 auto 22px}
@@ -273,6 +279,7 @@ details.rules{background:#f6f8fb;border-radius:12px;padding:10px 12px;margin:10p
 .tpl-simple .sim-cover{height:210px;background:linear-gradient(135deg,var(--brand),var(--brand2));background-size:cover;background-position:center}
 .tpl-simple .sim-col{max-width:540px;margin:0 auto;padding:0 16px 34px;text-align:center}
 .tpl-simple .sim-av{width:104px;height:104px;border-radius:50%;border:5px solid #fff;margin:-54px auto 12px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:var(--on-brand);display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:42px;font-weight:800;box-shadow:0 14px 30px -12px rgba(0,0,0,.35);position:relative}
+.tpl-simple .sim-av.has-lg{background:#fff}.tpl-simple .sim-av.has-lg img{max-width:74%;max-height:74%;object-fit:contain}
 .tpl-simple h1{font-size:26px;margin:0 0 4px;font-weight:800}
 .tpl-simple .bio{color:var(--muted);font-size:14.5px;margin:0 0 16px}
 .tpl-simple .quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px;margin:0 0 18px}
@@ -946,7 +953,10 @@ function closeDone(){ closeModal("doneModal"); } function closeCancel(){ closeMo
 document.addEventListener("keydown",(e)=>{ if($("lb").classList.contains("on")){ if(e.key==="Escape") closeLb(); if(e.key==="ArrowLeft") lbGo(-1); if(e.key==="ArrowRight") lbGo(1); return; } if(e.key==="Escape"){ const m=[...document.querySelectorAll(".modal.on")].pop(); if(m) closeModal(m.id); } });
 
 // ================= ชิ้นส่วนหน้าเว็บ (ใช้ร่วมกันทุกเทมเพลต) =================
-function fLogo(){ return '<a class="logo" href="#" onclick="window.scrollTo({top:0,behavior:\'smooth\'});return false"><span class="dot">'+esc(initial(HOTEL.name))+'</span><span class="nm">'+esc(HOTEL.name)+'</span></a>'; }
+// โลโก้ที่พัก (ถ้าอัปโหลดไว้) ไม่งั้นใช้ตัวอักษรแรกของชื่อ · โลโก้แนวนอนยาว (≥2.2:1) มีชื่ออยู่ในรูปแล้ว จึงไม่พิมพ์ชื่อซ้ำ
+function logoMark(H){ H=H||HOTEL; return H.logoUrl?'<span class="lgi"><img src="'+esc(H.logoUrl)+'" alt="'+esc(H.name||"")+'"></span>':'<span class="dot">'+esc(initial(H.name))+'</span>'; }
+function logoCls(H){ H=H||HOTEL; return H.logoUrl&&(+H.logoAspect||1)>=2.2?' wide':''; }
+function fLogo(){ return '<a class="logo'+logoCls()+'" href="#" onclick="window.scrollTo({top:0,behavior:\'smooth\'});return false">'+logoMark()+'<span class="nm">'+esc(HOTEL.name)+'</span></a>'; }
 function coverStyle(){ return HOTEL.coverUrl?' style="background-image:url(\''+cu(HOTEL.coverUrl)+'\')"':''; }
 function hasImg(){ return HOTEL.coverUrl?' has-img':''; }
 function eyebrow(){ return HOTEL.location?'<span class="eyebrow">📍 '+esc(HOTEL.location)+'</span>':''; }
@@ -980,7 +990,7 @@ const TPL={
  editorial:()=> '<header class="ed-top">'+fLogo()+bookBtn("ghost")+'</header>'+fHero()+'<div class="wrapx srch">'+fSearch()+'</div>'+fRooms()+fTail({}),
  magazine:()=> '<header class="mag-head"><span class="blob b1"></span><span class="blob b2"></span>'+eyebrow()+'<h1>'+esc(HOTEL.name)+'</h1>'+tagP()+'</header>'+(HOTEL.coverUrl?'<div class="wrapx"><div class="mag-cover"'+coverStyle()+'></div></div>':'')+'<div class="wrapx srch'+(HOTEL.coverUrl?'':' flat')+'">'+fSearch()+'</div>'+fRooms()+fTail({}),
  split:()=> '<div class="splitwrap"><aside class="sleft'+hasImg()+'" id="g-sleft"'+(HOTEL.coverUrl?' style="background-image:linear-gradient(rgba(8,12,20,.5),rgba(8,12,20,.78)),url(\''+cu(HOTEL.coverUrl)+'\')"':'')+'>'+fLogo()+eyebrow()+'<h1>'+esc(HOTEL.name)+'</h1>'+tagP()+fSearch()+'<div class="perks" id="g-perks"></div></aside><main class="sright">'+fRoomsBare()+'</main></div>'+fTail({why:false}),
- simple:()=> '<div class="sim-cover"'+coverStyle()+'></div><div class="sim-col"><div class="sim-av">'+esc(initial(HOTEL.name))+'</div><h1>'+esc(HOTEL.name)+'</h1><p class="bio">'+[HOTEL.location?'📍 '+esc(HOTEL.location):'',HOTEL.tagline?esc(HOTEL.tagline):''].filter(Boolean).join(' · ')+'</p><div class="quick" id="g-quick"></div>'+fSearch()+fRoomsBare()+'</div>'+fTail({why:false,svc:false}),
+ simple:()=> '<div class="sim-cover"'+coverStyle()+'></div><div class="sim-col"><div class="sim-av'+(HOTEL.logoUrl?' has-lg':'')+'">'+(HOTEL.logoUrl?'<img src="'+esc(HOTEL.logoUrl)+'" alt="'+esc(HOTEL.name||"")+'">':esc(initial(HOTEL.name)))+'</div><h1>'+esc(HOTEL.name)+'</h1><p class="bio">'+[HOTEL.location?'📍 '+esc(HOTEL.location):'',HOTEL.tagline?esc(HOTEL.tagline):''].filter(Boolean).join(' · ')+'</p><div class="quick" id="g-quick"></div>'+fSearch()+fRoomsBare()+'</div>'+fTail({why:false,svc:false}),
  catalog:()=> '<header class="cat-bar"><div class="in">'+fLogo()+fSearch()+'</div></header><div class="cat-hero"><div class="bn'+hasImg()+'"'+coverStyle()+'><div>'+eyebrow()+'<h1>'+esc(HOTEL.name)+'</h1>'+tagP()+'</div></div></div>'+fRooms({filters:true})+fTail({}),
  classic:()=> '<header class="cla-nav"><nav class="l"><a href="#sec-rooms">'+T("ห้องพัก","Rooms")+'</a><a href="#sec-about">'+T("เกี่ยวกับเรา","About")+'</a></nav>'+fLogo()+'<div class="r"><a href="#sec-stay">'+T("ข้อมูลการเข้าพัก","Good to know")+'</a>'+bookBtn()+'</div></header><section class="cla-hero'+hasImg()+'"'+coverStyle()+'><div class="frame">'+(HOTEL.location?'<div class="loc">'+esc(HOTEL.location)+'</div>':'')+'<h1>'+esc(HOTEL.name)+'</h1><div class="orn">❧</div>'+tagP()+'</div></section><div class="wrapx srch">'+fSearch()+'</div>'+fRooms()+fTail({}),
  bento:()=> '<div class="bento"><div class="bt photo'+hasImg()+'"'+coverStyle()+'>'+eyebrow()+'<h1>'+esc(HOTEL.name)+'</h1></div><div class="bt name"><div class="kick">'+T("ยินดีต้อนรับ","Welcome")+'</div><p>'+esc(HOTEL.tagline||cutText(HOTEL.about,140)||T("ที่พักของเรายินดีต้อนรับทุกท่าน","We look forward to hosting you"))+'</p><button class="btn sm" onclick="scrollToId(\'sec-rooms\')">'+T("ดูห้องพัก ↓","See rooms ↓")+'</button></div><div class="bt srch">'+fSearch()+'</div><div id="g-binfo" style="display:contents"></div><div class="bt rooms-tile">'+fRoomsBare()+'</div></div><div class="btail">'+fTail({})+'</div>',
@@ -1001,6 +1011,7 @@ async function boot(){
   if(pvP){ const p=(API.STYLE_PRESETS||[]).find(x=>x.key===pvP); if(p){ ["brandColor","brandColor2","accentColor","accentColor2","fontFamily","uiStyle"].forEach(k=>{ HOTEL[k]=p[k]; }); preview=true; } }
   if(pvT && TPL[pvT]){ HOTEL.template=pvT; preview=true; }
   API.applyTheme(HOTEL); document.title=HOTEL.name+" · "+T("จองตรงกับที่พัก","Book direct");
+  if(HOTEL.logoUrl){ const fa=+HOTEL.logoAspect||1, fv=$("favi"); if(fv&&fa>=0.6&&fa<=1.7){ fv.type="image/png"; fv.href=HOTEL.logoUrl; } }
   if(HOTEL.approved===false){ page.innerHTML='<div class="sec"><div class="panel" style="text-align:center;max-width:520px;margin:30px auto"><h2>'+T("ยังไม่เปิดรับจอง","Not open yet")+'</h2><p class="sub">'+T("ที่พักนี้กำลังรอการอนุมัติจากทีมงาน BARN-PARK","Awaiting approval from the BARN-PARK team.")+'</p></div></div>'; return; }
   try{ SVC=await API.pubServices(slug); }catch{ SVC=[]; }
   ACT=SVC.filter(s=>s.saleMode==="standalone"||s.saleMode==="both"); SVC=SVC.filter(s=>(s.saleMode||"addon")!=="standalone");
@@ -1063,7 +1074,7 @@ function renderContact(){ const el=$("sec-contact"); if(!el) return; const lu=li
     (tel?'<a class="btn ghost lg" href="'+tel+'">📞 '+esc(HOTEL.phone)+'</a>':'')+'</div>';
   el.style.display="block"; }
 function renderFoot(){ const f=$("footer"); if(!f) return; const H=HOTEL, lu=lineHref(), tel=telHref();
-  f.innerHTML='<div class="in"><div><span class="logo"><span class="dot">'+esc(initial(H.name))+'</span><span class="nm">'+esc(H.name)+'</span></span><div>'+esc(H.address||H.location||"")+'</div></div>'+
+  f.innerHTML='<div class="in"><div><span class="logo'+logoCls(H)+'">'+logoMark(H)+'<span class="nm">'+esc(H.name)+'</span></span><div>'+esc(H.address||H.location||"")+'</div></div>'+
     '<div><b>'+T("ติดต่อที่พัก","Contact")+'</b>'+(tel?'<a href="'+tel+'">📞 '+esc(H.phone)+'</a>':'')+(lu?'<a href="'+esc(lu)+'" target="_blank" rel="noopener">💬 LINE'+(lineName()?' '+esc(lineName()):'')+'</a>':'')+(H.mapUrl?'<a href="'+esc(H.mapUrl)+'" target="_blank" rel="noopener">📍 '+T("แผนที่","Map")+'</a>':'')+'</div>'+
     '<div><b>'+T("การจองของฉัน","My booking")+'</b><a href="#" onclick="openFind();return false">🔎 '+T("เช็กการจอง / แจ้งโอน","Find booking / report payment")+'</a>'+(H.allowGuestCancel!==false?'<a href="#" onclick="openCancel();return false">↩️ '+T("ยกเลิกการจอง","Cancel a booking")+'</a>':'')+'<a href="#" onclick="openReview();return false">✍️ '+T("เขียนรีวิว","Write a review")+'</a><a href="privacy.html" target="_blank">📄 '+T("นโยบายความเป็นส่วนตัว","Privacy policy")+'</a></div></div>'+
     '<div class="pw"><span>© '+new Date().getFullYear()+' '+esc(H.name)+'</span><span>'+T("ระบบจองโดย","Booking system by")+' BARN-PARK</span></div>'; }

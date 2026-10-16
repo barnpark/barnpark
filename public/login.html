@@ -4,9 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>เข้าสู่ระบบ · BARN-PARK</title>
+<link rel="icon" href="media/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="media/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="media/apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
 <style>
-  body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0d9488,#2563eb)}
+  :root{--brand:#0E4B2E;--brand2:#3A8A4B} /* สีตามโลโก้ BARNPARK */
+  body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0E4B2E,#3A8A4B)}
   .box{background:#fff;border-radius:18px;padding:34px 30px;width:100%;max-width:420px;box-shadow:0 24px 70px rgba(0,0,0,.28);margin:18px}
   .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;margin-bottom:4px}
   .brand .dot{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;display:flex;align-items:center;justify-content:center}
@@ -15,7 +19,7 @@
 </head>
 <body>
   <div class="box">
-    <div class="brand"><span class="dot">B</span>BARN-PARK</div>
+    <div class="brand"><img src="media/barnpark-logo.svg" alt="BARNPARK" style="height:54px;width:auto;display:block"></div>
     <p class="sub" style="margin:0 0 20px">ระบบจองที่พัก สำหรับที่พักชุมชนและ SME</p>
     <div class="err" id="err"></div>
     <div id="step1">

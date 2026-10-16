@@ -28,7 +28,7 @@ const int = (v, lo, hi, d) => { const n = parseInt(v, 10); return Number.isFinit
 const r = Router();
 
 // ===== เสิร์ฟรูปที่เก็บเป็น data URL เป็นไฟล์รูปจริง (ใช้ในการ์ด LINE + รูปปก) =====
-//   /api/public/img/room/<roomId>/<index>   /api/public/img/svc/<serviceId>/0   /api/public/img/cover/<hotelId>/0
+//   /api/public/img/room/<roomId>/<index>   /api/public/img/svc/<serviceId>/0   /api/public/img/cover/<hotelId>/0   /api/public/img/logo/<hotelId>/0
 r.get("/img/:kind/:id/:i?", async (req, res) => {
   const { kind, id } = req.params;
   const i = Math.max(0, parseInt(req.params.i || "0", 10) || 0);
@@ -43,6 +43,9 @@ r.get("/img/:kind/:id/:i?", async (req, res) => {
   } else if (kind === "cover") {
     const h = await Hotel.findById(id).select("+coverData updatedAt").lean();
     if (h) { src = h.coverData || ""; key = id + ":c:" + new Date(h.updatedAt || 0).getTime(); }
+  } else if (kind === "logo") {
+    const h = await Hotel.findById(id).select("+logoData updatedAt").lean();
+    if (h) { src = h.logoData || ""; key = id + ":l:" + new Date(h.updatedAt || 0).getTime(); }
   }
   if (!src) return res.sendStatus(404);
   if (/^https?:\/\//i.test(src)) return res.redirect(src);
@@ -104,6 +107,7 @@ r.get("/hotel/:slug", async (req, res) => {
     brandColor: h.brandColor, brandColor2: h.brandColor2, accentColor: h.accentColor, accentColor2: h.accentColor2,
     fontFamily: h.fontFamily, uiStyle: h.uiStyle, template: h.template || "rich",
     tagline: h.tagline, coverUrl: h.coverUrl, about: h.about, amenities: h.amenities || [],
+    logoUrl: h.logoUrl || "", logoAspect: h.logoAspect || null,
     promoText: h.promoText, promoImage: h.promoImage,
     // วิธีรับเงินที่ที่พักเปิดไว้ (แสดงเฉพาะช่องทางที่เปิด)
     pay: { promptpay: pm.promptpay, transfer: pm.transfer, onsite: pm.onsite, fallback: pm.fallback },

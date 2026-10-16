@@ -16,7 +16,7 @@ import { badImageFields } from "../lib/security.js";
 import { normalizePromptPayId } from "../lib/promptpay.js";
 import { cleanStayFields, cleanLineId } from "../lib/stay.js";
 import { cleanPayFields } from "../lib/pay.js";
-import { parseDataUrl, toDataUrl } from "../lib/images.js";
+import { parseDataUrl, toDataUrl, toLogoDataUrl } from "../lib/images.js";
 import { checklist } from "../lib/checklist.js";
 import { announceUpdate, announceLog } from "../lib/announce.js";
 
@@ -99,16 +99,16 @@ r.get("/hotels/:id", requireAuth, async (req, res) => {
 });
 
 r.post("/hotels", requireAuth, requireAdmin, async (req, res) => {
-  if (badImageFields(req.body, ["coverUrl", "promoImage"])) return res.status(400).json({ error: "ลิงก์รูปไม่ถูกต้อง" });
+  if (badImageFields(req.body, ["coverUrl", "promoImage", "logoUrl"])) return res.status(400).json({ error: "ลิงก์รูปไม่ถูกต้อง" });
   try { res.json(await Hotel.create(req.body)); }
   catch (e) { res.status(400).json({ error: String(e.message || e) }); }
 });
 
 r.patch("/hotels/:id", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
-  const { lineChannelToken, lineChannelSecret, coverData, _id, ...safe } = req.body || {}; // secret ผ่าน route แยกเท่านั้น
+  const { lineChannelToken, lineChannelSecret, coverData, logoData, logoAspect, _id, ...safe } = req.body || {}; // secret/รูปที่เก็บในระบบ ผ่าน route แยกเท่านั้น
   if (req.user.role !== "admin") { delete safe.approved; delete safe.status; delete safe.planFee; delete safe.slug; delete safe.ota; } // เจ้าของอนุมัติตัวเอง/แก้ค่าบริการไม่ได้
-  if (badImageFields(safe, ["coverUrl", "promoImage"])) return res.status(400).json({ error: "ลิงก์รูปไม่ถูกต้อง (ใช้ลิงก์ https)" });
+  if (badImageFields(safe, ["coverUrl", "promoImage", "logoUrl"])) return res.status(400).json({ error: "ลิงก์รูปไม่ถูกต้อง (ใช้ลิงก์ https)" });
   if (safe.promptpayId !== undefined && String(safe.promptpayId).trim() !== "") {
     const pp = normalizePromptPayId(safe.promptpayId);
     if (!pp) return res.status(400).json({ error: "เบอร์พร้อมเพย์ไม่ถูกต้อง — ใช้เบอร์มือถือ 10 หลัก หรือเลขบัตรประชาชน/เลขนิติบุคคล 13 หลัก" });
@@ -147,6 +147,26 @@ r.post("/hotels/:id/cover", requireAuth, async (req, res) => {
 r.delete("/hotels/:id/cover", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
   await Hotel.updateOne({ _id: req.params.id }, { $set: { coverUrl: "" }, $unset: { coverData: 1 } });
+  res.json({ ok: true });
+});
+
+// โลโก้ที่พัก — อัปโหลดจากเว็บหลังบ้าน (ตัดขอบว่าง + ย่อ + เก็บเป็น PNG พื้นใส)
+r.post("/hotels/:id/logo", requireAuth, async (req, res) => {
+  if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const p = parseDataUrl((req.body || {}).image);
+  if (!p || !/^image\/(jpe?g|png|webp)$/i.test(p.type)) return res.status(400).json({ error: "ไฟล์ต้องเป็นรูป PNG / JPG / WEBP" });
+  if (p.buf.length > 5 * 1024 * 1024) return res.status(413).json({ error: "ไฟล์โลโก้ใหญ่เกินไป (ไม่เกิน 5MB)" });
+  let lg;
+  try { lg = await toLogoDataUrl(p.buf); }
+  catch { return res.status(400).json({ error: "อ่านไฟล์รูปไม่ได้ ลองไฟล์อื่น" }); }
+  const logoUrl = `/api/public/img/logo/${req.params.id}/0?v=${Date.now()}`;
+  const h = await Hotel.findByIdAndUpdate(req.params.id, { $set: { logoData: lg.dataUrl, logoUrl, logoAspect: lg.aspect } }, { new: true });
+  if (!h) return res.status(404).json({ error: "not found" });
+  res.json({ ok: true, logoUrl, logoAspect: lg.aspect });
+});
+r.delete("/hotels/:id/logo", requireAuth, async (req, res) => {
+  if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  await Hotel.updateOne({ _id: req.params.id }, { $set: { logoUrl: "" }, $unset: { logoData: 1, logoAspect: 1 } });
   res.json({ ok: true });
 });
 

@@ -4,8 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BARN-PARK · ระบบจองที่พักสำหรับที่พักชุมชนและ SME</title>
+<link rel="icon" href="media/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="media/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="media/apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
 <style>
+  /* สีตามโลโก้ BARNPARK */
+  :root{--brand:#0E4B2E;--brand2:#3A8A4B}
+  .bp-logo{display:flex;align-items:center} .bp-logo img{height:40px;width:auto;display:block}
+  .hero-logo{display:block;height:116px;width:auto;margin:0 auto 18px}
+  @media(max-width:640px){.bp-logo img{height:34px}.hero-logo{height:86px}}
   .lnav{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
   .lnav .in{max-width:1140px;margin:0 auto;padding:0 18px;height:62px;display:flex;align-items:center;justify-content:space-between}
   .hero2{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:72px 0 82px;text-align:center;position:relative;overflow:hidden}
@@ -30,18 +38,18 @@
 </style>
 </head>
 <body>
-<div class="lnav"><div class="in"><div class="logo"><span class="dot">B</span>BARN-PARK</div>
+<div class="lnav"><div class="in"><a class="bp-logo" href="/" aria-label="BARNPARK หน้าแรก"><img src="media/barnpark-logo.svg" alt="BARNPARK"></a>
   <a class="btn ghost sm" href="login.html" data-th="เข้าสู่ระบบโรงแรม" data-en="Hotel login">เข้าสู่ระบบโรงแรม</a></div></div>
 <div class="hero2"><div class="wrap">
-  <div class="tag">BARN-PARK</div>
-  <h1>BARN-PARK Booking</h1>
+  <img class="hero-logo" src="media/barnpark-logo-white.svg" alt="BARNPARK">
+  <h1 data-th="เว็บจองตรงของที่พักคุณ · จัดการทั้งหมดใน LINE" data-en="Your own direct-booking website · managed in LINE">เว็บจองตรงของที่พักคุณ · จัดการทั้งหมดใน LINE</h1>
   <p data-th="ระบบจองที่พัก สำหรับที่พักชุมชนและ SME — รับจองตรง กันจองซ้อน พร้อมหน้าเว็บของโรงแรมในตัว" data-en="A booking system for community stays & SMEs — take direct bookings, prevent double-booking, with a built-in website for your property.">ระบบจองที่พัก สำหรับที่พักชุมชนและ SME — รับจองตรง กันจองซ้อน พร้อมหน้าเว็บของโรงแรมในตัว</p>
   <div class="cta"><a class="btn white lg" href="book.html?h=barnbarn" data-th="ทดลองหน้าจอง (มุมมองลูกค้า)" data-en="Try the booking page (guest view)">ทดลองหน้าจอง (มุมมองลูกค้า)</a>
     <a class="btn white lg" href="login.html?mode=register" data-th="ลงทะเบียนเชื่อมที่พักกับ Barn-Park" data-en="Register your property with Barn-Park">ลงทะเบียนเชื่อมที่พักกับ Barn-Park</a></div>
   <a class="vlink" href="#video" onclick="var v=document.querySelector('#video video'); if(v){ var p=v.play(); if(p&&p.catch) p.catch(function(){}); }" data-th="▶ ดูวิดีโอแนะนำ 1 นาที" data-en="▶ Watch the 1-minute intro">▶ ดูวิดีโอแนะนำ 1 นาที</a>
 </div></div>
 <section class="vid" id="video" aria-label="วิดีโอแนะนำ Barn Park">
-  <div class="frame"><video controls playsinline preload="metadata" poster="media/barnpark-ad.jpg"><source src="media/barnpark-ad.mp4" type="video/mp4"></video></div>
+  <div class="frame"><video controls playsinline preload="metadata" poster="media/barnpark-ad.jpg" data-en-poster="media/barnpark-ad-en.jpg"><source src="media/barnpark-ad.mp4" data-en-src="media/barnpark-ad-en.mp4" type="video/mp4"></video></div>
   <p class="cap" data-th="Barn Park ใน 1 นาที — เว็บจองตรงของที่พักคุณ · จัดการทั้งหมดใน LINE" data-en="Barn Park in 1 minute — your own direct-booking site · manage everything in LINE">Barn Park ใน 1 นาที — เว็บจองตรงของที่พักคุณ · จัดการทั้งหมดใน LINE</p>
 </section>
 <div class="sec"><div class="wrap"><h2 data-th="บริการของเรา" data-en="Our services">บริการของเรา</h2><p class="lead" data-th="ครบตั้งแต่ระบบหลังบ้านถึงหน้าร้านดิจิทัล" data-en="Everything from back-office to your digital storefront">ครบตั้งแต่ระบบหลังบ้านถึงหน้าร้านดิจิทัล</p>
@@ -54,6 +62,14 @@
 </div></div>
 <div style="text-align:center;padding:24px 0;color:var(--muted);font-size:13px">© BARN-PARK · <a href="privacy.html" data-th="นโยบายความเป็นส่วนตัว" data-en="Privacy policy">นโยบายความเป็นส่วนตัว</a></div>
 <script src="api.js"></script>
-<script>API.applyI18n(); API.mountLangToggle(); API.mountSupport();</script>
+<script>API.applyI18n(); API.mountLangToggle(); API.mountSupport();
+// โหมดภาษาอังกฤษ → ใช้วิดีโอ/ภาพปกเวอร์ชันอังกฤษ (ปุ่มสลับภาษาจะรีโหลดหน้าอยู่แล้ว)
+(function () {
+  if (API.lang() !== "en") return;
+  var v = document.querySelector("#video video"), s = v && v.querySelector("source");
+  if (!v || !s) return;
+  v.poster = v.getAttribute("data-en-poster"); s.src = s.getAttribute("data-en-src"); v.load();
+  document.getElementById("video").setAttribute("aria-label", "Barn Park intro video");
+})();</script>
 </body>
 </html>
