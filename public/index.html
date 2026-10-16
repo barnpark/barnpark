@@ -19,6 +19,14 @@
   .sec{padding:52px 0} .sec h2{text-align:center} .lead{text-align:center;color:var(--muted);max-width:600px;margin:0 auto 30px}
   .svc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
   .scard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px} .scard .ic{font-size:26px;margin-bottom:10px} .scard h3{margin:0 0 6px} .scard p{color:var(--muted);font-size:14px;margin:0 0 10px} .scard .from{font-weight:800;color:var(--brand);font-size:14px}
+  /* วิดีโอแนะนำ (ซ้อนขอบล่างของ hero) */
+  .hero2{padding-bottom:120px}
+  .vlink{display:inline-block;margin-top:16px;color:#fff;font-weight:700;font-size:14.5px;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.55);padding-bottom:2px}
+  .vid{max-width:960px;margin:-84px auto 0;padding:0 18px;position:relative;z-index:2;scroll-margin-top:80px}
+  .vid .frame{border-radius:20px;overflow:hidden;background:#0f2540;box-shadow:0 30px 60px -28px rgba(15,37,64,.6);aspect-ratio:16/9}
+  .vid video{display:block;width:100%;height:100%;background:#0f2540}
+  .vid .cap{text-align:center;color:var(--muted);font-size:14px;margin:12px 0 0}
+  @media(max-width:640px){.hero2{padding-bottom:96px}.vid{margin-top:-64px;padding:0 12px}.vid .frame{border-radius:14px}}
 </style>
 </head>
 <body>
@@ -30,7 +38,12 @@
   <p data-th="ระบบจองที่พัก สำหรับที่พักชุมชนและ SME — รับจองตรง กันจองซ้อน พร้อมหน้าเว็บของโรงแรมในตัว" data-en="A booking system for community stays & SMEs — take direct bookings, prevent double-booking, with a built-in website for your property.">ระบบจองที่พัก สำหรับที่พักชุมชนและ SME — รับจองตรง กันจองซ้อน พร้อมหน้าเว็บของโรงแรมในตัว</p>
   <div class="cta"><a class="btn white lg" href="book.html?h=barnbarn" data-th="ทดลองหน้าจอง (มุมมองลูกค้า)" data-en="Try the booking page (guest view)">ทดลองหน้าจอง (มุมมองลูกค้า)</a>
     <a class="btn white lg" href="login.html?mode=register" data-th="ลงทะเบียนเชื่อมที่พักกับ Barn-Park" data-en="Register your property with Barn-Park">ลงทะเบียนเชื่อมที่พักกับ Barn-Park</a></div>
+  <a class="vlink" href="#video" onclick="var v=document.querySelector('#video video'); if(v){ var p=v.play(); if(p&&p.catch) p.catch(function(){}); }" data-th="▶ ดูวิดีโอแนะนำ 1 นาที" data-en="▶ Watch the 1-minute intro">▶ ดูวิดีโอแนะนำ 1 นาที</a>
 </div></div>
+<section class="vid" id="video" aria-label="วิดีโอแนะนำ Barn Park">
+  <div class="frame"><video controls playsinline preload="metadata" poster="media/barnpark-ad.jpg"><source src="media/barnpark-ad.mp4" type="video/mp4"></video></div>
+  <p class="cap" data-th="Barn Park ใน 1 นาที — เว็บจองตรงของที่พักคุณ · จัดการทั้งหมดใน LINE" data-en="Barn Park in 1 minute — your own direct-booking site · manage everything in LINE">Barn Park ใน 1 นาที — เว็บจองตรงของที่พักคุณ · จัดการทั้งหมดใน LINE</p>
+</section>
 <div class="sec"><div class="wrap"><h2 data-th="บริการของเรา" data-en="Our services">บริการของเรา</h2><p class="lead" data-th="ครบตั้งแต่ระบบหลังบ้านถึงหน้าร้านดิจิทัล" data-en="Everything from back-office to your digital storefront">ครบตั้งแต่ระบบหลังบ้านถึงหน้าร้านดิจิทัล</p>
   <div class="svc">
     <div class="scard"><div class="ic">🏨</div><h3 data-th="ระบบจองที่พัก" data-en="Booking system">ระบบจองที่พัก</h3><p data-th="ปฏิทิน รับจองตรง กันจองซ้อน รายงาน" data-en="Calendar, direct bookings, no double-booking, reports">ปฏิทิน รับจองตรง กันจองซ้อน รายงาน</p><div class="from" data-th="เริ่ม ฿800/เดือน" data-en="From ฿800/mo">เริ่ม ฿800/เดือน</div></div>
