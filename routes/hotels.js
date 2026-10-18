@@ -19,6 +19,8 @@ import { cleanPayFields } from "../lib/pay.js";
 import { parseDataUrl, toDataUrl, toLogoDataUrl } from "../lib/images.js";
 import { checklist } from "../lib/checklist.js";
 import { announceUpdate, announceLog } from "../lib/announce.js";
+import Setting from "../models/Setting.js";
+import { CALC_KEY, cleanCalc } from "../lib/calc.js";
 
 const r = Router();
 
@@ -200,6 +202,18 @@ r.post("/admin/announce", requireAuth, requireAdmin, async (req, res) => {
   catch (e) { res.status(400).json({ error: String(e.message || e) }); }
 });
 r.get("/admin/announce/log", requireAuth, requireAdmin, async (_req, res) => res.json(await announceLog()));
+
+// ===== แอดมิน: ตัวคำนวณต้นทุน Channex — ค่าที่กรอกเก็บไว้ให้ทีมเห็นตรงกัน =====
+r.get("/admin/calc/channex", requireAuth, requireAdmin, async (_req, res) => {
+  const s = await Setting.findOne({ key: CALC_KEY }).lean();
+  res.json(s && s.value ? { ...s.value, updatedAt: s.updatedAt } : null);
+});
+r.post("/admin/calc/channex", requireAuth, requireAdmin, async (req, res) => {
+  const me = await User.findById(req.user.id).select("email name").lean();
+  const value = { ...cleanCalc(req.body), by: (me && (me.email || me.name)) || "" };
+  const s = await Setting.findOneAndUpdate({ key: CALC_KEY }, { $set: { value } }, { upsert: true, new: true }).lean();
+  res.json({ ...s.value, updatedAt: s.updatedAt });
+});
 
 // ===== LINE OA ต่อโรงแรม =====
 // ดูสถานะการเชื่อม (ไม่คืน token)

@@ -14,6 +14,20 @@
   .hcard h3{margin:0 0 2px;font-size:16px} .hcard .loc{color:var(--muted);font-size:12px;margin-bottom:10px}
   .hcard .row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0} .hcard .row .k{color:var(--muted)}
   .back{background:none;border:none;color:var(--brand);cursor:pointer;font-size:14px;font-family:inherit;padding:0;margin-bottom:8px}
+  /* ตัวคำนวณต้นทุน Channex */
+  .calc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;align-items:start}
+  .calc-grid .panel{margin-bottom:0}
+  .cx-chk{display:flex;gap:8px;align-items:center;font-weight:400;margin:0 0 12px}
+  .cx-chk input{width:auto;margin:0}
+  .cx-pr{display:grid;grid-template-columns:1fr 92px 30px;gap:6px;margin-bottom:8px;align-items:center}
+  .cx-x{border:none;background:none;color:var(--muted);font-size:19px;line-height:1;cursor:pointer;border-radius:8px;height:34px}
+  .cx-x:hover{background:#f1f5f9;color:#b91c1c}
+  .cx-save{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px}
+  #cx-tprice td,#cx-tgrow td,#cx-tprice th,#cx-tgrow th{white-space:nowrap}
+  #cx-tprice td+td,#cx-tgrow td+td,#cx-tprice th+th,#cx-tgrow th+th{text-align:right}
+  .cx-pos{color:#047857;font-weight:700}.cx-neg{color:#b91c1c;font-weight:700}
+  tr.cx-me td{background:#f0fdf4;font-weight:700}
+  input.cx-need{border-color:#f59e0b;background:#fffbeb}
 </style>
 </head>
 <body>
@@ -25,6 +39,7 @@
   <button data-v="a-detail" onclick="go('a-detail')">🔎 รายละเอียด</button>
   <button data-v="a-ota" onclick="go('a-ota')">🔗 จัดการ OTA</button>
   <button data-v="a-bill" onclick="go('a-bill')">💳 การเงิน</button>
+  <button data-v="a-calc" onclick="go('a-calc');loadCalc()">🧮 ต้นทุน Channex</button>
   <button data-v="a-line" onclick="go('a-line');loadLineStatus()">📲 LINE OA</button>
   <button data-v="a-news" onclick="go('a-news');loadNews()">📣 แจ้งอัปเดต</button>
   <button data-v="a-fb" onclick="go('a-fb');loadFb()">💬 Feedback</button>
@@ -119,6 +134,38 @@
   </section>
   <section id="a-bill" class="view"><h1>การเงิน</h1><div class="metrics" id="a-billm"></div><div class="panel"><div style="overflow-x:auto"><table id="a-billtable"></table></div></div>
     <div class="panel"><h3>สำรองข้อมูล</h3><p class="sub" style="margin-top:0">ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON เก็บไว้ (โรงแรม/ห้อง/การจอง/บริการ) — ควรทำสม่ำเสมอ</p><button class="btn" onclick="downloadBackup()">⬇ ดาวน์โหลดไฟล์สำรอง</button></div></section>
+  <section id="a-calc" class="view"><h1>ต้นทุน Channex</h1><p class="sub">เทียบค่าที่ Barn Park จ่าย Channex กับค่าบริการที่ที่พักจ่าย · กด “บันทึกให้ทีม” แล้วทุกคนที่เข้าหน้าแอดมินจะเห็นตัวเลขชุดเดียวกัน</p>
+    <div class="calc-grid">
+      <div class="panel"><h3>ตัวเลขของเรา</h3>
+        <div class="field"><label>อัตราแลกเปลี่ยน (บาท ต่อ 1 USD)</label><input id="cx-fx" type="number" step="0.0001" min="0" placeholder="ใส่อัตราที่ธนาคาร/บัตรคิดจริง"></div>
+        <div class="field"><label>ที่พักที่จ่ายค่าบริการ Barn Park</label><div style="display:flex;gap:6px;align-items:center"><input id="cx-hotels" type="number" min="0" step="1" style="flex:1"><button class="btn ghost sm" id="cx-live" type="button" onclick="cxUseLive()" style="white-space:nowrap">ใช้จำนวนจริง</button></div></div>
+        <label class="cx-chk"><input type="checkbox" id="cx-same"> ทุกที่เชื่อม OTA ผ่าน Channex</label>
+        <div class="field" id="cx-cxwrap" style="margin-bottom:0"><label>ที่พักที่เชื่อม Channex</label><input id="cx-cxh" type="number" min="0" step="1"><div class="note">Channex คิดเงินเฉพาะที่พักที่เชื่อม OTA อย่างน้อย 1 ช่องทาง</div></div>
+      </div>
+      <div class="panel"><h3>ราคา Channex (USD ต่อเดือน)</h3>
+        <div class="formgrid" style="grid-template-columns:1fr 1fr">
+          <div><label>ค่าแพลตฟอร์ม</label><input id="cx-pf" type="number" min="0" step="0.01"></div>
+          <div><label>ต่อที่พัก (1–499 ที่)</label><input id="cx-ph" type="number" min="0" step="0.01"></div>
+        </div>
+        <div class="note" style="margin-bottom:12px">ส่วนลดอัตโนมัติ: 500+ ที่ $6 · 1,000+ ที่ $5 · 2,000+ ที่ $4 ต่อที่</div>
+        <label class="cx-chk"><input type="checkbox" id="cx-chat"> เพิ่ม Chat &amp; Reviews (+$7 ต่อที่)</label>
+        <div class="field"><label>ค่าใช้จ่ายเพิ่ม (%)</label><input id="cx-extra" type="number" min="0" step="0.1"><div class="note">เช่น VAT หรือค่าธรรมเนียมบัตร/แลกเงิน (ราคา Channex ยังไม่รวม VAT)</div></div>
+        <button class="btn ghost sm" type="button" onclick="cxResetPrices()">↺ ใช้ราคา Channex ตามหน้าเว็บ</button>
+      </div>
+      <div class="panel"><h3>ค่าบริการที่ที่พักจ่าย (บาท/เดือน)</h3>
+        <div id="cx-plist"></div>
+        <button class="btn ghost sm" type="button" onclick="cxAddPrice()">+ เพิ่มราคา</button>
+        <div class="note">ใส่ได้หลายราคาเพื่อเทียบกัน เช่น ราคารายปีหารเป็นต่อเดือน</div>
+      </div>
+    </div>
+    <div class="panel cx-save"><button class="btn" id="cx-savebtn" type="button" onclick="cxSave()">💾 บันทึกให้ทีม</button><span class="note" id="cx-saved" style="margin:0"></span></div>
+    <div id="cx-needfx" class="soon" style="margin-bottom:16px">ใส่อัตราแลกเปลี่ยนก่อน แล้วจะเห็นยอดเป็นบาทและส่วนต่าง (ยอดเป็นดอลลาร์แสดงแล้ว)</div>
+    <div class="metrics" id="cx-kpis"></div>
+    <div class="panel"><h3>ส่วนต่างตามราคา</h3><p class="sub" id="cx-cap" style="margin-top:0"></p><div style="overflow-x:auto"><table id="cx-tprice"></table></div></div>
+    <div class="panel"><h3>เมื่อมีที่พักมากขึ้น — ส่วนต่างต่อเดือน</h3><p class="sub" style="margin-top:0">สมมติว่าทุกที่จ่ายค่าบริการและเชื่อม Channex · แถวที่ไฮไลต์คือจำนวนปัจจุบัน</p><div style="overflow-x:auto"><table id="cx-tgrow"></table></div></div>
+    <div class="panel"><h3>ต้นทุน Channex ต่อที่พัก เทียบกับราคาของเรา</h3><div id="cx-chart"></div><div class="note">ตรงที่เส้นแดงต่ำกว่าเส้นราคา คือราคานั้นเริ่มคุ้มค่า Channex</div></div>
+    <p class="note">ราคา Channex: แผน WhiteLabel จาก channex.io/pricing (ตรวจ 16 ต.ค. 2026) · อาจมีค่าเพิ่มเล็กน้อย: เชื่อม OTA เดียวกันซ้ำ $1/เดือน · ห้องเกิน 20 ประเภท ($1/ประเภท) หรือแผนราคาเกิน 200 แผน ($0.10/แผน) สูงสุด $7 ต่อที่ · ส่งข้อมูลบัตรไป Stripe $0.02/รายการ · เก็บเงินต้นเดือนล่วงหน้า ไม่มีค่าติดตั้ง ยกเลิกต้องแจ้งล่วงหน้า 30 วัน</p>
+  </section>
 </div></main>
 <div id="bkModal" class="modal"><div class="modal-card">
   <div class="modal-head"><h3 id="bk-title">การจอง</h3><button class="x" onclick="closeBk()">✕</button></div>
@@ -248,6 +295,116 @@ async function adminCover(input){ const f=input.files&&input.files[0]; input.val
   try{ API.toast('กำลังอัปโหลดรูปปก…'); const data=await API.resizeImage(f,1600,0.85); const r=await API.post('/hotels/'+cur._id+'/cover',{image:data}); document.getElementById('e-cover').value=r.coverUrl; cur.coverUrl=r.coverUrl; API.toast('อัปโหลดรูปปกแล้ว','ok'); }
   catch(e){ API.toast(e.message||'อัปโหลดไม่สำเร็จ','err'); } }
 function downloadBackup(){ const t=API.token(); fetch('/api/admin/export',{headers:{authorization:'Bearer '+t}}).then(r=>r.blob()).then(b=>{const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='barnpark-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(u);API.toast('ดาวน์โหลดสำรองข้อมูลแล้ว','ok');}).catch(e=>API.toast('สำรองข้อมูลไม่สำเร็จ','err')); }
+// ---- ต้นทุน Channex (ค่าที่กรอกบันทึกไว้ให้ทีมผ่าน /admin/calc/channex) ----
+// สูตรตาม channex.io/pricing: $ค่าแพลตฟอร์ม + จำนวนที่เชื่อม × ค่าต่อที่ (ลดเป็นขั้นที่ 500/1,000/2,000 ที่ คิดทั้งพอร์ต)
+const CX_DEF={fx:'',hotels:null,same:true,cxh:null,pf:130,ph:7,chat:false,extra:0,prices:[{label:'10 ที่แรก · รายเดือน',thb:800},{label:'10 ที่แรก · รายปี (÷12)',thb:708},{label:'ราคาปกติ',thb:1000}]};
+let CX=null, CX_LOADED=false;
+function cxNum(v){ if(v===''||v==null||typeof v==='boolean') return NaN; const n=Number(v); return isFinite(n)?n:NaN; }
+function cxInt(v){ const n=Math.floor(cxNum(v)); return n>0?n:0; }
+function cxTier(n,b){ if(n>=2000) return Math.min(b,4); if(n>=1000) return Math.min(b,5); if(n>=500) return Math.min(b,6); return b; }
+function cxUSD(n){ const pf=cxNum(CX.pf)||0, b=cxNum(CX.ph)||0, ex=(cxNum(CX.extra)||0)/100; return (pf+n*(cxTier(n,b)+(CX.chat?7:0)))*(1+ex); }
+function cxRate(){ const v=cxNum(CX.fx); return v>0?v:NaN; }
+function cxLive(){ const act=HOTELS.filter(h=>h.approved!==false&&h.status!=='paused'); return {n:act.length, mrr:act.reduce((s,h)=>s+(Number(h.planFee)||800),0)}; }
+function cxB(v){ return isFinite(v)?(v<0?'−':'')+'฿'+Math.abs(Math.round(v)).toLocaleString('en-US'):'—'; }
+function cxU(v){ return isFinite(v)?'$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—'; }
+function cxD(v){ return isFinite(v)?'<span class="'+(v>=0?'cx-pos':'cx-neg')+'">'+(v>=0?'+':'−')+'฿'+Math.abs(Math.round(v)).toLocaleString('en-US')+'</span>':'—'; }
+function cxPrices(){ return (CX.prices||[]).map((p,i)=>({label:String(p.label||'').trim()||('ราคา '+(i+1)),thb:cxNum(p.thb)})).filter(p=>p.thb>0); }
+// จำนวนที่พักน้อยสุด (ทุกที่เชื่อม Channex) ที่รายได้ครอบคลุมค่า Channex
+function cxBE(P){ const r=cxRate(); if(!(r>0)||!(P>0)) return NaN; for(let n=1;n<=5000;n++){ if(n*P-cxUSD(n)*r>=0) return n; } return Infinity; }
+async function loadCalc(){
+  if(!CX_LOADED){
+    let saved=null; try{ saved=await API.get('/admin/calc/channex'); }catch(e){ API.toast('โหลดค่าที่บันทึกไว้ไม่สำเร็จ: '+e.message,'err'); }
+    CX=Object.assign(JSON.parse(JSON.stringify(CX_DEF)),saved||{});
+    if(!Array.isArray(CX.prices)) CX.prices=JSON.parse(JSON.stringify(CX_DEF.prices));
+    if(CX.fx==null) CX.fx='';
+    cxBind(); cxSavedNote(saved); CX_LOADED=true;
+  }
+  cxCalc();
+}
+function cxBind(){
+  const L=cxLive(), V=(id,v)=>{document.getElementById(id).value=(v==null?'':v);};
+  V('cx-fx',CX.fx); V('cx-hotels',CX.hotels==null?L.n:CX.hotels); document.getElementById('cx-same').checked=CX.same!==false;
+  V('cx-cxh',CX.cxh==null?(CX.hotels==null?L.n:CX.hotels):CX.cxh); V('cx-pf',CX.pf); V('cx-ph',CX.ph); document.getElementById('cx-chat').checked=!!CX.chat; V('cx-extra',CX.extra);
+  ['fx','hotels','cxh','pf','ph','extra'].forEach(k=>document.getElementById('cx-'+k).addEventListener('input',e=>{ CX[k]=(k==='hotels'&&e.target.value==='')?null:e.target.value; cxDirty(); cxCalc(); }));
+  document.getElementById('cx-same').addEventListener('change',e=>{ CX.same=e.target.checked; if(!CX.same&&(CX.cxh==null||CX.cxh==='')) CX.cxh=document.getElementById('cx-cxh').value; cxDirty(); cxCalc(); });
+  document.getElementById('cx-chat').addEventListener('change',e=>{ CX.chat=e.target.checked; cxDirty(); cxCalc(); });
+  cxRenderPrices();
+}
+function cxRenderPrices(){
+  const box=document.getElementById('cx-plist');
+  box.innerHTML=(CX.prices||[]).length?CX.prices.map((p,i)=>'<div class="cx-pr"><input class="cx-pl" data-i="'+i+'" maxlength="40" placeholder="ชื่อ เช่น พร้อมซิงก์ OTA" value="'+esc(p.label||'')+'"><input class="cx-pv" data-i="'+i+'" type="number" min="0" step="1" placeholder="฿/เดือน" value="'+esc(p.thb==null?'':p.thb)+'"><button class="cx-x" type="button" data-i="'+i+'" title="ลบราคานี้" aria-label="ลบราคานี้">×</button></div>').join(''):'<p class="note" style="margin:0 0 8px">ยังไม่มีราคา</p>';
+  box.querySelectorAll('.cx-pl').forEach(el=>el.addEventListener('input',e=>{ CX.prices[+e.target.dataset.i].label=e.target.value; cxDirty(); cxCalc(); }));
+  box.querySelectorAll('.cx-pv').forEach(el=>el.addEventListener('input',e=>{ CX.prices[+e.target.dataset.i].thb=e.target.value; cxDirty(); cxCalc(); }));
+  box.querySelectorAll('.cx-x').forEach(el=>el.addEventListener('click',e=>{ CX.prices.splice(+e.currentTarget.dataset.i,1); cxDirty(); cxRenderPrices(); cxCalc(); }));
+}
+function cxAddPrice(){ if(!CX) return; if(CX.prices.length>=12){ API.toast('ใส่ได้สูงสุด 12 ราคา','err'); return; }
+  CX.prices.push({label:'',thb:''}); cxDirty(); cxRenderPrices(); cxCalc(); const ins=document.querySelectorAll('#cx-plist .cx-pl'); if(ins.length) ins[ins.length-1].focus(); }
+function cxResetPrices(){ if(!CX) return; CX.pf=CX_DEF.pf; CX.ph=CX_DEF.ph; CX.chat=false; CX.extra=0;
+  ['pf','ph','extra'].forEach(k=>document.getElementById('cx-'+k).value=CX[k]); document.getElementById('cx-chat').checked=false; cxDirty(); cxCalc(); }
+function cxUseLive(){ if(!CX) return; CX.hotels=null; document.getElementById('cx-hotels').value=cxLive().n; cxDirty(); cxCalc(); }
+function cxDirty(){ document.getElementById('cx-saved').textContent='มีการแก้ไขที่ยังไม่ได้บันทึก'; }
+function cxSavedNote(s){ document.getElementById('cx-saved').textContent=s&&s.updatedAt?'บันทึกล่าสุด '+new Date(s.updatedAt).toLocaleString('th-TH')+(s.by?' โดย '+s.by:''):'ยังไม่เคยบันทึก — ตอนนี้ใช้ค่าตั้งต้น'; }
+async function cxSave(){
+  const b=document.getElementById('cx-savebtn'); b.disabled=true;
+  try{ const s=await API.post('/admin/calc/channex',{fx:CX.fx,hotels:CX.hotels,same:CX.same!==false,cxh:CX.same!==false?null:CX.cxh,pf:CX.pf,ph:CX.ph,chat:!!CX.chat,extra:CX.extra,prices:CX.prices});
+    cxSavedNote(s); API.toast('บันทึกให้ทีมแล้ว','ok'); }
+  catch(e){ API.toast(e.message,'err'); }
+  b.disabled=false;
+}
+function cxCalc(){
+  if(!CX) return;
+  const r=cxRate(), hasR=r>0, L=cxLive();
+  const H=(CX.hotels==null||CX.hotels==='')?L.n:cxInt(CX.hotels);
+  const same=CX.same!==false, C=same?H:((CX.cxh==null||CX.cxh==='')?H:cxInt(CX.cxh));
+  const cxh=document.getElementById('cx-cxh'); cxh.disabled=same; if(same) cxh.value=H; document.getElementById('cx-cxwrap').style.opacity=same?.55:1;
+  document.getElementById('cx-live').textContent='ใช้จำนวนจริง ('+L.n+')';
+  document.getElementById('cx-needfx').style.display=hasR?'none':'block';
+  document.getElementById('cx-fx').classList.toggle('cx-need',!hasR);
+  const usd=cxUSD(C), thb=usd*r, per=C>0?usd/C:NaN, rate=cxTier(C,cxNum(CX.ph)||0)+(CX.chat?7:0), realD=L.mrr-cxUSD(L.n)*r;
+  const sub=t=>'<div class="note" style="margin:2px 0 0;font-weight:400">'+t+'</div>';
+  document.getElementById('cx-kpis').innerHTML=
+    m('Barn Park จ่าย Channex / เดือน',(hasR?cxB(thb):cxU(usd))+sub(hasR?cxU(usd)+' · คิดที่ '+cxU(rate)+'/ที่':'ใส่อัตราแลกเปลี่ยนเพื่อดูเป็นบาท'))+
+    m('ต่อปี',(hasR?cxB(thb*12):cxU(usd*12))+sub(hasR?cxU(usd*12):'—'))+
+    m('ต้นทุนต่อที่พักที่เชื่อม',C>0?(hasR?cxB(per*r):cxU(per))+sub((hasR?cxU(per)+' · ':'')+'รวมค่าแพลตฟอร์มแล้ว'):'—'+sub('ยังไม่มีที่พักเชื่อม'))+
+    m('รายได้จริงตอนนี้ / เดือน',cxB(L.mrr)+sub('จาก '+L.n+' ที่พักที่ใช้งาน'))+
+    m('ส่วนต่างจริง ถ้าทุกที่เชื่อม Channex',(hasR?cxD(realD):'—')+sub('รายได้จริง − ค่า Channex ของ '+L.n+' ที่'),hasR&&realD<0);
+  const P=cxPrices();
+  document.getElementById('cx-cap').textContent=H+' ที่พักจ่ายค่าบริการ · '+C+' ที่เชื่อม Channex · Barn Park จ่าย Channex '+(hasR?cxB(thb)+' ('+cxU(usd)+')':cxU(usd))+' ต่อเดือน · “คุ้มเมื่อมี” คิดแบบทุกที่เชื่อม Channex';
+  document.getElementById('cx-tprice').innerHTML=P.length?'<tr><th>ราคาต่อที่พัก</th><th>ที่พักจ่ายเรา / เดือน</th><th>ส่วนต่าง / เดือน</th><th>ส่วนต่าง / ปี</th><th>ส่วนต่างต่อที่ / เดือน</th><th>Channex กินไป</th><th>คุ้มเมื่อมี</th></tr>'+P.map(p=>{
+      const rev=H*p.thb, d=rev-thb, be=cxBE(p.thb);
+      return '<tr><td>'+esc(p.label)+' · ฿'+p.thb.toLocaleString('en-US')+'</td><td>'+cxB(rev)+'</td><td>'+cxD(d)+'</td><td>'+cxD(d*12)+'</td><td>'+(H>0?cxD(d/H):'—')+'</td><td>'+(rev>0&&hasR?Math.round(thb/rev*100)+'% ของรายได้':'—')+'</td><td>'+(isNaN(be)?'—':be===Infinity?'ไม่ถึง':be+' ที่')+'</td></tr>';
+    }).join(''):'<tr><td class="empty">เพิ่มราคาเพื่อเทียบ</td></tr>';
+  const seen={}, counts=[1,3,5,10,15,20,30,50,100,200,H].filter(n=>{ if(n<=0||seen[n]) return false; seen[n]=1; return true; }).sort((a,b)=>a-b);
+  document.getElementById('cx-tgrow').innerHTML='<tr><th>ที่พัก</th><th>Channex / เดือน (USD)</th><th>Channex / เดือน (บาท)</th><th>ต่อที่พัก</th>'+P.map(p=>'<th>ส่วนต่างที่ ฿'+p.thb.toLocaleString('en-US')+'</th>').join('')+'</tr>'+
+    counts.map(n=>{ const u=cxUSD(n), t=u*r; return '<tr'+(n===H?' class="cx-me"':'')+'><td>'+n+'</td><td>'+cxU(u)+'</td><td>'+cxB(t)+'</td><td>'+(hasR?cxB(t/n):cxU(u/n))+'</td>'+P.map(p=>'<td>'+cxD(n*p.thb-t)+'</td>').join('')+'</tr>'; }).join('');
+  cxChart(r,P,H);
+}
+// กราฟ SVG: ต้นทุน Channex ต่อที่พัก (เส้นแดง) เทียบเส้นราคาของเรา
+function cxChart(r,P,H){
+  const box=document.getElementById('cx-chart');
+  if(!(r>0)||!P.length){ box.innerHTML='<p class="empty" style="padding:28px 0;text-align:center;color:var(--muted)">'+(!(r>0)?'ใส่อัตราแลกเปลี่ยนเพื่อดูกราฟ':'เพิ่มราคาเพื่อดูกราฟ')+'</p>'; return; }
+  let maxBE=0; P.forEach(p=>{ const b=cxBE(p.thb); if(isFinite(b)) maxBE=Math.max(maxBE,b); });
+  const maxX=Math.min(200,Math.max(30,H*2,Math.ceil(maxBE*1.6))), maxP=Math.max(...P.map(p=>p.thb));
+  const rough=maxP*1.8, tick=[50,100,200,250,500,1000,2000,2500,5000,10000,20000,50000].find(s=>s>=rough/5)||100000, yMax=tick*Math.ceil(rough/tick);
+  const W=760, HH=300, l=64, rg=20, t0=14, b0=46, pw=W-l-rg, ph=HH-t0-b0;
+  const X=n=>l+(n-1)/(maxX-1)*pw, Y=v=>t0+ph-Math.min(v,yMax)/yMax*ph;
+  const COL=['#0E4B2E','#2B6CB0','#5F9A31','#8A5CF6','#C0841A','#0F766E'], col=i=>COL[i%COL.length];
+  let s='<svg viewBox="0 0 '+W+' '+HH+'" width="100%" role="img" aria-label="ต้นทุน Channex ต่อที่พัก เทียบกับราคาของเรา" style="display:block;max-width:100%;height:auto">';
+  for(let v=0;v<=yMax+0.5;v+=tick){ const y=Y(v); s+='<line x1="'+l+'" x2="'+(W-rg)+'" y1="'+y+'" y2="'+y+'" stroke="#e5e7eb"/><text x="'+(l-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="#64748b">฿'+Math.round(v).toLocaleString('en-US')+'</text>'; }
+  const step=maxX<=30?5:maxX<=60?10:maxX<=120?20:40;
+  for(let n=step;n<=maxX;n+=step) s+='<text x="'+X(n)+'" y="'+(HH-b0+18)+'" text-anchor="middle" font-size="11" fill="#64748b">'+n+'</text>';
+  s+='<text x="'+(l+pw/2)+'" y="'+(HH-8)+'" text-anchor="middle" font-size="12" fill="#64748b">จำนวนที่พักที่เชื่อม Channex</text>';
+  P.forEach((p,i)=>{ if(p.thb>yMax) return; const y=Y(p.thb); s+='<line x1="'+l+'" x2="'+(W-rg)+'" y1="'+y+'" y2="'+y+'" stroke="'+col(i)+'" stroke-width="1.6" stroke-dasharray="6 4"/>'; });
+  let d=''; for(let n=1;n<=maxX;n++) d+=(n===1?'M':'L')+X(n).toFixed(1)+' '+Y(cxUSD(n)*r/n).toFixed(1);
+  s+='<path d="'+d+'" fill="none" stroke="#B4442B" stroke-width="2.5"/>';
+  P.forEach((p,i)=>{ const b=cxBE(p.thb); if(!isFinite(b)||b>maxX||p.thb>yMax) return; s+='<circle cx="'+X(b)+'" cy="'+Y(p.thb)+'" r="5" fill="#fff" stroke="'+col(i)+'" stroke-width="2.5"/>'; });
+  s+='</svg>';
+  // คำอธิบายเส้นไว้ใต้กราฟ (ไม่ทับกันแม้ราคาใกล้กัน)
+  const sw=(c,dash)=>'<svg width="26" height="10" style="flex:none"><line x1="0" x2="26" y1="5" y2="5" stroke="'+c+'" stroke-width="'+(dash?1.8:2.8)+'"'+(dash?' stroke-dasharray="6 4"':'')+'/></svg>';
+  s+='<div style="display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px;font-size:12.5px;align-items:center"><span style="display:flex;gap:6px;align-items:center">'+sw('#B4442B',false)+'ต้นทุน Channex ต่อที่พัก</span>'+
+    P.map((p,i)=>{ const b=cxBE(p.thb); return '<span style="display:flex;gap:6px;align-items:center">'+sw(col(i),true)+esc(p.label)+' ฿'+p.thb.toLocaleString('en-US')+' · <b style="color:'+col(i)+'">'+(isFinite(b)?'คุ้มที่ '+b+' ที่':'ไม่ถึง')+'</b></span>'; }).join('')+'</div>';
+  box.innerHTML=s;
+}
 // ---- onboard new hotel ----
 function val(id){return document.getElementById(id).value.trim();}
 async function onboard(){
