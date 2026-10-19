@@ -28,6 +28,9 @@
   .cx-pos{color:#047857;font-weight:700}.cx-neg{color:#b91c1c;font-weight:700}
   tr.cx-me td{background:#f0fdf4;font-weight:700}
   input.cx-need{border-color:#f59e0b;background:#fffbeb}
+  .cx-plot{position:relative;touch-action:pan-y;cursor:crosshair;outline:none;user-select:none;-webkit-user-select:none}
+  .cx-plot:focus-visible{box-shadow:0 0 0 2px #9cc9a9;border-radius:8px}
+  .cx-tip{position:absolute;top:8px;display:none;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(15,37,64,.14);padding:8px 11px;font-size:12.5px;line-height:1.6;pointer-events:none;z-index:2;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -92,7 +95,10 @@
     <div class="panel"><div style="display:flex;gap:8px;margin-bottom:12px"><h3 style="margin:0">ปฏิทิน</h3><button class="btn ghost sm" onclick="moveWeek(-7)">‹</button><button class="btn ghost sm" onclick="jumpToday()">วันนี้</button><button class="btn ghost sm" onclick="moveWeek(7)">›</button><button class="btn sm" style="margin-left:auto" onclick="newBk('',null)">+ เพิ่มการจอง</button></div>
       <div class="calwrap"><div id="calbox"></div></div>
       <div class="legend"><span><i class="c0"></i>จองตรง</span><span><i class="c1"></i>Agoda</span><span><i class="c2"></i>Booking</span><span><i class="c3"></i>Trip</span><span><i class="dupc"></i>จองทับซ้อน</span></div></div>
-    <div class="panel"><h3>การจองล่าสุด</h3><div style="overflow-x:auto"><table id="d-book"></table></div></div></section>
+    <div class="panel"><h3>การจองล่าสุด</h3><div style="overflow-x:auto"><table id="d-book"></table></div></div>
+    <div class="panel" id="d-danger" style="display:none;border-color:#fecaca"><h3 style="color:#b91c1c">ลบที่พักนี้</h3>
+      <p class="sub" style="margin-top:0">ลบถาวร: ห้อง การจอง กิจกรรม โปรโมชัน รีวิว บัญชีเจ้าของ/พนักงาน และการเชื่อม LINE ของที่พักนี้ — กู้คืนไม่ได้ · ถ้าแค่หยุดชั่วคราว ให้ตั้งสถานะเป็น “พัก” แทน</p>
+      <button class="btn danger" type="button" onclick="delHotelStart()">🗑 ลบที่พักนี้…</button><div id="d-delbox"></div></div></section>
   <section id="a-ota" class="view"><h1>จัดการการเชื่อม OTA</h1><p class="sub">ผู้ดูแลตั้งค่าให้ผ่าน Channex · บัญชี/เงินเป็นของโรงแรม</p><div class="soon" style="margin-bottom:14px">🔜 การเชื่อมอัตโนมัติผ่าน Channex ยังไม่เปิด — ปุ่มเป็นตัวอย่าง</div><div class="panel"><div style="overflow-x:auto"><table id="a-otatable"></table></div></div></section>
   <section id="a-line" class="view"><h1>LINE OA Barn Park — บอทจัดการที่พัก</h1><p class="sub">ให้โรงแรมสมัคร + เพิ่มห้อง/กิจกรรม ตั้งค่าเว็บ ดูการจอง ผ่านแชท LINE (rich menu 2 ชุด: ผู้มาใหม่ / โรงแรมที่เชื่อมแล้ว)</p>
     <div class="metrics" id="ln-metrics"></div>
@@ -163,7 +169,7 @@
     <div class="metrics" id="cx-kpis"></div>
     <div class="panel"><h3>ส่วนต่างตามราคา</h3><p class="sub" id="cx-cap" style="margin-top:0"></p><div style="overflow-x:auto"><table id="cx-tprice"></table></div></div>
     <div class="panel"><h3>เมื่อมีที่พักมากขึ้น — ส่วนต่างต่อเดือน</h3><p class="sub" style="margin-top:0">สมมติว่าทุกที่จ่ายค่าบริการและเชื่อม Channex · แถวที่ไฮไลต์คือจำนวนปัจจุบัน</p><div style="overflow-x:auto"><table id="cx-tgrow"></table></div></div>
-    <div class="panel"><h3>ต้นทุน Channex ต่อที่พัก เทียบกับราคาของเรา</h3><div id="cx-chart"></div><div class="note">ตรงที่เส้นแดงต่ำกว่าเส้นราคา คือราคานั้นเริ่มคุ้มค่า Channex</div></div>
+    <div class="panel"><h3>ต้นทุน Channex ต่อที่พัก เทียบกับราคาของเรา</h3><div id="cx-chart"></div><div class="note">ชี้หรือลากบนกราฟเพื่อดูตัวเลขของแต่ละจำนวนที่พัก · ตรงที่เส้นแดงต่ำกว่าเส้นราคา คือราคานั้นเริ่มคุ้มค่า Channex</div></div>
     <p class="note">ราคา Channex: แผน WhiteLabel จาก channex.io/pricing (ตรวจ 16 ต.ค. 2026) · อาจมีค่าเพิ่มเล็กน้อย: เชื่อม OTA เดียวกันซ้ำ $1/เดือน · ห้องเกิน 20 ประเภท ($1/ประเภท) หรือแผนราคาเกิน 200 แผน ($0.10/แผน) สูงสุด $7 ต่อที่ · ส่งข้อมูลบัตรไป Stripe $0.02/รายการ · เก็บเงินต้นเดือนล่วงหน้า ไม่มีค่าติดตั้ง ยกเลิกต้องแจ้งล่วงหน้า 30 วัน</p>
   </section>
 </div></main>
@@ -389,7 +395,7 @@ function cxChart(r,P,H){
   const W=760, HH=300, l=64, rg=20, t0=14, b0=46, pw=W-l-rg, ph=HH-t0-b0;
   const X=n=>l+(n-1)/(maxX-1)*pw, Y=v=>t0+ph-Math.min(v,yMax)/yMax*ph;
   const COL=['#0E4B2E','#2B6CB0','#5F9A31','#8A5CF6','#C0841A','#0F766E'], col=i=>COL[i%COL.length];
-  let s='<svg viewBox="0 0 '+W+' '+HH+'" width="100%" role="img" aria-label="ต้นทุน Channex ต่อที่พัก เทียบกับราคาของเรา" style="display:block;max-width:100%;height:auto">';
+  let s='<div class="cx-plot" tabindex="0" title="ชี้หรือลากบนกราฟเพื่อดูตัวเลข (ปุ่มลูกศรซ้าย/ขวาก็ได้)"><svg viewBox="0 0 '+W+' '+HH+'" width="100%" role="img" aria-label="ต้นทุน Channex ต่อที่พัก เทียบกับราคาของเรา" style="display:block;max-width:100%;height:auto">';
   for(let v=0;v<=yMax+0.5;v+=tick){ const y=Y(v); s+='<line x1="'+l+'" x2="'+(W-rg)+'" y1="'+y+'" y2="'+y+'" stroke="#e5e7eb"/><text x="'+(l-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="#64748b">฿'+Math.round(v).toLocaleString('en-US')+'</text>'; }
   const step=maxX<=30?5:maxX<=60?10:maxX<=120?20:40;
   for(let n=step;n<=maxX;n+=step) s+='<text x="'+X(n)+'" y="'+(HH-b0+18)+'" text-anchor="middle" font-size="11" fill="#64748b">'+n+'</text>';
@@ -398,12 +404,30 @@ function cxChart(r,P,H){
   let d=''; for(let n=1;n<=maxX;n++) d+=(n===1?'M':'L')+X(n).toFixed(1)+' '+Y(cxUSD(n)*r/n).toFixed(1);
   s+='<path d="'+d+'" fill="none" stroke="#B4442B" stroke-width="2.5"/>';
   P.forEach((p,i)=>{ const b=cxBE(p.thb); if(!isFinite(b)||b>maxX||p.thb>yMax) return; s+='<circle cx="'+X(b)+'" cy="'+Y(p.thb)+'" r="5" fill="#fff" stroke="'+col(i)+'" stroke-width="2.5"/>'; });
-  s+='</svg>';
+  s+='<line class="cx-hl" x1="0" x2="0" y1="'+t0+'" y2="'+(t0+ph)+'" stroke="#334155" stroke-width="1" stroke-dasharray="3 3" style="display:none"/><circle class="cx-hd" r="6" fill="#B4442B" stroke="#fff" stroke-width="2" style="display:none"/>';
+  s+='</svg><div class="cx-tip"></div></div>';
   // คำอธิบายเส้นไว้ใต้กราฟ (ไม่ทับกันแม้ราคาใกล้กัน)
   const sw=(c,dash)=>'<svg width="26" height="10" style="flex:none"><line x1="0" x2="26" y1="5" y2="5" stroke="'+c+'" stroke-width="'+(dash?1.8:2.8)+'"'+(dash?' stroke-dasharray="6 4"':'')+'/></svg>';
   s+='<div style="display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px;font-size:12.5px;align-items:center"><span style="display:flex;gap:6px;align-items:center">'+sw('#B4442B',false)+'ต้นทุน Channex ต่อที่พัก</span>'+
     P.map((p,i)=>{ const b=cxBE(p.thb); return '<span style="display:flex;gap:6px;align-items:center">'+sw(col(i),true)+esc(p.label)+' ฿'+p.thb.toLocaleString('en-US')+' · <b style="color:'+col(i)+'">'+(isFinite(b)?'คุ้มที่ '+b+' ที่':'ไม่ถึง')+'</b></span>'; }).join('')+'</div>';
   box.innerHTML=s;
+  // ชี้/ลาก (เมาส์ นิ้ว หรือปุ่มลูกศร) → เส้นตั้ง + กล่องตัวเลขของจำนวนที่พักนั้น
+  const plot=box.querySelector('.cx-plot'), svg=plot.querySelector('svg'), hl=svg.querySelector('.cx-hl'), hd=svg.querySelector('.cx-hd'), tip=plot.querySelector('.cx-tip');
+  let curN=null;
+  const show=n=>{ n=Math.max(1,Math.min(maxX,Math.round(n))); curN=n; const x=X(n), cost=cxUSD(n)*r/n;
+    hl.setAttribute('x1',x); hl.setAttribute('x2',x); hl.style.display=''; hd.setAttribute('cx',x); hd.setAttribute('cy',Y(cost)); hd.style.display='';
+    tip.innerHTML='<b>'+n+' ที่พัก</b><div style="color:#B4442B">Channex '+cxB(cost)+' ต่อที่ · รวม '+cxB(cost*n)+'/เดือน</div>'+
+      P.map((p,i)=>'<div><span style="color:'+col(i)+'">■</span> '+esc(p.label)+' ฿'+p.thb.toLocaleString('en-US')+': '+cxD((p.thb-cost)*n)+'/เดือน</div>').join('');
+    tip.style.display='block';
+    const rect=svg.getBoundingClientRect(), px=x/W*rect.width, tw=tip.offsetWidth;
+    tip.style.left=(px+14+tw>rect.width?Math.max(0,px-14-tw):px+14)+'px'; };
+  const hide=()=>{ hl.style.display='none'; hd.style.display='none'; tip.style.display='none'; curN=null; };
+  const nAt=e=>{ const rect=svg.getBoundingClientRect(); return ((e.clientX-rect.left)*W/rect.width-l)/pw*(maxX-1)+1; };
+  plot.addEventListener('pointerdown',e=>show(nAt(e)));
+  plot.addEventListener('pointermove',e=>show(nAt(e)));
+  plot.addEventListener('pointerleave',e=>{ if(e.pointerType==='mouse') hide(); });
+  plot.addEventListener('keydown',e=>{ if(e.key==='ArrowRight'||e.key==='ArrowLeft'){ e.preventDefault(); show((curN||H||1)+(e.key==='ArrowRight'?1:-1)); } else if(e.key==='Escape') hide(); });
+  plot.addEventListener('blur',hide);
 }
 // ---- onboard new hotel ----
 function val(id){return document.getElementById(id).value.trim();}
@@ -418,8 +442,35 @@ async function onboard(){
   }catch(e){API.toast(e.message,'err');}
 }
 // ---- edit hotel profile ----
+// ---- ลบที่พักถาวร (แอดมิน) ----
+let DEL_SLUG='';
+async function delHotelStart(){
+  if(!cur) return; const box=document.getElementById('d-delbox'); box.innerHTML='<p class="note">กำลังตรวจข้อมูลที่จะถูกลบ…</p>';
+  try{ const p=await API.get('/admin/hotels/'+cur._id+'/delete-preview'), c=p.counts; DEL_SLUG=String(p.slug||'');
+    box.innerHTML='<div class="why" style="margin-top:12px;line-height:1.85">จะลบถาวร: ห้อง <b>'+c.rooms+'</b> · การจอง <b>'+c.bookings+'</b>'+(c.upcoming?' <b style="color:#b91c1c">(ยังไม่ถึงวันเช็คเอาท์ '+c.upcoming+' รายการ)</b>':'')+' · กิจกรรม/บริการ <b>'+c.services+'</b> · จองกิจกรรม <b>'+c.activityBookings+'</b> · โปรโมชัน <b>'+c.promos+'</b> · รีวิว <b>'+c.reviews+'</b> · บัญชีเจ้าของ/พนักงาน <b>'+c.users+'</b> · ความเห็น <b>'+c.feedback+'</b> · LINE ที่เชื่อมอยู่ <b>'+c.lineChats+'</b> คน (ระบบถอดออกให้)'+
+      '<br><a href="#" id="d-delbak">⬇ ดาวน์โหลดไฟล์สำรองทั้งระบบก่อน</a>'+
+      '<div class="field" style="margin:10px 0"><label>พิมพ์ <code>'+esc(DEL_SLUG)+'</code> เพื่อยืนยัน</label><input id="d-delconfirm" autocomplete="off" spellcheck="false"></div>'+
+      '<button class="btn danger" id="d-delgo" type="button" disabled>ลบถาวร</button> <button class="btn ghost" id="d-delcancel" type="button">ยกเลิก</button></div>';
+    document.getElementById('d-delbak').addEventListener('click',e=>{ e.preventDefault(); downloadBackup(); });
+    document.getElementById('d-delconfirm').addEventListener('input',e=>{ document.getElementById('d-delgo').disabled=e.target.value.trim()!==DEL_SLUG; });
+    document.getElementById('d-delgo').addEventListener('click',delHotelGo);
+    document.getElementById('d-delcancel').addEventListener('click',()=>{ box.innerHTML=''; });
+  }catch(e){ box.innerHTML='<p class="note">✗ '+esc(e.message)+'</p>'; }
+}
+async function delHotelGo(){
+  if(!cur) return; const typed=document.getElementById('d-delconfirm').value.trim();
+  if(typed!==DEL_SLUG) return;
+  if(!confirm('ลบ “'+cur.name+'” และข้อมูลทั้งหมดของที่พักนี้ถาวร?\nกู้คืนไม่ได้')) return;
+  const b=document.getElementById('d-delgo'); b.disabled=true;
+  try{ const r=await API.post('/admin/hotels/'+cur._id+'/delete',{confirm:typed});
+    API.toast('ลบ '+r.name+' แล้ว','ok'); cur=null; document.getElementById('d-delbox').innerHTML='';
+    document.getElementById('d-danger').style.display='none'; document.getElementById('d-editwrap').style.display='none';
+    HOTELS=await API.get('/hotels'); renderPortfolio(); renderOta(); renderBilling(); if(CX_LOADED) cxCalc(); go('a-port');
+  }catch(e){ API.toast(e.message,'err'); b.disabled=false; }
+}
 function fillEdit(){
   document.getElementById('d-editwrap').style.display='block';
+  document.getElementById('d-danger').style.display='block'; document.getElementById('d-delbox').innerHTML='';
   const V=(id,v)=>document.getElementById(id).value=(v==null?'':v);
   V('e-name',cur.name); V('e-loc',cur.location); V('e-phone',cur.phone);
   document.getElementById('e-status').value=cur.status||'active';

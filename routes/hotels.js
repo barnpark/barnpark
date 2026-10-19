@@ -20,6 +20,9 @@ import { parseDataUrl, toDataUrl, toLogoDataUrl } from "../lib/images.js";
 import { checklist } from "../lib/checklist.js";
 import { announceUpdate, announceLog } from "../lib/announce.js";
 import Setting from "../models/Setting.js";
+import PromoCode from "../models/PromoCode.js";
+import Review from "../models/Review.js";
+import LinkCode from "../models/LinkCode.js";
 import { CALC_KEY, cleanCalc } from "../lib/calc.js";
 
 const r = Router();
@@ -202,6 +205,58 @@ r.post("/admin/announce", requireAuth, requireAdmin, async (req, res) => {
   catch (e) { res.status(400).json({ error: String(e.message || e) }); }
 });
 r.get("/admin/announce/log", requireAuth, requireAdmin, async (_req, res) => res.json(await announceLog()));
+
+// ===== แอดมิน: ลบที่พักถาวร (ห้อง การจอง บริการ บัญชีเจ้าของ การเชื่อม LINE ฯลฯ) — ต้องพิมพ์ slug ยืนยัน =====
+const isOid = (s) => /^[a-f0-9]{24}$/i.test(String(s || ""));
+async function hotelFootprint(hid) {
+  const today = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+  const [rooms, bookings, upcoming, services, activityBookings, promos, reviews, users, lineChats, feedback] = await Promise.all([
+    RoomType.countDocuments({ hotel: hid }),
+    Booking.countDocuments({ hotel: hid }),
+    Booking.countDocuments({ hotel: hid, checkout: { $gt: today }, status: { $ne: "cancelled" } }),
+    Service.countDocuments({ hotel: hid }),
+    ActivityBooking.countDocuments({ hotel: hid }),
+    PromoCode.countDocuments({ hotel: hid }),
+    Review.countDocuments({ hotel: hid }),
+    User.countDocuments({ hotel: hid, role: { $ne: "admin" } }),
+    LineChat.countDocuments({ $or: [{ hotels: hid }, { hotel: hid }] }),
+    Feedback.countDocuments({ hotel: hid }),
+  ]);
+  return { rooms, bookings, upcoming, services, activityBookings, promos, reviews, users, lineChats, feedback };
+}
+r.get("/admin/hotels/:id/delete-preview", requireAuth, requireAdmin, async (req, res) => {
+  if (!isOid(req.params.id)) return res.status(404).json({ error: "ไม่พบที่พัก" });
+  const h = await Hotel.findById(req.params.id).select("name slug").lean();
+  if (!h) return res.status(404).json({ error: "ไม่พบที่พัก" });
+  res.json({ name: h.name, slug: h.slug, counts: await hotelFootprint(h._id) });
+});
+r.post("/admin/hotels/:id/delete", requireAuth, requireAdmin, async (req, res) => {
+  if (!isOid(req.params.id)) return res.status(404).json({ error: "ไม่พบที่พัก" });
+  const h = await Hotel.findById(req.params.id).select("name slug").lean();
+  if (!h) return res.status(404).json({ error: "ไม่พบที่พัก" });
+  const typed = String((req.body && req.body.confirm) || "").trim();
+  if (!typed || typed !== String(h.slug || "")) return res.status(400).json({ error: "พิมพ์ slug ของที่พักให้ตรงเพื่อยืนยันการลบ" });
+  const hid = h._id;
+  // ถอดที่พักออกจาก LINE ของทุกคนที่เชื่อมไว้ (ไม่เหลือที่พักแล้ว → กลับเป็นเมนูผู้มาใหม่)
+  const chats = await LineChat.find({ $or: [{ hotels: hid }, { hotel: hid }] }).select("_id").lean();
+  for (const c of chats) { try { await detachHotelFromChat(c._id, hid); } catch (e) { console.error("detach on delete", e.message); } }
+  const del = async (M, q) => (await M.deleteMany(q)).deletedCount || 0;
+  const deleted = {
+    rooms: await del(RoomType, { hotel: hid }),
+    bookings: await del(Booking, { hotel: hid }),
+    services: await del(Service, { hotel: hid }),
+    activityBookings: await del(ActivityBooking, { hotel: hid }),
+    promos: await del(PromoCode, { hotel: hid }),
+    reviews: await del(Review, { hotel: hid }),
+    linkCodes: await del(LinkCode, { hotel: hid }),
+    feedback: await del(Feedback, { hotel: hid }),
+    users: await del(User, { hotel: hid, role: { $ne: "admin" } }),
+    lineChats: chats.length,
+  };
+  await Hotel.deleteOne({ _id: hid });
+  console.log("admin deleted hotel", h.slug, "by", req.user.id, JSON.stringify(deleted));
+  res.json({ ok: true, name: h.name, deleted });
+});
 
 // ===== แอดมิน: ตัวคำนวณต้นทุน Channex — ค่าที่กรอกเก็บไว้ให้ทีมเห็นตรงกัน =====
 r.get("/admin/calc/channex", requireAuth, requireAdmin, async (_req, res) => {
