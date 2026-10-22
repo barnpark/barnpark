@@ -22,7 +22,7 @@ r.post("/register", async (req, res) => {
   const { hotelName, slug, email, password, phone, location } = req.body || {};
   if (!hotelName || !email || !password)
     return res.status(400).json({ error: "กรอกชื่อที่พัก อีเมล และรหัสผ่านให้ครบ" });
-  if (String(password).length < 6) return res.status(400).json({ error: "รหัสผ่านอย่างน้อย 6 ตัวอักษร" });
+  if (String(password).length < 8) return res.status(400).json({ error: "รหัสผ่านอย่างน้อย 8 ตัวอักษร" });
   const em = String(email).toLowerCase().trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return res.status(400).json({ error: "อีเมลไม่ถูกต้อง" });
   if (await User.findOne({ email: em })) return res.status(409).json({ error: "อีเมลนี้มีบัญชีแล้ว — ลองเข้าสู่ระบบ" });
@@ -112,7 +112,7 @@ r.post("/forgot", async (req, res) => {
 r.post("/reset", async (req, res) => {
   const { email, code, password } = req.body || {};
   const em = String(email || "").toLowerCase().trim();
-  if (String(password || "").length < 6) return res.status(400).json({ error: "รหัสผ่านใหม่อย่างน้อย 6 ตัวอักษร" });
+  if (String(password || "").length < 8) return res.status(400).json({ error: "รหัสผ่านใหม่อย่างน้อย 8 ตัวอักษร" });
   const u = await User.findOne({ email: em }).select("+resetHash");
   if (!u || !u.resetHash || !u.resetExpires || u.resetExpires < new Date()) return res.status(401).json({ error: "รหัสหมดอายุหรือไม่ถูกต้อง — ขอรหัสใหม่" });
   if ((u.resetTries || 0) >= 5) {
@@ -132,7 +132,7 @@ r.post("/reset", async (req, res) => {
 // เปลี่ยนรหัสผ่าน (ล็อกอินอยู่) — บัญชีที่สมัครผ่าน LINE และยังไม่เคยตั้งรหัส ตั้งได้เลยโดยไม่ต้องใส่รหัสเดิม
 r.post("/change-password", requireAuth, async (req, res) => {
   const { current = "", password = "" } = req.body || {};
-  if (String(password).length < 6) return res.status(400).json({ error: "รหัสผ่านใหม่อย่างน้อย 6 ตัวอักษร" });
+  if (String(password).length < 8) return res.status(400).json({ error: "รหัสผ่านใหม่อย่างน้อย 8 ตัวอักษร" });
   const u = await User.findById(req.user.id).select("+passwordHash");
   if (!u) return res.status(404).json({ error: "ไม่พบบัญชี" });
   if (u.passwordHash && !bcrypt.compareSync(String(current), u.passwordHash)) return res.status(400).json({ error: "รหัสผ่านปัจจุบันไม่ถูกต้อง" });

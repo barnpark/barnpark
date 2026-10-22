@@ -16,6 +16,7 @@ import { breakfastOf, roomAmenities, stayInfo, lineContactUrl, lineLabel } from 
 import { promptPayPayload, normalizePromptPayId } from "../lib/promptpay.js";
 import { payMethodsOf, resolvePayChoice } from "../lib/pay.js";
 import { createRoomBooking } from "../lib/booking.js";
+import { usedPeaks } from "../lib/availability.js";
 
 // เลขจองต้องตรงเป๊ะ (BP-XXXXXX) — ห้ามค้นแบบขึ้นต้นด้วย ไม่งั้นใส่แค่ "BP-" ก็ยกเลิกทุกการจองของเบอร์นั้นได้
 const REF_RE = /^BP-[A-Z0-9]{6}$/;
@@ -143,7 +144,7 @@ r.post("/review", async (req, res) => {
   const bk = REF_RE.test(R) ? await Booking.findOne({ hotel: h._id, guestTel: String(tel || "").trim(), ref: refGroup(R) }) : null;
   if (!bk) return res.status(400).json({ error: "ไม่พบการจองที่ตรงกับเลขจอง+เบอร์ (รีวิวได้เฉพาะผู้ที่เคยจอง)" });
   const r5 = Math.max(1, Math.min(5, +rating || 5));
-  await Review.create({ hotel: h._id, ref: bk.ref, guestName: (name || bk.guestName || "แขก").trim(), rating: r5, text: String(text || "").slice(0, 500) });
+  await Review.create({ hotel: h._id, ref: bk.ref, guestName: String(name || bk.guestName || "แขก").trim().slice(0, 60), rating: r5, text: String(text || "").slice(0, 500) });
   res.json({ ok: true, message: "ขอบคุณสำหรับรีวิว! จะแสดงหลังโรงแรมอนุมัติ" });
 });
 
@@ -279,11 +280,10 @@ r.get("/availability", async (req, res) => {
   const h = await Hotel.findOne({ slug });
   if (!h) return res.status(404).json({ error: "not found" });
   const rts = await RoomType.find({ hotel: h._id, hidden: { $ne: true } }).sort("sort");
+  const used = await usedPeaks(rts.map((t) => t._id), din, dout); // ห้องที่ใช้มากสุดต่อคืนในช่วง (คิวรีเดียว)
   const out = [];
   for (const t of rts) {
-    const booked = await Booking.countDocuments({
-      roomType: t._id, status: { $ne: "cancelled" }, checkin: { $lt: dout }, checkout: { $gt: din },
-    });
+    const booked = used[String(t._id)] || 0;
     const rate = rateFor(t, din); // ราคาตามฤดู (ถ้ามี)
     const bf = breakfastOf(t);
     out.push({

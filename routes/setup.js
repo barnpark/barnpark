@@ -1,16 +1,22 @@
 import { Router } from "express";
+import crypto from "crypto";
 import { runSeed } from "../lib/seed.js";
 import { dailyDigest } from "../lib/notify.js";
 import { maybeMonthlyFeedback } from "../lib/feedback.js";
 import { runBackup } from "../lib/backup.js";
 
 const r = Router();
+// เทียบคีย์แบบเวลาคงที่ (กันเดาคีย์จากเวลาตอบ)
+const sameKey = (given, expected) => {
+  const a = Buffer.from(String(given || "")), b = Buffer.from(String(expected || ""));
+  return b.length > 0 && a.length === b.length && crypto.timingSafeEqual(a, b);
+};
 
 // สรุปรายวันส่ง LINE/อีเมลให้ทุกโรงแรม + สำรองข้อมูลขึ้น Supabase — ให้ cron ภายนอกยิงวันละครั้ง
 //   GET /api/cron/daily?key=<CRON_KEY>   (ตั้งใน cron-job.org เวลา ~07:00)
 r.get("/cron/daily", async (req, res) => {
   if (!process.env.CRON_KEY) return res.status(403).json({ error: "CRON_KEY ยังไม่ได้ตั้งใน environment" });
-  if (req.query.key !== process.env.CRON_KEY) return res.status(403).json({ error: "key ไม่ถูกต้อง" });
+  if (!sameKey(req.query.key, process.env.CRON_KEY)) return res.status(403).json({ error: "key ไม่ถูกต้อง" });
   let out = {}, err = null;
   try { out = await dailyDigest(); } catch (e) { err = String(e.message || e); }
   const feedback = await maybeMonthlyFeedback().catch((e) => ({ error: String(e.message || e) })); // แบบสอบถามรายเดือน (วันที่ FEEDBACK_DAY)
@@ -24,7 +30,7 @@ r.get("/cron/daily", async (req, res) => {
 // ต้องตั้ง env: SETUP_KEY, SEED_ADMIN_EMAIL, SEED_ADMIN_PASS (และ SEED_HOTEL_* ถ้าต้องการ)
 r.get("/setup", async (req, res) => {
   if (!process.env.SETUP_KEY) return res.status(403).json({ error: "SETUP_KEY ยังไม่ได้ตั้งใน environment" });
-  if (req.query.key !== process.env.SETUP_KEY) return res.status(403).json({ error: "key ไม่ถูกต้อง" });
+  if (!sameKey(req.query.key, process.env.SETUP_KEY)) return res.status(403).json({ error: "key ไม่ถูกต้อง" });
   try {
     const out = await runSeed({
       adminEmail: process.env.SEED_ADMIN_EMAIL,

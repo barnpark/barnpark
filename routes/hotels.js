@@ -77,7 +77,9 @@ r.post("/hotels/onboard", requireAuth, requireAdmin, async (req, res) => {
   const { name, slug, location, ownerEmail, ownerPassword, ownerName } = req.body || {};
   if (!name || !slug || !ownerEmail || !ownerPassword)
     return res.status(400).json({ error: "กรอกชื่อโรงแรม, slug, อีเมลและรหัสเจ้าของให้ครบ" });
+  if (String(ownerPassword).length < 8) return res.status(400).json({ error: "รหัสผ่านเจ้าของอย่างน้อย 8 ตัวอักษร" });
   const s = String(slug).toLowerCase().trim();
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?$/.test(s)) return res.status(400).json({ error: "slug ใช้ a-z 0-9 และ - เท่านั้น (ไม่เกิน 60 ตัว)" });
   if (await Hotel.findOne({ slug: s })) return res.status(409).json({ error: "slug นี้ถูกใช้แล้ว" });
   if (await User.findOne({ email: String(ownerEmail).toLowerCase() })) return res.status(409).json({ error: "อีเมลนี้มีบัญชีแล้ว" });
   const hotel = await Hotel.create({
@@ -86,7 +88,7 @@ r.post("/hotels/onboard", requireAuth, requireAdmin, async (req, res) => {
   });
   await User.create({
     email: String(ownerEmail).toLowerCase(), role: "owner", name: ownerName || name,
-    hotel: hotel._id, passwordHash: bcrypt.hashSync(ownerPassword, 10),
+    hotel: hotel._id, passwordHash: bcrypt.hashSync(String(ownerPassword), 10),
   });
   res.json({ ok: true, hotel });
 });
@@ -111,10 +113,37 @@ r.post("/hotels", requireAuth, requireAdmin, async (req, res) => {
 });
 
 const HOTEL_IMG = ["coverUrl", "promoImage", "logoUrl"];
+// ฟิลด์ที่แก้ผ่าน PATCH /hotels/:id ได้ (whitelist) — token/secret ผ่าน /line · รูปที่เก็บในระบบผ่าน /cover /logo เท่านั้น
+const HOTEL_OWNER_FIELDS = ["name", "location", "phone", "lineId", "brandColor", "brandColor2", "accentColor", "accentColor2", "fontFamily", "uiStyle", "template",
+  "tagline", "coverUrl", "logoUrl", "about", "amenities", "promoText", "promoImage", "notifyEmail", "notifyLineTo", "promptpayId", "promptpayName",
+  "payPromptpay", "payTransfer", "payOnsite", "bankName", "bankAccountNo", "bankAccountName", "taxId", "address",
+  "checkInTime", "checkOutTime", "mapUrl", "houseRules", "allowGuestCancel", "cancelDays", "holdHours"];
+const HOTEL_ADMIN_FIELDS = [...HOTEL_OWNER_FIELDS, "status", "approved", "planFee", "slug", "ota"]; // อนุมัติ/ค่าบริการ/สถานะ/slug/OTA = แอดมินเท่านั้น
+const HOTEL_STATUS = ["active", "onboarding", "paused"], OTA_CH = ["agoda", "booking", "trip", "airbnb"];
+const COLOR_RE = /^#[0-9a-f]{3,8}$/i;
 r.patch("/hotels/:id", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
-  const { lineChannelToken, lineChannelSecret, coverData, logoData, logoAspect, _id, ...safe } = req.body || {}; // secret/รูปที่เก็บในระบบ ผ่าน route แยกเท่านั้น
-  if (req.user.role !== "admin") { delete safe.approved; delete safe.status; delete safe.planFee; delete safe.slug; delete safe.ota; } // เจ้าของอนุมัติตัวเอง/แก้ค่าบริการไม่ได้
+  const body = req.body || {}, isAdmin = req.user.role === "admin", safe = {};
+  for (const k of isAdmin ? HOTEL_ADMIN_FIELDS : HOTEL_OWNER_FIELDS) if (body[k] !== undefined) safe[k] = body[k];
+  const str = (k, n) => { if (safe[k] !== undefined) safe[k] = String(safe[k] ?? "").trim().slice(0, n); };
+  str("name", 120); str("location", 200); str("phone", 40); str("promptpayName", 120); str("taxId", 20); str("notifyLineTo", 80);
+  str("fontFamily", 40); str("uiStyle", 20); str("template", 20);
+  if (safe.name !== undefined && !safe.name) return res.status(400).json({ error: "ต้องมีชื่อที่พัก" });
+  for (const k of ["brandColor", "brandColor2", "accentColor", "accentColor2"]) if (safe[k] !== undefined && !COLOR_RE.test(String(safe[k]))) return res.status(400).json({ error: "รหัสสีไม่ถูกต้อง (เช่น #0d9488)" });
+  if (safe.notifyEmail !== undefined) { safe.notifyEmail = String(safe.notifyEmail || "").trim().slice(0, 120); if (safe.notifyEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safe.notifyEmail)) return res.status(400).json({ error: "อีเมลรับแจ้งเตือนไม่ถูกต้อง" }); }
+  if (safe.allowGuestCancel !== undefined) safe.allowGuestCancel = safe.allowGuestCancel === true || safe.allowGuestCancel === "true";
+  if (isAdmin) {
+    if (safe.status !== undefined && !HOTEL_STATUS.includes(safe.status)) return res.status(400).json({ error: "สถานะไม่ถูกต้อง" });
+    if (safe.approved !== undefined) safe.approved = safe.approved === true || safe.approved === "true";
+    if (safe.planFee !== undefined) safe.planFee = Math.max(0, Math.min(100000, Math.round(Number(safe.planFee) || 0)));
+    if (safe.slug !== undefined) {
+      safe.slug = String(safe.slug || "").toLowerCase().trim();
+      if (!/^[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?$/.test(safe.slug)) return res.status(400).json({ error: "slug ใช้ a-z 0-9 และ - เท่านั้น (ไม่เกิน 60 ตัว)" });
+      if (await Hotel.findOne({ slug: safe.slug, _id: { $ne: req.params.id } }).select("_id").lean()) return res.status(409).json({ error: "slug นี้ถูกใช้แล้ว" });
+    }
+    if (safe.ota !== undefined) safe.ota = (Array.isArray(safe.ota) ? safe.ota : []).filter((o) => o && OTA_CH.includes(o.channel)).slice(0, OTA_CH.length)
+      .map((o) => ({ channel: o.channel, status: Math.max(0, Math.min(3, parseInt(o.status, 10) || 0)), propertyId: String(o.propertyId || "").slice(0, 60), ...(o.requestedAt && !isNaN(new Date(o.requestedAt)) ? { requestedAt: new Date(o.requestedAt) } : {}) }));
+  }
   if (badImageFields(safe, ["coverUrl", "promoImage", "logoUrl"])) return res.status(400).json({ error: "ลิงก์รูปไม่ถูกต้อง (ใช้ลิงก์ https)" });
   if (safe.promptpayId !== undefined && String(safe.promptpayId).trim() !== "") {
     const pp = normalizePromptPayId(safe.promptpayId);

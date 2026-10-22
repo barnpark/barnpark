@@ -19,6 +19,8 @@ const schema = new mongoose.Schema({
   payRef:      String,
   payMethod:   { type: String, default: "" },
   ref:         String,
+  lineUserId:  String, // จองผ่านแชท LINE OA ของโรงแรม (ไว้แจ้งแขกตอนที่พักยืนยันรับเงิน / เตือนก่อนวันจริง)
+  lineRemindedAt: Date, // ส่งเตือนทาง LINE แล้ว (กันส่งซ้ำ)
 }, { timestamps: true });
 
 schema.index({ hotel: 1, date: 1 });

@@ -5,11 +5,13 @@ Object.assign(process.env, { LINE_CHANNEL_TOKEN: "central-token", PUBLIC_URL: "h
 delete process.env.BREVO_API_KEY;
 
 const realFetch = globalThis.fetch;
+const PROFILES = {}; // โปรไฟล์ LINE ของแขก (ชื่อ + ภาษา) ที่ OA ของโรงแรมจะได้
 const calls = [];
 globalThis.fetch = async (url, opt = {}) => {
   url = String(url);
   if (url.startsWith("http://127.0.0.1")) return realFetch(url, opt);
   calls.push({ url, token: (opt.headers || {}).authorization, body: opt.body ? JSON.parse(opt.body) : null });
+  if (url.includes("/v2/bot/profile/")) return new Response(JSON.stringify(PROFILES[url.split("/").pop()] || {}), { status: 200 });
   if (url.startsWith("https://api.line.me/v2/bot/")) return fakeLineApi(url, opt);
   return new Response("{}", { status: 200 });
 };
@@ -38,6 +40,7 @@ const Booking = (await import("../models/Booking.js")).default;
 const GuestChat = (await import("../models/GuestChat.js")).default;
 const LineChat = (await import("../models/LineChat.js")).default;
 const Service = (await import("../models/Service.js")).default;
+const ActivityBooking = (await import("../models/ActivityBooking.js")).default;
 const { handleGuestEvent } = await import("../lib/guestbot.js");
 const { notifyGuestPaid } = await import("../lib/notify.js");
 const { todayTH } = await import("../lib/linebot.js");
@@ -91,7 +94,7 @@ function stub(M) {
   M.findOneAndUpdate = (q, u) => chain(() => { const r = find(q)[0]; if (!r) return null; const old = clone(r); setter(r, u); return old; });
   M.deleteMany = (q) => chain(() => { const r = find(q); r.forEach((x) => rows.splice(rows.indexOf(x), 1)); return { deletedCount: r.length }; });
 }
-[Hotel, RoomType, Booking, GuestChat, LineChat, Service].forEach(stub);
+[Hotel, RoomType, Booking, GuestChat, LineChat, Service, ActivityBooking].forEach(stub);
 
 // ---- ข้อมูลตั้งต้น
 const today = todayTH();
@@ -108,10 +111,10 @@ await RoomType.create({ hotel: h._id, name: "ห้องซ่อน", qty: 1, 
 await Booking.create({ hotel: h._id, roomType: garden._id, checkin: day(10), checkout: day(12), status: "confirmed" });
 
 const GUEST = "U" + "1".repeat(32);
-let seq = 0;
+let seq = 0, who = GUEST;
 async function send(ev) {
   const before = calls.length;
-  await handleGuestEvent(await Hotel.findOne({ _id: h._id }).lean(), { replyToken: "rt" + ++seq, source: { type: "user", userId: GUEST }, ...ev });
+  await handleGuestEvent(await Hotel.findOne({ _id: h._id }).lean(), { replyToken: "rt" + ++seq, source: { type: "user", userId: who }, ...ev });
   const r = calls.slice(before).find((c) => c.url.endsWith("/v2/bot/message/reply"));
   return r ? r.body.messages : [];
 }
@@ -238,6 +241,97 @@ await say("สมชาย"); await say("0812345678"); await tap("g=pay&v=transf
 const n0 = db.Booking.length;
 m = await tap("g=ok");
 t("4th unpaid booking refused", db.Booking.length === n0 && allText(m).includes("ยังไม่ชำระ"), m);
+
+// ================================================================ ภาษาอังกฤษ · กิจกรรมเดี่ยว · จัดการการจอง (แขกคนใหม่)
+const { notifyCancel, preArrivalLine } = await import("../lib/notify.js");
+const EN = "U" + "2".repeat(32);
+PROFILES[EN] = { displayName: "Anna Smith", language: "en" };
+who = EN;
+m = await send({ type: "follow" });
+t("EN: language taken from LINE profile", allText(m).includes("Welcome") && allText(m).includes("Rooms & booking") && allText(m).includes("Book an activity"), m);
+t("EN: guest name remembered from profile", db.GuestChat.find((c) => c.userId === EN)?.name === "Anna Smith");
+m = await say("ไทย");
+t("switch to Thai by typing ไทย", allText(m).includes("เช็คห้องว่าง") && !allText(m).includes("Rooms & booking"), m);
+m = await tap("g=lang&v=en");
+t("switch back to English by button", allText(m).includes("Rooms & booking"), m);
+m = await say("rooms");
+t("EN: rooms keyword → ask date in English", allText(m).includes("When would you like to check in"), m);
+await tap("g=x");
+
+// ---- กิจกรรมเดี่ยว: รอบเวลา + ที่ว่างต่อรอบ
+const cooking = await Service.create({ hotel: h._id, name: "คลาสทำอาหาร", price: 600, saleMode: "both", times: ["09:00", "14:00"], dailyCap: 4, sort: 6 });
+await ActivityBooking.create({ hotel: h._id, service: cooking._id, serviceName: "คลาสทำอาหาร", date: day(15), time: "14:00", qty: 4, status: "confirmed" });
+m = await say("activities");
+const actNames = (m.find((x) => x.type === "flex")?.contents?.contents || []).map((b) => b.body.contents[0].text);
+t("activity list: standalone/both only, not hidden", JSON.stringify(actNames) === JSON.stringify(["ทัวร์เดี่ยว", "พายเรือ", "คลาสทำอาหาร"]), actNames);
+m = await tap("g=act&id=" + cooking._id);
+t("activity → ask day", allText(m).includes("Which day") && quick(m[0]).some((d) => d.startsWith("g=adt&d=")), m);
+m = await tap("g=adt&d=" + day(15));
+const slots = (m[0].quickReply?.items || []).map((i) => i.action.label);
+t("full time slot hidden, open slot shows spots left", slots.includes("09:00 (4 left)") && !slots.some((l) => l.startsWith("14:00")), slots);
+m = await tap("g=atm&t=14:00");
+t("tapping a full slot is refused", allText(m).includes("just filled up") || allText(m).includes("expired"), m);
+m = await tap("g=atm&t=09:00");
+t("qty limited to spots left", quick(m[0]).filter((d) => d.startsWith("g=aq")).length === 4, quick(m[0]));
+m = await tap("g=aq&n=5");
+t("more than spots left refused", allText(m).includes("1–4"), m);
+m = await tap("g=aq&n=2");
+t("ask name with LINE-name shortcut", allText(m).includes("full name") && quick(m[0]).includes("g=nm"), m);
+await tap("g=nm"); await say("+66 81 234 5678");
+m = await tap("g=pay&v=promptpay");
+t("activity confirm: 600 × 2 = 1,200", allText(m).includes("฿1,200") && allText(m).includes("09:00"), m);
+m = await tap("g=ok");
+const ab = db.ActivityBooking.find((a) => a.lineUserId === EN);
+t("activity booking saved via createActivityBooking", ab && ab.amount === 1200 && ab.qty === 2 && ab.time === "09:00" && ab.payStatus === "unpaid" && ab.payMethod === "promptpay" && ab.guestName === "Anna Smith" && ab.guestTel === "0812345678", ab);
+t("activity: QR for 1,200 + slip instructions in English", m.some((x) => x.type === "image" && x.originalContentUrl.includes("amount=1200")) && allText(m).includes("send a photo of your slip"), m);
+m = await send({ type: "message", message: { type: "image", id: "img9" } });
+t("slip for activity → reported", db.ActivityBooking.find((a) => a._id === ab._id).payStatus === "reported" && allText(m).includes("Got your slip"), m);
+
+// ---- การจองของฉัน + ยกเลิก
+const farRoom = await Booking.create({ hotel: h._id, roomType: garden._id, checkin: day(25), checkout: day(26), status: "confirmed", payStatus: "unpaid", payMethod: "transfer", amount: 900, lineUserId: EN, ref: "BP-FAR001", createdAt: new Date().toISOString() });
+const soonRoom = await Booking.create({ hotel: h._id, roomType: garden._id, checkin: day(1), checkout: day(2), status: "confirmed", payStatus: "paid", amount: 900, lineUserId: EN, ref: "BP-SOON01" });
+m = await say("my bookings");
+const myCards = m.find((x) => x.type === "flex")?.contents?.contents || [];
+t("my bookings: room + activity cards, sorted by date", myCards.length === 3 && allText(myCards[0]).includes("BP-SOON01") && allText(myCards).includes(ab.ref) && allText(myCards).includes("BP-FAR001"), myCards.map((c) => c.header?.contents?.[0]?.text));
+t("unpaid card has pay button + cancel button", allText(myCards.find((c) => allText(c).includes("BP-FAR001"))).includes("g=pay2&ref=BP-FAR001") && allText(myCards).includes("g=cx&ref=BP-FAR001"));
+m = await tap("g=pay2&ref=BP-FAR001");
+t("pay again → bank details for 900", allText(m).includes("Bank transfer") && allText(m).includes("฿900"), m);
+m = await tap("g=cx&ref=BP-FAR001");
+t("cancel early → free cancellation shown", allText(m).includes("Free cancellation") && allText(m).includes("g=cxok&ref=BP-FAR001"), m);
+m = await tap("g=cx&ref=BP-SOON01");
+t("cancel late (tomorrow) → warns terms + paid refund note", allText(m).includes("Past the free-cancellation") && allText(m).includes("refund"), m);
+m = await tap("g=cxok&ref=BP-FAR001");
+const far2 = db.Booking.find((b) => b._id === farRoom._id);
+t("cancel done: status cancelled, reason guest", far2.status === "cancelled" && far2.cancelReason === "guest" && allText(m).includes("has been cancelled"), far2);
+m = await tap("g=cxok&ref=BP-FAR001");
+t("cancel twice → not found / already", allText(m).includes("not found") || allText(m).includes("already"), m);
+const other = "U" + "3".repeat(32);
+await Booking.create({ hotel: h._id, roomType: garden._id, checkin: day(28), checkout: day(29), status: "confirmed", lineUserId: other, ref: "BP-OTHER1" });
+m = await tap("g=cxok&ref=BP-OTHER1");
+t("can't cancel someone else's booking", db.Booking.find((b) => b.ref === "BP-OTHER1").status === "confirmed", m);
+db.Hotel[0].allowGuestCancel = false;
+m = await tap("g=cx&ref=BP-SOON01");
+t("hotel disallows online cancel → refused", allText(m).includes("doesn't allow online cancellation") && db.Booking.find((b) => b.ref === "BP-SOON01").status === "confirmed", m);
+db.Hotel[0].allowGuestCancel = true;
+
+// ---- แจ้งแขกทาง OA ของโรงแรม (ภาษาของแขก)
+let k0 = calls.length;
+await notifyGuestPaid(ab._id, "act");
+let pushed = calls.slice(k0).find((c) => c.url.endsWith("/push"));
+t("activity paid → English push from hotel OA", pushed && pushed.body.to === EN && pushed.token === "Bearer hotel-token" && pushed.body.messages[0].text.includes("received your payment") && pushed.body.messages[0].text.includes(ab.ref), pushed);
+db.Hotel[0].checkInTime = "14:00"; db.Hotel[0].mapUrl = "https://maps.google.com/?q=1,2";
+k0 = calls.length;
+let n1 = await preArrivalLine(day(1));
+pushed = calls.slice(k0).filter((c) => c.url.endsWith("/push") && c.body.to === EN);
+t("day-before reminder: check-in time + map + ref", n1 >= 1 && pushed.some((c) => c.body.messages[0].text.includes("BP-SOON01") && c.body.messages[0].text.includes("14:00")), pushed.map((c) => c.body.messages[0].text));
+const n2 = await preArrivalLine(day(1));
+t("reminder not sent twice", n2 === 0, n2);
+k0 = calls.length;
+await notifyCancel(h._id, [db.Booking.find((b) => b.ref === "BP-SOON01")], { by: "auto" });
+pushed = calls.slice(k0).find((c) => c.url.endsWith("/push") && c.body.to === EN);
+t("auto-cancel → guest told in LINE", pushed && pushed.body.messages[0].text.includes("cancelled automatically"), pushed);
+delete db.Hotel[0].checkInTime; delete db.Hotel[0].mapUrl;
+who = GUEST;
 
 // ---- webhook ของโรงแรม: ตรวจลายเซ็น + โหมดตั้งค่า + หน้าเว็บยังจองได้เหมือนเดิม
 const app = express();

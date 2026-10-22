@@ -56,7 +56,7 @@
       <div><label>slug (ใช้ในลิงก์จอง book.html?h=)</label><input id="o-slug" placeholder="เช่น phuview (a-z, ไม่มีเว้นวรรค)"></div>
       <div><label>ทำเล</label><input id="o-loc" placeholder="เช่น เชียงใหม่"></div>
       <div><label>อีเมลเจ้าของ (ใช้ล็อกอิน)</label><input id="o-email" placeholder="owner@example.com"></div>
-      <div><label>ตั้งรหัสผ่านเจ้าของ</label><input id="o-pass" type="text" placeholder="ตั้งรหัสให้ แล้วแจ้งเจ้าของ"></div>
+      <div><label>ตั้งรหัสผ่านเจ้าของ (อย่างน้อย 8 ตัว)</label><input id="o-pass" type="text" placeholder="ตั้งรหัสให้ แล้วแจ้งเจ้าของ"></div>
     </div>
     <button class="btn" style="margin-top:12px" onclick="onboard()">สร้างโรงแรม</button>
     <p class="note" id="o-result"></p></div>
@@ -494,7 +494,7 @@ function cxChart(r,P,H){
 function val(id){return document.getElementById(id).value.trim();}
 async function onboard(){
   const name=val('o-name'),slug=val('o-slug'),location=val('o-loc'),ownerEmail=val('o-email'),ownerPassword=val('o-pass');
-  if(!name||!slug||!ownerEmail||!ownerPassword){API.toast('กรอกชื่อ, slug, อีเมล, รหัสให้ครบ','err');return;}
+  if(!name||!slug||!ownerEmail||!ownerPassword){API.toast('กรอกชื่อ, slug, อีเมล, รหัสให้ครบ','err');return;} if(ownerPassword.length<8){API.toast('รหัสผ่านเจ้าของอย่างน้อย 8 ตัวอักษร','err');return;}
   try{
     const r=await API.post('/hotels/onboard',{name,slug,location,ownerEmail,ownerPassword});
     document.getElementById('o-result').textContent='✔ สร้างแล้ว: '+name+' · เจ้าของล็อกอินด้วย '+ownerEmail+' · ลิงก์จอง /book.html?h='+r.hotel.slug;

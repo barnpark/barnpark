@@ -6,6 +6,7 @@ const schema = new mongoose.Schema({
   hotel:      { type: mongoose.Schema.Types.ObjectId, ref: "Hotel", required: true },
   userId:     { type: String, required: true },
   name:       String,                          // ชื่อที่แสดงใน LINE (ใช้เป็นค่าตั้งต้นชื่อผู้จอง)
+  lang:       { type: String, default: "th" }, // th | en — เดาจากภาษาที่ตั้งใน LINE แขกเปลี่ยนเองได้ (พิมพ์ English / ไทย)
   flow:       { type: String, default: "" },
   step:       { type: String, default: "" },
   data:       { type: mongoose.Schema.Types.Mixed, default: {} },
