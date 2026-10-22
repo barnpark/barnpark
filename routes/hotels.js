@@ -280,8 +280,9 @@ r.post("/admin/calc/channex", requireAuth, requireAdmin, async (req, res) => {
 // ดูสถานะการเชื่อม (ไม่คืน token)
 r.get("/hotels/:id/line", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
-  const h = await Hotel.findById(req.params.id).select("+lineChannelToken lineId");
-  res.json({ lineId: h?.lineId || "", connected: !!(h && h.lineChannelToken) });
+  const h = await Hotel.findById(req.params.id).select("+lineChannelToken +lineChannelSecret lineId");
+  // guestBot = แขกเช็คห้องว่าง/จอง/ชำระเงินในแชท OA ได้ (ต้องมีทั้ง token และ secret เพื่อตรวจลายเซ็น)
+  res.json({ lineId: h?.lineId || "", connected: !!(h && h.lineChannelToken), guestBot: !!(h && h.lineChannelToken && h.lineChannelSecret) });
 });
 // บันทึกการเชื่อม (token เก็บใน DB, select:false ไม่หลุด API ปกติ)
 r.patch("/hotels/:id/line", requireAuth, async (req, res) => {

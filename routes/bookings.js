@@ -2,7 +2,7 @@ import { Router } from "express";
 import Booking from "../models/Booking.js";
 import RoomType from "../models/RoomType.js";
 import { requireAuth, canAccessHotel } from "../lib/auth.js";
-import { notifyBooking, notifyCancel } from "../lib/notify.js";
+import { notifyBooking, notifyCancel, notifyGuestPaid } from "../lib/notify.js";
 import { methodTh } from "../lib/pay.js";
 
 const r = Router();
@@ -37,7 +37,9 @@ r.patch("/bookings/:id", requireAuth, async (req, res) => {
   if (!bk) return res.status(404).json({ error: "not found" });
   if (!canAccessHotel(req.user, bk.hotel)) return res.status(403).json({ error: "forbidden" });
   const { hotel, ...safe } = req.body;
-  res.json(await Booking.findByIdAndUpdate(req.params.id, safe, { new: true }));
+  const out = await Booking.findByIdAndUpdate(req.params.id, safe, { new: true });
+  if (safe.payStatus === "paid" && bk.payStatus !== "paid") notifyGuestPaid(bk._id).catch((e) => console.error("notifyGuestPaid", e.message));
+  res.json(out);
 });
 
 // ===== ที่พักยกเลิกการจอง (เก็บประวัติไว้ ไม่ลบ) — ยกเลิกทุกห้องในเลขจองเดียวกัน + แจ้งแขกทางอีเมล =====

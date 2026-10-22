@@ -3,10 +3,8 @@ import Hotel from "../models/Hotel.js";
 import RoomType from "../models/RoomType.js";
 import Booking from "../models/Booking.js";
 import Service from "../models/Service.js";
-import { notifyBooking } from "../lib/notify.js";
 import { evalPromo } from "../lib/promo.js";
 import { rateFor } from "../lib/pricing.js";
-import PromoCode from "../models/PromoCode.js";
 import Review from "../models/Review.js";
 import mongoose from "mongoose";
 import { parseDataUrl, fitForLine } from "../lib/images.js";
@@ -14,16 +12,13 @@ import ActivityBooking from "../models/ActivityBooking.js";
 import { sellsStandalone, availability, createActivityBooking } from "../lib/activity.js";
 import { notifyActivity, notifyCancel, notifyPaidReport, holdDeadline, bookingGroup, summarize } from "../lib/notify.js";
 import { breakfastOf, roomAmenities, stayInfo, lineContactUrl, lineLabel } from "../lib/stay.js";
-import { mkRef } from "../lib/security.js";
 import { promptPayPayload, normalizePromptPayId } from "../lib/promptpay.js";
 import { payMethodsOf, resolvePayChoice } from "../lib/pay.js";
+import { createRoomBooking } from "../lib/booking.js";
 
 // เลขจองต้องตรงเป๊ะ (BP-XXXXXX) — ห้ามค้นแบบขึ้นต้นด้วย ไม่งั้นใส่แค่ "BP-" ก็ยกเลิกทุกการจองของเบอร์นั้นได้
 const REF_RE = /^BP-[A-Z0-9]{6}$/;
 const refGroup = (ref) => new RegExp("^" + ref + "(-\\d+)?$");
-const YMD = /^\d{4}-\d{2}-\d{2}$/;
-const todayTH = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
-const int = (v, lo, hi, d) => { const n = parseInt(v, 10); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : d; };
 
 const r = Router();
 
@@ -291,81 +286,10 @@ r.get("/availability", async (req, res) => {
 
 // จองตรงจากหน้าแขก — ตรวจห้องว่างฝั่งเซิร์ฟเวอร์ + สร้างหลายห้องได้ + ยิงแจ้งเตือน
 r.post("/book", async (req, res) => {
-  const { slug, roomTypeId, din, dout, name, tel, email, pax, note, notify, rooms = 1, extraBed = 0, payRef = "", paid = false, payMethod = "", promoCode = "", addons = [], breakfast: wantBf = false, breakfastPax } = req.body || {};
-  const h = await Hotel.findOne({ slug });
+  const h = await Hotel.findOne({ slug: (req.body || {}).slug });
   if (!h) return res.status(404).json({ error: "hotel not found" });
-  if (h.approved === false) return res.status(403).json({ error: "ที่พักนี้ยังไม่เปิดรับจอง (รอการอนุมัติ)" });
-  if (!name || !tel) return res.status(400).json({ error: "กรุณากรอกชื่อและเบอร์โทร" });
-  // วิธีชำระ: ต้องเป็นช่องทางที่ที่พักเปิดไว้ (พร้อมเพย์ / โอนเข้าบัญชี / จ่ายที่เคาน์เตอร์)
-  const pc = resolvePayChoice(h, payMethod, !!paid);
-  if (pc.error) return res.status(400).json({ error: pc.error });
-  if (!YMD.test(String(din || "")) || !YMD.test(String(dout || "")) || dout <= din) return res.status(400).json({ error: "invalid dates" });
-  if (din < todayTH()) return res.status(400).json({ error: "วันเช็คอินผ่านมาแล้ว กรุณาเลือกวันใหม่" });
-  if (!mongoose.isValidObjectId(roomTypeId)) return res.status(404).json({ error: "room not found" });
-  const t = await RoomType.findOne({ _id: roomTypeId, hotel: h._id, hidden: { $ne: true } });
-  if (!t) return res.status(404).json({ error: "room not found" });
-
-  const want = int(rooms, 1, 20, 1);
-  const eb = int(extraBed, 0, 5, 0);
-  const overlapQ = { roomType: t._id, status: { $ne: "cancelled" }, checkin: { $lt: dout }, checkout: { $gt: din } };
-  const booked = await Booking.countDocuments(overlapQ);
-  if (booked + want > t.qty) return res.status(409).json({ error: "ห้องช่วงวันดังกล่าวไม่ว่างพอ" });
-
-  const nights = Math.max(1, Math.round((new Date(dout) - new Date(din)) / 86400000));
-  const rate = rateFor(t, din); // ราคาตามฤดู
-  if (rate.minNights && nights < rate.minNights) return res.status(400).json({ error: `ห้องนี้ต้องพักอย่างน้อย ${rate.minNights} คืนในช่วงนี้` });
-  const per = (rate.price + eb * (t.extraBedPrice || 0)) * nights;
-  // อาหารเช้า: รวมในราคาห้อง หรือแขกเลือกเพิ่ม (ราคาต่อท่าน/คืน — คิดจากราคาจริงของห้อง ไม่เชื่อยอดจากหน้าเว็บ)
-  const bf = breakfastOf(t);
-  let bfMode = "", bfPax = 0, bfTotal = 0;
-  if (bf.mode === "included") bfMode = "included";
-  else if (bf.mode === "optional" && wantBf) {
-    bfPax = int(breakfastPax ?? pax, 1, want * (Math.max(1, t.capacity || 2) + eb), 1);
-    bfTotal = bf.price * bfPax * nights; bfMode = "added";
-  }
-  // บริการเสริม (ขายพ่วง) — ตรวจราคากับบริการจริงของโรงแรม
-  let addonTotal = 0, addonList = [];
-  if (Array.isArray(addons) && addons.length) {
-    const svcs = await Service.find({ hotel: h._id });
-    for (const a of addons) {
-      const q = int(a && a.qty, 0, 50, 0); if (!q) continue;
-      const sv = svcs.find((s) => String(s._id) === String(a.serviceId) || s.name === a.name);
-      if (sv && sv.price) { addonTotal += sv.price * q; addonList.push({ name: sv.name, price: sv.price, qty: q }); }
-    }
-  }
-  // ส่วนลดจากโค้ดโปรโมชัน (คิดจากยอดห้องรวม แล้วเฉลี่ยลงต่อห้อง)
-  let perDiscount = 0, appliedPromo = null;
-  if (promoCode) {
-    const pr = await evalPromo(h._id, promoCode, nights, per * want);
-    if (pr.ok) { perDiscount = Math.round(pr.discount / want); appliedPromo = pr.promo; }
-  }
-  const ref = mkRef("BP");
-  const created = [];
-  for (let i = 0; i < want; i++) {
-    created.push(await Booking.create({
-      hotel: h._id, roomType: t._id, guestName: String(name).trim().slice(0, 100), guestTel: String(tel).trim().slice(0, 30), guestEmail: String(email || "").trim().slice(0, 120),
-      channel: "direct", checkin: din, checkout: dout, pax: int(pax, 1, 100, 1),
-      amount: Math.max(0, per - perDiscount) + (i === 0 ? addonTotal + bfTotal : 0), extraBed: eb,
-      breakfast: bfMode, breakfastPax: i === 0 ? bfPax : 0, breakfastTotal: i === 0 ? bfTotal : 0,
-      status: "confirmed", notifyChannel: notify === "none" ? "none" : "email", ref: ref + (i ? "-" + i : ""), note: String(note || "").slice(0, 500),
-      payStatus: pc.payStatus, payMethod: pc.method, payRef: paid ? String(payRef || "").slice(0, 60) : "",
-      promoCode: appliedPromo ? appliedPromo.code : "", discount: perDiscount,
-      addons: i === 0 ? addonList : [], addonTotal: i === 0 ? addonTotal : 0,
-    }));
-  }
-  if (appliedPromo) { await PromoCode.updateOne({ _id: appliedPromo._id }, { $inc: { usedCount: 1 } }); }
-  // ★ กันจองซ้อน (race condition): ตรวจซ้ำหลังบันทึก — ถ้าเกินโควตาให้ถอนคืนแล้วแจ้งเต็ม
-  const confirmedCount = await Booking.countDocuments(overlapQ);
-  if (confirmedCount > t.qty) {
-    await Booking.deleteMany({ _id: { $in: created.map((c) => c._id) } });
-    return res.status(409).json({ error: "ขออภัย ห้องเพิ่งถูกจองพอดี กรุณาเลือกวันหรือห้องใหม่" });
-  }
-  notifyBooking(created[0]._id).catch((e) => console.error("notify", e));
-  res.json({
-    ok: true, ref, amount: Math.max(0, per - perDiscount) * want + addonTotal + bfTotal, rooms: want, discount: perDiscount * want, addonTotal,
-    breakfast: bfMode, breakfastPax: bfPax, breakfastTotal: bfTotal, nights, checkin: din, checkout: dout, roomName: t.name,
-    payStatus: created[0].payStatus, payMethod: created[0].payMethod || "", holdUntil: holdDeadline(h, created[0]),
-  });
+  const out = await createRoomBooking(h, req.body || {});
+  res.status(out.status).json(out.body);
 });
 
 export default r;
