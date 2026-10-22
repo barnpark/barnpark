@@ -4,6 +4,7 @@ import Service from "../models/Service.js";
 import Hotel from "../models/Hotel.js";
 import { requireAuth, canAccessHotel } from "../lib/auth.js";
 import { createActivityBooking } from "../lib/activity.js";
+import { notifyGuestPaid } from "../lib/notify.js";
 
 const r = Router();
 
@@ -31,7 +32,9 @@ r.patch("/activity-bookings/:id", requireAuth, async (req, res) => {
   if (b2.payStatus !== undefined) { if (!["unpaid", "reported", "paid", "onsite"].includes(b2.payStatus)) return res.status(400).json({ error: "สถานะการชำระไม่ถูกต้อง" }); set.payStatus = b2.payStatus; }
   if (b2.status !== undefined) { if (!["confirmed", "cancelled"].includes(b2.status)) return res.status(400).json({ error: "สถานะไม่ถูกต้อง" }); set.status = b2.status; }
   for (const [k, n] of [["note", 300], ["guestName", 120], ["guestTel", 30]]) if (b2[k] !== undefined) set[k] = String(b2[k] ?? "").trim().slice(0, n);
-  res.json(await ActivityBooking.findByIdAndUpdate(b._id, { $set: set }, { new: true }));
+  const out = await ActivityBooking.findByIdAndUpdate(b._id, { $set: set }, { new: true });
+  if (set.payStatus === "paid" && b.payStatus !== "paid") notifyGuestPaid(b._id, "act").catch((e) => console.error("notifyGuestPaid", e.message));
+  res.json(out);
 });
 r.delete("/activity-bookings/:id", requireAuth, async (req, res) => {
   const b = await ActivityBooking.findById(req.params.id);
