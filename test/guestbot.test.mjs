@@ -1,7 +1,7 @@
 // บอทจองห้องของแขกใน LINE OA ของโรงแรม (lib/guestbot.js, routes/line.js webhook/:slug, lib/booking.js)
 // แทนโมเดลด้วยที่เก็บในหน่วยความจำ + แทน fetch: จับข้อความที่ตอบ/ส่งหา LINE โดยไม่ออกอินเทอร์เน็ตจริง
 import crypto from "crypto";
-Object.assign(process.env, { LINE_CHANNEL_TOKEN: "central-token", PUBLIC_URL: "https://bp.test" });
+Object.assign(process.env, { LINE_CHANNEL_TOKEN: "central-token", PUBLIC_URL: "https://bp.test", JWT_SECRET: "test-secret-0123456789-abcdef" });
 delete process.env.BREVO_API_KEY;
 
 const realFetch = globalThis.fetch;
@@ -10,8 +10,26 @@ globalThis.fetch = async (url, opt = {}) => {
   url = String(url);
   if (url.startsWith("http://127.0.0.1")) return realFetch(url, opt);
   calls.push({ url, token: (opt.headers || {}).authorization, body: opt.body ? JSON.parse(opt.body) : null });
+  if (url.startsWith("https://api.line.me/v2/bot/")) return fakeLineApi(url, opt);
   return new Response("{}", { status: 200 });
 };
+
+// LINE API ปลอม สำหรับปุ่ม "ทดสอบการเชื่อม" — จำ Webhook URL + ยิง webhook ทดสอบที่ลงลายเซ็นด้วย secret ของ channel จริง
+const LINE = { tokenOk: true, endpoint: "", active: true, secret: "hotel-secret", localBase: "" };
+async function fakeLineApi(url, opt) {
+  const path = url.replace("https://api.line.me", ""), json = (o, st = 200) => new Response(JSON.stringify(o), { status: st });
+  if (!LINE.tokenOk) return json({ message: "Authentication failed" }, 401);
+  if (path === "/v2/bot/info") return json({ displayName: "บ้านทดสอบ OA", basicId: "@test" });
+  if (path === "/v2/bot/channel/webhook/endpoint" && opt.method === "PUT") { LINE.endpoint = JSON.parse(opt.body).endpoint; return json({}); }
+  if (path === "/v2/bot/channel/webhook/endpoint") return json({ endpoint: LINE.endpoint, active: LINE.active });
+  if (path === "/v2/bot/channel/webhook/test") {
+    const raw = JSON.stringify({ destination: "x", events: [] });
+    const sig = crypto.createHmac("sha256", LINE.secret).update(raw).digest("base64");
+    const r = await realFetch(JSON.parse(opt.body).endpoint.replace("https://bp.test", LINE.localBase), { method: "POST", headers: { "content-type": "application/json", "x-line-signature": sig }, body: raw });
+    return json({ success: r.status === 200, statusCode: r.status, reason: r.status === 200 ? "OK" : "ERROR" });
+  }
+  return json({});
+}
 
 const mongoose = (await import("mongoose")).default;
 const Hotel = (await import("../models/Hotel.js")).default;
@@ -184,6 +202,9 @@ t("4th unpaid booking refused", db.Booking.length === n0 && allText(m).includes(
 const app = express();
 app.use(express.json({ verify: (req, _res, buf) => { req.rawBody = buf; } }));
 app.use("/api/line", lineRoutes); app.use("/api/public", publicRoutes);
+const hotelRoutes = (await import("../routes/hotels.js")).default;
+const { sign } = await import("../lib/auth.js");
+app.use("/api", hotelRoutes);
 const srv = app.listen(0); await new Promise((r) => srv.once("listening", r));
 const base = "http://127.0.0.1:" + srv.address().port;
 const hook = async (slug, payload, secret) => {
@@ -208,6 +229,32 @@ const wb = await res.json();
 t("website booking still works", res.status === 200 && wb.ok && wb.amount === 2400 && /^BP-/.test(wb.ref), wb);
 res = await realFetch(base + "/api/public/book", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug: "nope" }) });
 t("website: unknown hotel → 404", res.status === 404, res.status);
+
+// ---- ปุ่ม "ทดสอบและตั้งค่าอัตโนมัติ" ในเว็บหลังบ้าน (POST /api/hotels/:id/line/check)
+LINE.localBase = base;
+db.Hotel[0].lineChannelSecret = "hotel-secret";
+const owner = sign({ _id: "u-owner", role: "owner", hotel: h._id }), stranger = sign({ _id: "u-x", role: "owner", hotel: "64b7f0c2a1b2c3d4e5f60718" });
+const check = async (tok, body = {}) => { const r2 = await realFetch(base + `/api/hotels/${h._id}/line/check`, { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + tok }, body: JSON.stringify(body) }); return { status: r2.status, j: await r2.json() }; };
+const failed = (j) => j.steps.filter((x) => !x.ok).map((x) => x.title);
+let ck = await check(stranger);
+t("check: other hotel's owner refused", ck.status === 403, ck);
+ck = await check(owner);
+t("check: webhook not set → reported, nothing changed", !ck.j.ok && failed(ck.j).includes("Webhook URL") && LINE.endpoint === "", ck.j);
+ck = await check(owner, { fix: true });
+t("check+fix: sets webhook URL and LINE test passes", ck.j.ok && LINE.endpoint === "https://bp.test/api/line/webhook/test-home", ck.j);
+LINE.secret = "other-channel-secret";
+ck = await check(owner, { fix: true });
+t("check: wrong secret → 401 explained", !ck.j.ok && JSON.stringify(ck.j).includes("401") && JSON.stringify(ck.j).includes("Channel secret"), ck.j);
+LINE.secret = "hotel-secret"; LINE.active = false;
+ck = await check(owner, { fix: true });
+t("check: Use webhook off → reported", !ck.j.ok && failed(ck.j).includes("เปิด Use webhook"), ck.j);
+LINE.active = true; LINE.tokenOk = false;
+ck = await check(owner, { fix: true });
+t("check: bad token → stops early with fix hint", !ck.j.ok && failed(ck.j).includes("token ใช้งานได้") && ck.j.steps.length === 2, ck.j);
+LINE.tokenOk = true;
+db.Hotel[0].lineChannelSecret = "";
+ck = await check(owner, { fix: true });
+t("check: missing secret → reported", !ck.j.ok && failed(ck.j).includes("Channel secret"), ck.j);
 srv.close();
 
 console.log(`guestbot: ${ok} passed, ${bad} failed`);

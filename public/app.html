@@ -178,20 +178,22 @@
       <div class="field" id="set-amen"><label>🏊 สิ่งอำนวยความสะดวกของที่พัก (กดเลือก หรือพิมพ์เพิ่มเอง)</label><div id="amen-box" style="margin:4px 0 6px"></div>
         <div style="display:flex;gap:6px"><input id="amen-add" placeholder="พิมพ์เพิ่มเอง คั่นด้วย , เช่น คาราโอเกะ, ห้องประชุม" onkeydown="if(event.key==='Enter'){event.preventDefault();addAmen();}"><button class="btn ghost sm" onclick="addAmen()">เพิ่ม</button></div></div>
       <button class="btn" onclick="saveHotel()">บันทึกข้อมูลหน้าเว็บ</button></div>
-    <div class="panel"><h3>📲 (ขั้นสูง) เชื่อม LINE OA ของโรงแรมคุณเอง เพื่อรับแจ้งเตือน</h3>
-      <p class="sub" style="margin-top:0">ใช้ LINE OA ของโรงแรมคุณเอง — มีจองใหม่/สรุปรายวันจะเด้งเข้า LINE ของคุณ (ทำครั้งเดียว ~5 นาที)</p>
+    <div class="panel"><h3>📲 เชื่อม LINE OA ของโรงแรม — ให้แขกจองห้องในแชท + รับแจ้งเตือน</h3>
+      <p class="sub" style="margin-top:0">แขกทัก LINE OA ของโรงแรม → เช็คห้องว่าง จอง และชำระเงินได้ในแชท · มีจองใหม่เด้งเข้า LINE ของคุณ (ทำครั้งเดียว ~5 นาที)</p>
       <div class="formgrid">
         <div><label>Channel access token</label><input id="s-line-token" type="password" placeholder="วางค่า token (จาก Messaging API)"></div>
         <div><label>Channel secret</label><input id="s-line-secret" type="password" placeholder="วางค่า channel secret"></div>
         <div><label>LINE ผู้รับแจ้งเตือน (userId/กลุ่ม)</label><input id="s-line-notify" placeholder="Uxxxx… (ดูวิธีได้ด้านล่าง)"></div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;margin-top:12px"><button class="btn" onclick="saveLine()">บันทึกการเชื่อม LINE</button><span id="line-status" class="note" style="margin:0"></span></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap"><button class="btn" onclick="saveLine()">บันทึกการเชื่อม LINE</button><button class="btn ghost" id="line-check-btn" onclick="checkLine(true)">🔌 ทดสอบและตั้งค่าอัตโนมัติ</button><span id="line-status" class="note" style="margin:0"></span></div>
+      <div id="line-check" style="margin-top:10px"></div>
       <div class="why" style="margin-top:14px;text-align:left">
         <b>วิธีเชื่อม LINE OA ของโรงแรมคุณ (ทำครั้งเดียว):</b><br>
-        <b>1.</b> ที่ <b>developers.line.biz</b> → สร้าง Messaging API channel ของโรงแรมคุณ → คัดลอก <b>Channel access token</b> + <b>Channel secret</b> มาวางด้านบน แล้วกดบันทึก<br>
-        <b>2. หา "ผู้รับแจ้งเตือน (userId)" — ง่ายสุด:</b> ในหน้า channel → แท็บ <b>Basic settings</b> → เลื่อนล่างสุด เจอ <b>"Your user ID"</b> (ขึ้นต้น U…) ก็อปมาวางช่อง "LINE ผู้รับแจ้งเตือน" ด้านบน → บันทึก<br>
-        <b>3. แอดเพื่อน OA ของคุณเอง</b> (สำคัญ! ไม่แอดเพื่อน LINE จะส่งหาไม่ได้) — เสร็จ! มีจองใหม่จะเด้งเข้า LINE ทันที<br>
-        <span class="note">— หรือถ้าให้ลูกค้าหลายคนรับแจ้งเตือนในกลุ่ม: ใส่ Webhook URL นี้ในหน้า channel แล้วทักแชตเพื่อเอา userId/groupId:
+        <b>1.</b> ที่ <b>developers.line.biz</b> → เลือก Messaging API channel ของ OA โรงแรม → คัดลอก <b>Channel secret</b> (แท็บ Basic settings) + <b>Channel access token</b> (แท็บ Messaging API → Issue) มาวางด้านบน แล้วกดบันทึก<br>
+        <b>2.</b> กด <b>🔌 ทดสอบและตั้งค่าอัตโนมัติ</b> — ระบบตั้ง Webhook URL ให้ แล้วให้ LINE ลองส่งข้อความทดสอบ ถ้ามีขั้นไหนไม่ผ่านจะบอกวิธีแก้ (ส่วนใหญ่คือเปิดสวิตช์ <b>Use webhook</b> ในแท็บ Messaging API)<br>
+        <b>3.</b> ลองแอดเพื่อน OA ของโรงแรมจากมือถือ แล้วพิมพ์ <b>ห้องว่าง</b> — บอทจะพาจองจนจบ<br>
+        <b>4. (รับแจ้งเตือนจองใหม่)</b> แท็บ Basic settings → เลื่อนล่างสุด <b>"Your user ID"</b> (ขึ้นต้น U…) ก็อปมาวางช่อง "LINE ผู้รับแจ้งเตือน" → บันทึก · หรือพิมพ์ <b>ไอดี</b> ในแชท OA / ในกลุ่มของทีม<br>
+        <span class="note">Webhook URL ของที่พักนี้ (ตั้งเองได้ถ้าไม่ใช้ปุ่มอัตโนมัติ):
         <div style="display:flex;gap:6px;margin:6px 0"><input id="s-line-webhook" readonly style="flex:1;font-size:12px"><button class="btn ghost sm" onclick="copyWebhook()">คัดลอก</button></div></span>
       </div></div>
     <div class="panel" id="set-pay"><h3>💳 วิธีรับเงินจากแขก</h3><p class="sub" style="margin-top:0">เปิดเฉพาะช่องทางที่ที่พักรับได้ — แขกจะเห็นเฉพาะช่องทางที่เปิด (เปิดได้หลายช่องทางพร้อมกัน)</p>
@@ -765,6 +767,15 @@ async function toggleHideRT(id){ const t=RT.find(x=>String(x._id)===String(id));
 async function editDescRT(id){ const t=RT.find(x=>String(x._id)===String(id)); if(!t)return; const v=prompt('คำอธิบายห้อง (แสดงบนการ์ดห้องในหน้าจอง)',t.description||''); if(v===null)return; const d=v.trim().slice(0,300); try{ await API.patch('/rooms/'+id,{description:d}); t.description=d; renderRooms(); API.toast('บันทึกคำอธิบายแล้ว','ok'); }catch(e){API.toast(e.message,'err');} }
 async function editAmenRT(id){ const t=RT.find(x=>String(x._id)===String(id)); if(!t)return; const v=prompt('สิ่งอำนวยความสะดวกในห้อง (คั่นด้วย , ) เช่น แอร์, Wi-Fi, น้ำอุ่น, ทีวี',(t.amenities||[]).join(', ')); if(v===null)return; const list=v.split(',').map(x=>x.trim()).filter(Boolean).slice(0,20); try{ await API.patch('/rooms/'+id,{amenities:list}); t.amenities=list; renderRooms(); API.toast('บันทึกแล้ว','ok'); }catch(e){API.toast(e.message,'err');} }
 async function toggleHideSvc(id){ const s=SVC.find(x=>String(x._id)===String(id)); if(!s)return; try{ await API.patch('/services/'+id,{hidden:!s.hidden}); s.hidden=!s.hidden; renderSvc(); API.toast(s.hidden?'ปิดขายแล้ว':'เปิดขายแล้ว','ok'); }catch(e){API.toast(e.message,'err');} }
+async function checkLine(fix){
+  const box=document.getElementById('line-check'),b=document.getElementById('line-check-btn');
+  b.disabled=true; box.innerHTML='<p class="note">กำลังทดสอบกับ LINE…</p>';
+  try{ const r=await API.post('/hotels/'+HID+'/line/check',{fix:!!fix});
+    box.innerHTML='<div class="why" style="text-align:left">'+r.steps.map(x=>(x.ok?'✅ ':'❌ ')+'<b>'+esc(x.title)+'</b> — '+esc(x.msg)).join('<br>')+(r.ok?'<br><b>พร้อมแล้ว 🎉 แขกทัก LINE OA แล้วพิมพ์ “ห้องว่าง” จองได้เลย</b>':'')+'</div>';
+    if(r.ok) document.getElementById('line-status').textContent='✔ แขกเช็คห้องว่าง จอง และชำระเงินในแชทได้';
+  }catch(e){ box.innerHTML='<p class="note">ทดสอบไม่สำเร็จ: '+esc(e.message)+'</p>'; }
+  b.disabled=false;
+}
 function copyWebhook(){const el=document.getElementById('s-line-webhook');el.select();navigator.clipboard.writeText(el.value).then(()=>API.toast('คัดลอก Webhook URL แล้ว','ok'));}
 async function saveLine(){
   const token=document.getElementById('s-line-token').value.trim();
@@ -775,7 +786,7 @@ async function saveLine(){
     const lr=await API.patch('/hotels/'+HID+'/line',body); if(lr&&lr.lineId&&!HOTEL.lineId){ HOTEL.lineId=lr.lineId; document.getElementById('s-line-id').value=lr.lineId; API.toast('ใส่ปุ่มแชท LINE บนหน้าจองให้แล้ว: '+lr.lineId,'ok'); }
     const updated=await API.patch('/hotels/'+HID,{notifyLineTo}); Object.assign(HOTEL,updated);
     document.getElementById('s-line-token').value=''; document.getElementById('s-line-secret').value='';
-    try{ const ls=await API.get('/hotels/'+HID+'/line'); document.getElementById('line-status').textContent=ls.guestBot?'✔ บันทึกแล้ว · แขกเช็คห้องว่าง จอง และชำระเงินในแชทได้':'✔ บันทึกแล้ว · ใส่ Channel secret เพื่อเปิดให้แขกจองในแชท'; }catch{ document.getElementById('line-status').textContent='✔ บันทึกการเชื่อม LINE แล้ว'; } API.toast('บันทึก LINE OA แล้ว','ok');
+    try{ const ls=await API.get('/hotels/'+HID+'/line'); document.getElementById('line-status').textContent=ls.guestBot?'✔ บันทึกแล้ว · แขกเช็คห้องว่าง จอง และชำระเงินในแชทได้':'✔ บันทึกแล้ว · ใส่ Channel secret เพื่อเปิดให้แขกจองในแชท'; }catch{ document.getElementById('line-status').textContent='✔ บันทึกการเชื่อม LINE แล้ว'; } API.toast('บันทึก LINE OA แล้ว','ok'); if(token||secret) checkLine(true);
   }catch(e){API.toast(e.message,'err');}
 }
 boot();
