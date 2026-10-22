@@ -15,6 +15,7 @@ import { breakfastOf, roomAmenities, stayInfo, lineContactUrl, lineLabel } from 
 import { promptPayPayload, normalizePromptPayId } from "../lib/promptpay.js";
 import { payMethodsOf, resolvePayChoice } from "../lib/pay.js";
 import { createRoomBooking } from "../lib/booking.js";
+import { usedPeaks } from "../lib/availability.js";
 
 // เลขจองต้องตรงเป๊ะ (BP-XXXXXX) — ห้ามค้นแบบขึ้นต้นด้วย ไม่งั้นใส่แค่ "BP-" ก็ยกเลิกทุกการจองของเบอร์นั้นได้
 const REF_RE = /^BP-[A-Z0-9]{6}$/;
@@ -265,11 +266,10 @@ r.get("/availability", async (req, res) => {
   const h = await Hotel.findOne({ slug });
   if (!h) return res.status(404).json({ error: "not found" });
   const rts = await RoomType.find({ hotel: h._id, hidden: { $ne: true } }).sort("sort");
+  const used = await usedPeaks(rts.map((t) => t._id), din, dout); // ห้องที่ใช้มากสุดต่อคืนในช่วง (คิวรีเดียว)
   const out = [];
   for (const t of rts) {
-    const booked = await Booking.countDocuments({
-      roomType: t._id, status: { $ne: "cancelled" }, checkin: { $lt: dout }, checkout: { $gt: din },
-    });
+    const booked = used[String(t._id)] || 0;
     const rate = rateFor(t, din); // ราคาตามฤดู (ถ้ามี)
     const bf = breakfastOf(t);
     out.push({

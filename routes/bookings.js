@@ -4,6 +4,7 @@ import RoomType from "../models/RoomType.js";
 import { requireAuth, canAccessHotel } from "../lib/auth.js";
 import { notifyBooking, notifyCancel, notifyGuestPaid } from "../lib/notify.js";
 import { methodTh } from "../lib/pay.js";
+import { usedPeak } from "../lib/availability.js";
 
 const r = Router();
 
@@ -67,7 +68,7 @@ r.post("/bookings/:id/restore", requireAuth, async (req, res) => {
   if (!list.length) return res.json({ ok: true, restored: 0 });
   if (bk.roomType) {
     const t = await RoomType.findById(bk.roomType).select("qty").lean();
-    const busy = await Booking.countDocuments({ roomType: bk.roomType, status: { $ne: "cancelled" }, checkin: { $lt: bk.checkout }, checkout: { $gt: bk.checkin } });
+    const busy = await usedPeak(bk.roomType, bk.checkin, bk.checkout); // คืนที่แน่นที่สุดในช่วง
     if (t && busy + list.length > (t.qty || 1)) return res.status(409).json({ error: "ห้องช่วงวันนั้นถูกจองไปแล้ว กู้คืนไม่ได้ — สร้างการจองใหม่ในวัน/ห้องอื่นแทน" });
   }
   await Booking.updateMany({ _id: { $in: list.map((b) => b._id) } }, { $set: { status: "confirmed", cancelReason: "" }, $unset: { cancelledAt: 1 } });
