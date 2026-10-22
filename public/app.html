@@ -648,7 +648,7 @@ async function fillSettings(){
   document.getElementById('s-line-webhook').value=location.origin+'/api/line/webhook/'+encodeURIComponent(HOTEL.slug);
   document.getElementById('s-pp-id').value=HOTEL.promptpayId||'';document.getElementById('s-pp-name').value=HOTEL.promptpayName||''; ppPreview();
   document.getElementById('s-taxid').value=HOTEL.taxId||'';document.getElementById('s-address').value=HOTEL.address||'';
-  try{ const ls=await API.get('/hotels/'+HID+'/line'); document.getElementById('line-status').textContent=ls.connected?'✔ เชื่อม LINE OA แล้ว':'ยังไม่ได้เชื่อม'; }catch{}
+  try{ const ls=await API.get('/hotels/'+HID+'/line'); document.getElementById('line-status').textContent=ls.guestBot?'✔ เชื่อม LINE OA แล้ว · แขกเช็คห้องว่าง จอง และชำระเงินในแชทได้':ls.connected?'✔ เชื่อม LINE OA แล้ว · ใส่ Channel secret เพื่อเปิดให้แขกจองในแชท':'ยังไม่ได้เชื่อม'; }catch{}
   setupLinePanel();
 }
 function ppPreview(){ const box=document.getElementById('pp-test'); if(!box) return; const id=String(HOTEL.promptpayId||'').replace(/\D/g,''); const on=document.getElementById('s-pay-pp'); if(!id||(on&&!on.checked)){ box.style.display='none'; return; }
@@ -775,7 +775,7 @@ async function saveLine(){
     const lr=await API.patch('/hotels/'+HID+'/line',body); if(lr&&lr.lineId&&!HOTEL.lineId){ HOTEL.lineId=lr.lineId; document.getElementById('s-line-id').value=lr.lineId; API.toast('ใส่ปุ่มแชท LINE บนหน้าจองให้แล้ว: '+lr.lineId,'ok'); }
     const updated=await API.patch('/hotels/'+HID,{notifyLineTo}); Object.assign(HOTEL,updated);
     document.getElementById('s-line-token').value=''; document.getElementById('s-line-secret').value='';
-    document.getElementById('line-status').textContent='✔ บันทึกการเชื่อม LINE แล้ว'; API.toast('บันทึก LINE OA แล้ว','ok');
+    try{ const ls=await API.get('/hotels/'+HID+'/line'); document.getElementById('line-status').textContent=ls.guestBot?'✔ บันทึกแล้ว · แขกเช็คห้องว่าง จอง และชำระเงินในแชทได้':'✔ บันทึกแล้ว · ใส่ Channel secret เพื่อเปิดให้แขกจองในแชท'; }catch{ document.getElementById('line-status').textContent='✔ บันทึกการเชื่อม LINE แล้ว'; } API.toast('บันทึก LINE OA แล้ว','ok');
   }catch(e){API.toast(e.message,'err');}
 }
 boot();

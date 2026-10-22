@@ -1,0 +1,214 @@
+// บอทจองห้องของแขกใน LINE OA ของโรงแรม (lib/guestbot.js, routes/line.js webhook/:slug, lib/booking.js)
+// แทนโมเดลด้วยที่เก็บในหน่วยความจำ + แทน fetch: จับข้อความที่ตอบ/ส่งหา LINE โดยไม่ออกอินเทอร์เน็ตจริง
+import crypto from "crypto";
+Object.assign(process.env, { LINE_CHANNEL_TOKEN: "central-token", PUBLIC_URL: "https://bp.test" });
+delete process.env.BREVO_API_KEY;
+
+const realFetch = globalThis.fetch;
+const calls = [];
+globalThis.fetch = async (url, opt = {}) => {
+  url = String(url);
+  if (url.startsWith("http://127.0.0.1")) return realFetch(url, opt);
+  calls.push({ url, token: (opt.headers || {}).authorization, body: opt.body ? JSON.parse(opt.body) : null });
+  return new Response("{}", { status: 200 });
+};
+
+const mongoose = (await import("mongoose")).default;
+const Hotel = (await import("../models/Hotel.js")).default;
+const RoomType = (await import("../models/RoomType.js")).default;
+const Booking = (await import("../models/Booking.js")).default;
+const GuestChat = (await import("../models/GuestChat.js")).default;
+const LineChat = (await import("../models/LineChat.js")).default;
+const Service = (await import("../models/Service.js")).default;
+const { handleGuestEvent } = await import("../lib/guestbot.js");
+const { notifyGuestPaid } = await import("../lib/notify.js");
+const { todayTH } = await import("../lib/linebot.js");
+const express = (await import("express")).default;
+const lineRoutes = (await import("../routes/line.js")).default;
+const publicRoutes = (await import("../routes/public.js")).default;
+
+let ok = 0, bad = 0;
+const t = (n, c, x) => { if (c) ok++; else { bad++; console.log("FAIL", n, x !== undefined ? JSON.stringify(x).slice(0, 400) : ""); } };
+
+// ---- ที่เก็บในหน่วยความจำ (รองรับเฉพาะ query ที่โค้ดนี้ใช้)
+const S = (v) => (v instanceof mongoose.Types.ObjectId ? String(v) : v);
+const eq = (a, b) => (Array.isArray(a) ? a.map(S).includes(S(b)) : String(S(a) ?? "") === String(S(b) ?? "") && (a != null) === (b != null));
+function match(d, q = {}) {
+  return Object.entries(q).every(([k, c]) => {
+    const v = d[k];
+    if (c instanceof RegExp) return c.test(String(v ?? ""));
+    if (c && typeof c === "object" && !(c instanceof mongoose.Types.ObjectId) && Object.keys(c).some((x) => x[0] === "$")) {
+      return Object.entries(c).every(([op, x]) =>
+        op === "$ne" ? !eq(v, x) : op === "$lt" ? v < x : op === "$lte" ? v <= x : op === "$gt" ? v > x : op === "$gte" ? v >= x
+          : op === "$in" ? x.some((y) => eq(v, y)) : op === "$nin" ? !x.some((y) => eq(v, y)) : op === "$exists" ? (v !== undefined) === x : false);
+    }
+    return eq(v, c);
+  });
+}
+const clone = (x) => (x ? JSON.parse(JSON.stringify(x)) : x);
+function chain(run) {
+  const c = { s: null, n: 0, sort(x) { this.s = x; return this; }, limit(n) { this.n = n; return this; }, select() { return this; }, lean() { return this; },
+    then(a, b) { return Promise.resolve().then(() => run(this)).then(a, b); } };
+  return c;
+}
+const byKeys = (s) => { const ks = typeof s === "string" ? s.split(" ").map((k) => (k[0] === "-" ? [k.slice(1), -1] : [k, 1])) : Object.entries(s || {}); return (a, b) => { for (const [k, d] of ks) { if (a[k] < b[k]) return -d; if (a[k] > b[k]) return d; } return 0; }; };
+const db = {};
+function stub(M) {
+  const rows = (db[M.modelName] = []);
+  const find = (q) => rows.filter((r) => match(r, q));
+  const setter = (r, u) => { for (const [k, v] of Object.entries(u.$set || {})) r[k] = S(v); for (const [k, v] of Object.entries(u.$inc || {})) r[k] = (r[k] || 0) + v; };
+  M.find = (q) => chain((c) => { let r = find(q); if (c.s) r = r.slice().sort(byKeys(c.s)); if (c.n) r = r.slice(0, c.n); return r.map(clone); });
+  M.findOne = (q) => chain((c) => { let r = find(q); if (c.s) r = r.slice().sort(byKeys(c.s)); return clone(r[0] || null); });
+  M.findById = (id) => M.findOne({ _id: String(id) });
+  M.exists = (q) => chain(() => (find(q)[0] ? { _id: find(q)[0]._id } : null));
+  M.countDocuments = (q) => chain(() => find(q).length);
+  M.create = async (o) => {
+    if (M.modelName === "GuestChat" && find({ hotel: o.hotel, userId: o.userId }).length) throw Object.assign(new Error("dup"), { code: 11000 });
+    const base = new M({}).toObject(); delete base._id;
+    const r = { ...clone(base), ...clone(o), _id: String(new mongoose.Types.ObjectId()), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    rows.push(r); return clone(r);
+  };
+  M.updateOne = (q, u) => chain(() => { const r = find(q)[0]; if (r) setter(r, u); return { modifiedCount: r ? 1 : 0 }; });
+  M.updateMany = (q, u) => chain(() => { const r = find(q); r.forEach((x) => setter(x, u)); return { modifiedCount: r.length }; });
+  M.findOneAndUpdate = (q, u) => chain(() => { const r = find(q)[0]; if (!r) return null; const old = clone(r); setter(r, u); return old; });
+  M.deleteMany = (q) => chain(() => { const r = find(q); r.forEach((x) => rows.splice(rows.indexOf(x), 1)); return { deletedCount: r.length }; });
+}
+[Hotel, RoomType, Booking, GuestChat, LineChat, Service].forEach(stub);
+
+// ---- ข้อมูลตั้งต้น
+const today = todayTH();
+const day = (n) => { const d = new Date(today + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const h = await Hotel.create({
+  name: "บ้านทดสอบ", slug: "test-home", phone: "0811111111", promptpayId: "0812345678", payPromptpay: true,
+  bankName: "กสิกรไทย", bankAccountNo: "1234567890", bankAccountName: "บ้านทดสอบ", holdHours: 24,
+  lineChannelToken: "hotel-token", lineChannelSecret: "hotel-secret",
+});
+const riverside = await RoomType.create({ hotel: h._id, name: "ริมน้ำ", qty: 2, capacity: 3, basePrice: 1200, breakfast: "optional", breakfastPrice: 150, sort: 1 });
+const garden = await RoomType.create({ hotel: h._id, name: "สวน", qty: 1, capacity: 2, basePrice: 900, sort: 2 });
+await RoomType.create({ hotel: h._id, name: "วิลล่า", qty: 1, capacity: 4, basePrice: 3000, sort: 3, seasons: [{ name: "ไฮ", from: "2000-01-01", to: "2100-01-01", price: 3500, minNights: 3 }] });
+await RoomType.create({ hotel: h._id, name: "ห้องซ่อน", qty: 1, basePrice: 500, sort: 4, hidden: true });
+await Booking.create({ hotel: h._id, roomType: garden._id, checkin: day(10), checkout: day(12), status: "confirmed" });
+
+const GUEST = "U" + "1".repeat(32);
+let seq = 0;
+async function send(ev) {
+  const before = calls.length;
+  await handleGuestEvent(await Hotel.findOne({ _id: h._id }).lean(), { replyToken: "rt" + ++seq, source: { type: "user", userId: GUEST }, ...ev });
+  const r = calls.slice(before).find((c) => c.url.endsWith("/v2/bot/message/reply"));
+  return r ? r.body.messages : [];
+}
+const say = (s) => send({ type: "message", message: { type: "text", text: s } });
+const tap = (data, params) => send({ type: "postback", postback: { data, params } });
+const quick = (m) => (m.quickReply?.items || []).map((i) => i.action.data || i.action.type);
+const allText = (msgs) => JSON.stringify(msgs);
+
+// ---- เมนู / เริ่มจอง
+let m = await send({ type: "follow" });
+t("follow → welcome card", m[0]?.type === "flex" && allText(m).includes("เช็คห้องว่าง") && allText(m).includes("บ้านทดสอบ"), m);
+t("replies with the hotel's own token", calls.at(-1).token === "Bearer hotel-token", calls.at(-1).token);
+m = await say("ห้องว่าง");
+t("ห้องว่าง → ask check-in date", allText(m).includes("เข้าพักวันไหน") && quick(m[0]).some((d) => d.startsWith("g=din&d=")), m);
+m = await tap("g=din&d=" + day(10));
+t("pick date → ask nights", allText(m).includes("พักกี่คืน"), m);
+m = await tap("g=n&n=2");
+const car = m.find((x) => x.type === "flex");
+const names = (car?.contents?.contents || []).map((b) => b.body.contents[0].text);
+t("carousel shows free, visible rooms only", JSON.stringify(names) === JSON.stringify(["ริมน้ำ", "วิลล่า"]), names);
+t("min-nights room offers longer stay instead of booking", allText(car.contents.contents[1]).includes("g=n&n=3") && !allText(car.contents.contents[1]).includes("g=room"), car.contents.contents[1]);
+t("room total = price × nights", allText(car.contents.contents[0]).includes("฿2,400"));
+
+// ---- ขั้นตอนจอง
+m = await tap("g=room&id=" + riverside._id);
+t("pick room → ask guests (1..capacity)", quick(m[0]).filter((d) => d.startsWith("g=pax")).length === 3, quick(m[0]));
+m = await tap("g=pax&n=2");
+t("optional breakfast asked", allText(m).includes("อาหารเช้า") && allText(m).includes("฿150"), m);
+m = await tap("g=bf&v=1");
+t("ask name", allText(m).includes("ชื่อ"), m);
+m = await say("สมชาย ใจดี");
+t("ask phone", allText(m).includes("เบอร์โทร"), m);
+m = await say("12345");
+t("bad phone rejected", allText(m).includes("ไม่ถูกต้อง"), m);
+m = await say("081-234-5678");
+t("ask payment method (promptpay + transfer)", JSON.stringify(quick(m[0])).includes("g=pay&v=promptpay") && JSON.stringify(quick(m[0])).includes("g=pay&v=transfer"), quick(m[0]));
+m = await tap("g=pay&v=promptpay");
+t("confirm card shows total incl. breakfast (2400 + 150×2×2)", allText(m).includes("฿3,000") && allText(m).includes("g=ok"), m);
+
+// ---- ยืนยัน → สร้างการจองจริง
+const pushesBefore = calls.filter((c) => c.url.endsWith("/push")).length;
+m = await tap("g=ok");
+const bk = db.Booking.find((b) => b.lineUserId === GUEST);
+t("booking created via shared createRoomBooking", bk && bk.channel === "direct" && bk.payStatus === "unpaid" && bk.payMethod === "promptpay" && bk.amount === 3000 && bk.guestTel === "0812345678" && bk.breakfast === "added", bk);
+t("reply has booking card + PromptPay QR image", m.some((x) => x.type === "image" && x.originalContentUrl.startsWith("https://bp.test/api/public/promptpay-qr?slug=test-home&amount=3000")) && allText(m).includes(bk.ref), m);
+t("pay deadline shown", allText(m).includes("กรุณาชำระภายใน"), m);
+await new Promise((r) => setTimeout(r, 20));
+t("no duplicate push to the guest (bot already replied)", !calls.slice(0).filter((c) => c.url.endsWith("/push")).slice(pushesBefore).some((c) => c.body.to === GUEST), calls.filter((c) => c.url.endsWith("/push")).map((c) => c.body.to));
+m = await tap("g=ok");
+t("double-tap confirm does not book twice", db.Booking.filter((b) => b.lineUserId === GUEST).length === 1 && allText(m).includes("หมดเวลา"), m);
+
+// ---- สลิป
+m = await send({ type: "message", message: { type: "image", id: "img1" } });
+const bk2 = db.Booking.find((b) => b._id === bk._id);
+t("slip image → reported", bk2.payStatus === "reported" && /สลิป/.test(bk2.payRef), bk2);
+t("slip acknowledged", allText(m).includes("ได้รับสลิป"), m);
+m = await send({ type: "message", message: { type: "image", id: "img2" } });
+t("random photo with nothing to pay → bot stays quiet", m.length === 0, m);
+m = await say("การจองของฉัน");
+t("my bookings lists the ref", allText(m).includes(bk.ref) && allText(m).includes("แจ้งโอนแล้ว"), m);
+
+// ---- ที่พักยืนยันรับเงิน → แจ้งแขกทาง OA ของโรงแรม
+db.Booking.find((b) => b._id === bk._id).payStatus = "paid";
+const before = calls.length;
+await notifyGuestPaid(bk._id);
+const pg = calls.slice(before).find((c) => c.url.endsWith("/push"));
+t("guest told payment confirmed via hotel OA", pg && pg.body.to === GUEST && pg.token === "Bearer hotel-token" && pg.body.messages[0].text.includes(bk.ref.replace(/-\d+$/, "")), pg);
+
+// ---- คำสั่งใช้ได้แม้ค้างกลางขั้นตอน + ข้อความทั่วไปไม่ถูกตีเป็นข้อมูลผิดที่
+await say("ห้องว่าง"); await tap("g=din&d=" + day(5)); await tap("g=n&n=1"); await tap("g=room&id=" + garden._id); await tap("g=pax&n=1");
+m = await say("ห้องว่าง พรุ่งนี้");
+t("ห้องว่าง mid-flow restarts instead of becoming the guest name", allText(m).includes("พักกี่คืน"), m);
+await tap("g=x");
+m = await say("ขอบคุณค่ะ");
+t("general chat → menu once", allText(m).includes("เช็คห้องว่าง"), m);
+m = await say("ที่จอดรถมีไหม");
+t("then quiet so staff can answer", m.length === 0, m);
+
+// ---- จองค้างจ่ายได้ไม่เกิน 3 รายการ
+for (let i = 0; i < 3; i++) await Booking.create({ hotel: h._id, roomType: riverside._id, checkin: day(40 + i), checkout: day(41 + i), status: "confirmed", payStatus: "unpaid", lineUserId: GUEST, ref: "BP-OPEN0" + i });
+await say("ห้องว่าง"); await tap("g=din&d=" + day(20)); await tap("g=n&n=1"); await tap("g=room&id=" + garden._id); await tap("g=pax&n=1");
+await say("สมชาย"); await say("0812345678"); await tap("g=pay&v=transfer");
+const n0 = db.Booking.length;
+m = await tap("g=ok");
+t("4th unpaid booking refused", db.Booking.length === n0 && allText(m).includes("ยังไม่ชำระ"), m);
+
+// ---- webhook ของโรงแรม: ตรวจลายเซ็น + โหมดตั้งค่า + หน้าเว็บยังจองได้เหมือนเดิม
+const app = express();
+app.use(express.json({ verify: (req, _res, buf) => { req.rawBody = buf; } }));
+app.use("/api/line", lineRoutes); app.use("/api/public", publicRoutes);
+const srv = app.listen(0); await new Promise((r) => srv.once("listening", r));
+const base = "http://127.0.0.1:" + srv.address().port;
+const hook = async (slug, payload, secret) => {
+  const raw = JSON.stringify(payload);
+  const sig = secret ? crypto.createHmac("sha256", secret).update(raw).digest("base64") : "bad";
+  return realFetch(base + "/api/line/webhook/" + slug, { method: "POST", headers: { "content-type": "application/json", "x-line-signature": sig }, body: raw });
+};
+const evt = { events: [{ type: "message", replyToken: "rw", webhookEventId: "w1", source: { type: "user", userId: "U" + "9".repeat(32) }, message: { type: "text", text: "ห้องว่าง" } }] };
+let res = await hook("test-home", evt, null);
+t("bad signature → 401", res.status === 401, res.status);
+const c0 = calls.length;
+res = await hook("test-home", evt, "hotel-secret");
+await new Promise((r) => setTimeout(r, 30));
+t("good signature → guest bot replies", res.status === 200 && calls.slice(c0).some((c) => c.url.endsWith("/reply") && JSON.stringify(c.body).includes("เข้าพักวันไหน")), calls.slice(c0));
+db.Hotel[0].lineChannelSecret = "";
+const c1 = calls.length;
+res = await hook("test-home", { events: [{ ...evt.events[0], webhookEventId: "w2" }] }, null);
+t("no secret → setup mode (reply userId, no booking bot)", res.status === 200 && calls.slice(c1).some((c) => JSON.stringify(c.body).includes("userId ของคุณคือ")), calls.slice(c1));
+res = await realFetch(base + "/api/public/book", { method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ slug: "test-home", roomTypeId: riverside._id, din: day(60), dout: day(62), name: "เว็บ", tel: "0899999999", pax: 2, payMethod: "promptpay" }) });
+const wb = await res.json();
+t("website booking still works", res.status === 200 && wb.ok && wb.amount === 2400 && /^BP-/.test(wb.ref), wb);
+res = await realFetch(base + "/api/public/book", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug: "nope" }) });
+t("website: unknown hotel → 404", res.status === 404, res.status);
+srv.close();
+
+console.log(`guestbot: ${ok} passed, ${bad} failed`);
+process.exit(bad ? 1 : 0);

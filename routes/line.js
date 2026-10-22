@@ -4,6 +4,7 @@ import Hotel from "../models/Hotel.js";
 import LineChat from "../models/LineChat.js";
 import * as L from "../lib/line.js";
 import { handleEvents } from "../lib/linebot.js";
+import { handleGuestEvent } from "../lib/guestbot.js";
 import { setupRichMenus, menuIds } from "../lib/richmenu.js";
 import { rememberBase, baseUrl } from "../lib/baseurl.js";
 import { requireAuth, requireAdmin } from "../lib/auth.js";
@@ -12,33 +13,40 @@ const r = Router();
 
 // Webhook ต่อโรงแรม (LINE OA ของโรงแรมเอง) — ตั้งใน LINE Developers Console เป็น:
 //   https://<your-app>.onrender.com/api/line/webhook/<slug>
-// เมื่อเจ้าของ (หรือใครก็ตาม) ทักแชตเข้า OA ระบบจะตอบ userId กลับไป
-// เอาไว้ก็อปวางในช่อง "LINE ผู้รับแจ้งเตือน" ของหน้าตั้งค่า
+// ตั้ง Channel secret แล้ว → เปิดบอทจองห้องของแขก (lib/guestbot.js): เช็คห้องว่าง จอง ชำระเงิน ในแชท
+// ยังไม่ตั้ง secret → โหมดตั้งค่า: ตอบ userId/groupId กลับ เอาไปวางในช่อง "LINE ผู้รับแจ้งเตือน" (ไม่เปิดรับจอง เพราะตรวจลายเซ็นไม่ได้)
+const seenGuest = new Set();
 r.post("/webhook/:slug", async (req, res) => {
-  const h = await Hotel.findOne({ slug: req.params.slug }).select("+lineChannelToken +lineChannelSecret");
+  const h = await Hotel.findOne({ slug: req.params.slug }).select("+lineChannelToken +lineChannelSecret").lean();
   if (!h || !h.lineChannelToken) return res.sendStatus(200); // ตอบ 200 เสมอ กัน LINE retry
-
-  // ตรวจลายเซ็น (ถ้าตั้ง secret ไว้)
-  if (h.lineChannelSecret && !L.verifySignature(req.rawBody, req.get("x-line-signature"), h.lineChannelSecret)) return res.sendStatus(401);
-
   const events = (req.body && req.body.events) || [];
-  for (const ev of events) {
-    const uid = ev?.source?.userId;
-    const gid = ev?.source?.groupId;
-    if (ev.type === "message" && ev.replyToken) {
+
+  if (!h.lineChannelSecret) {
+    for (const ev of events) {
+      const uid = ev?.source?.userId, gid = ev?.source?.groupId;
+      if (ev.type !== "message" || !ev.replyToken) continue;
       const msg = gid
         ? `groupId ของกลุ่มนี้คือ:\n${gid}\nนำไปวางในช่อง "LINE ผู้รับแจ้งเตือน" ในหน้าตั้งค่า BARN-PARK`
-        : `userId ของคุณคือ:\n${uid}\nนำไปวางในช่อง "LINE ผู้รับแจ้งเตือน" ในหน้าตั้งค่า BARN-PARK เพื่อรับแจ้งเตือนเมื่อมีจองใหม่`;
-      try {
-        await fetch("https://api.line.me/v2/bot/message/reply", {
-          method: "POST",
-          headers: { authorization: "Bearer " + h.lineChannelToken, "content-type": "application/json" },
-          body: JSON.stringify({ replyToken: ev.replyToken, messages: [{ type: "text", text: msg }] }),
-        });
-      } catch (e) { console.error("line reply", e); }
+        : `userId ของคุณคือ:\n${uid}\nนำไปวางในช่อง "LINE ผู้รับแจ้งเตือน" ในหน้าตั้งค่า BARN-PARK เพื่อรับแจ้งเตือนเมื่อมีจองใหม่\n\n(ใส่ Channel secret ในหน้าตั้งค่าด้วย เพื่อเปิดให้แขกจองห้องผ่านแชทนี้)`;
+      await L.replyAs(h.lineChannelToken, ev.replyToken, [{ type: "text", text: msg }]).catch((e) => console.error("line reply", e.message));
     }
+    return res.sendStatus(200);
   }
-  res.sendStatus(200);
+
+  if (!L.verifySignature(req.rawBody, req.get("x-line-signature"), h.lineChannelSecret)) return res.sendStatus(401);
+  rememberBase(req);
+  res.sendStatus(200); // ตอบ LINE ทันที แล้วค่อยประมวลผล
+  for (const ev of events) {
+    const id = ev.webhookEventId;
+    if (id) { if (seenGuest.has(id)) continue; seenGuest.add(id); if (seenGuest.size > 2000) seenGuest.delete(seenGuest.values().next().value); }
+    const gid = ev?.source?.groupId || ev?.source?.roomId;
+    if (gid) { // กลุ่มของทีมที่พัก: พิมพ์ "id" เพื่อดู groupId (บอทไม่รับจองในกลุ่ม)
+      if (ev.type === "message" && /^(id|groupid|ไอดี)$/i.test(String(ev.message?.text || "").trim()))
+        await L.replyAs(h.lineChannelToken, ev.replyToken, [{ type: "text", text: `groupId ของกลุ่มนี้คือ:\n${gid}` }]).catch(() => {});
+      continue;
+    }
+    await handleGuestEvent(h, ev).catch((e) => console.error("guestbot", h.slug, e));
+  }
 });
 
 // ===== Webhook ของ LINE OA กลาง "Barn Park" — บอทให้โรงแรมสมัคร + จัดการที่พักผ่านแชท =====
