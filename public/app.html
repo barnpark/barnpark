@@ -245,7 +245,7 @@
     <div class="panel" id="set-pw"><h3>🔐 รหัสผ่านเข้าเว็บหลังบ้าน</h3><p class="sub" style="margin-top:0" id="pw-sub">เปลี่ยนรหัสผ่านที่ใช้เข้าสู่ระบบ</p>
       <div class="formgrid">
         <div id="pw-cur-wrap"><label>รหัสผ่านปัจจุบัน</label><input id="pw-cur" type="password" autocomplete="current-password"></div>
-        <div><label>รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)</label><input id="pw-new" type="password" autocomplete="new-password"></div>
+        <div><label>รหัสผ่านใหม่ (อย่างน้อย 8 ตัว)</label><input id="pw-new" type="password" autocomplete="new-password"></div>
         <div><label>ยืนยันรหัสผ่านใหม่</label><input id="pw-new2" type="password" autocomplete="new-password"></div>
       </div><button class="btn" style="margin-top:12px" onclick="changePw()">บันทึกรหัสผ่านใหม่</button></div>
   </section>
@@ -735,7 +735,7 @@ function lineUrlOf(v){ v=String(v||'').trim(); if(!v) return ''; if(/^(lin\.ee|l
 function lineTest(){ const a=document.getElementById('s-line-test'); if(!a) return; const u=lineUrlOf(document.getElementById('s-line-id').value); a.style.display=u?'inline-flex':'none'; a.href=u||'#'; }
 async function pwPanel(){ try{ const r=await API.get('/auth/has-password'); if(!r.hasPassword){ document.getElementById('pw-cur-wrap').style.display='none'; document.getElementById('pw-sub').textContent='บัญชีนี้ยังไม่ได้ตั้งรหัสผ่าน (เข้าผ่าน LINE) — ตั้งไว้เพื่อเข้าจากคอมด้วยอีเมล '+(r.email||'')+' ได้'; } }catch{} }
 async function changePw(){ const cur=document.getElementById('pw-cur').value, n1=document.getElementById('pw-new').value, n2=document.getElementById('pw-new2').value;
-  if(n1.length<6){ API.toast('รหัสผ่านใหม่อย่างน้อย 6 ตัวอักษร','err'); return; } if(n1!==n2){ API.toast('รหัสผ่านใหม่ 2 ช่องไม่ตรงกัน','err'); return; }
+  if(n1.length<8){ API.toast('รหัสผ่านใหม่อย่างน้อย 8 ตัวอักษร','err'); return; } if(n1!==n2){ API.toast('รหัสผ่านใหม่ 2 ช่องไม่ตรงกัน','err'); return; }
   try{ await API.post('/auth/change-password',{current:cur,password:n1}); ['pw-cur','pw-new','pw-new2'].forEach(i=>document.getElementById(i).value=''); document.getElementById('pw-cur-wrap').style.display=''; document.getElementById('pw-sub').textContent='เปลี่ยนรหัสผ่านที่ใช้เข้าสู่ระบบ'; API.toast('บันทึกรหัสผ่านใหม่แล้ว','ok'); }
   catch(e){ API.toast(e.message,'err'); } }
 // ---- จัดการผ่าน LINE Barn Park ----
