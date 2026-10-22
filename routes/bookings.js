@@ -1,4 +1,5 @@
 import { Router } from "express";
+import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
 import RoomType from "../models/RoomType.js";
 import { requireAuth, canAccessHotel } from "../lib/auth.js";
@@ -17,17 +18,44 @@ r.get("/hotels/:hid/bookings", requireAuth, async (req, res) => {
   res.json(await Booking.find(q).sort("checkin"));
 });
 
+// ฟิลด์การจองที่หลังบ้านแก้ได้ (whitelist + ตรวจค่า) — ย้ายไปโรงแรมอื่น/แก้เลขจอง/ยอดบริการเสริม ฯลฯ ไม่ได้
+const BK_CH = ["direct", "walkin", "phone", "line", "agoda", "booking", "trip", "airbnb", "other"];
+const BK_STATUS = ["confirmed", "pending", "cancelled"], BK_PAY = ["", "unpaid", "reported", "paid", "deposit", "onsite"], BK_METHOD = ["", "promptpay", "transfer", "onsite", "cash", "ota"];
+const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
+const num = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v) || 0));
+async function cleanBooking(b, hotelId) {
+  const set = {};
+  for (const [k, n] of [["guestName", 120], ["guestTel", 30], ["guestEmail", 120], ["note", 500], ["payRef", 60]]) if (b[k] !== undefined) set[k] = String(b[k] ?? "").trim().slice(0, n);
+  for (const [k, list] of [["channel", BK_CH], ["status", BK_STATUS], ["payStatus", BK_PAY], ["payMethod", BK_METHOD], ["notifyChannel", ["email", "none"]]]) {
+    if (b[k] === undefined || (b[k] === "" && !list.includes(""))) continue; // ช่องว่าง = ไม่เปลี่ยน
+    if (!list.includes(b[k])) return { error: "ค่า " + k + " ไม่ถูกต้อง" };
+    set[k] = b[k];
+  }
+  for (const k of ["checkin", "checkout"]) if (b[k] !== undefined) { if (!YMD_RE.test(String(b[k]))) return { error: "วันที่ไม่ถูกต้อง (YYYY-MM-DD)" }; set[k] = b[k]; }
+  if (b.pax !== undefined) set.pax = Math.round(num(b.pax, 1, 50)) || 1;
+  if (b.extraBed !== undefined) set.extraBed = Math.round(num(b.extraBed, 0, 20));
+  if (b.amount !== undefined && b.amount !== null) set.amount = Math.round(num(b.amount, 0, 10000000) * 100) / 100;
+  if (b.roomType !== undefined) {
+    const t = mongoose.isValidObjectId(b.roomType) ? await RoomType.findOne({ _id: b.roomType, hotel: hotelId }) : null;
+    if (!t) return { error: "ไม่พบประเภทห้องนี้ในที่พัก" };
+    set.roomType = t._id; set._rt = t;
+  }
+  return { set };
+}
+
 r.post("/hotels/:hid/bookings", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.hid)) return res.status(403).json({ error: "forbidden" });
   const b = req.body || {};
   if (!b.checkin || !b.checkout || b.checkout <= b.checkin) return res.status(400).json({ error: "invalid dates" });
-  let amount = b.amount;
-  if (amount == null && b.roomType) {
-    const t = await RoomType.findById(b.roomType);
-    const nights = Math.max(1, Math.round((new Date(b.checkout) - new Date(b.checkin)) / 86400000));
-    amount = t ? (t.basePrice + (+b.extraBed || 0) * (t.extraBedPrice || 0)) * nights : 0;
+  const { set, error } = await cleanBooking(b, req.params.hid);
+  if (error) return res.status(400).json({ error });
+  const t = set._rt; delete set._rt;
+  let amount = set.amount;
+  if (amount == null && t) {
+    const nights = Math.max(1, Math.round((new Date(set.checkout) - new Date(set.checkin)) / 86400000));
+    amount = (t.basePrice + (set.extraBed || 0) * (t.extraBedPrice || 0)) * nights;
   }
-  const created = await Booking.create({ ...b, amount, hotel: req.params.hid, ref: b.ref || mkRef() });
+  const created = await Booking.create({ ...set, amount: amount || 0, hotel: req.params.hid, ref: mkRef() });
   notifyBooking(created._id).catch((e) => console.error("notify", e));
   res.json(created);
 });
@@ -36,9 +64,12 @@ r.patch("/bookings/:id", requireAuth, async (req, res) => {
   const bk = await Booking.findById(req.params.id);
   if (!bk) return res.status(404).json({ error: "not found" });
   if (!canAccessHotel(req.user, bk.hotel)) return res.status(403).json({ error: "forbidden" });
-  const { hotel, ...safe } = req.body;
-  const out = await Booking.findByIdAndUpdate(req.params.id, safe, { new: true });
-  if (safe.payStatus === "paid" && bk.payStatus !== "paid") notifyGuestPaid(bk._id).catch((e) => console.error("notifyGuestPaid", e.message));
+  const { set, error } = await cleanBooking(req.body || {}, bk.hotel);
+  if (error) return res.status(400).json({ error });
+  delete set._rt;
+  if ((set.checkout || bk.checkout) <= (set.checkin || bk.checkin)) return res.status(400).json({ error: "invalid dates" });
+  const out = await Booking.findByIdAndUpdate(bk._id, { $set: set }, { new: true });
+  if (set.payStatus === "paid" && bk.payStatus !== "paid") notifyGuestPaid(bk._id).catch((e) => console.error("notifyGuestPaid", e.message));
   res.json(out);
 });
 

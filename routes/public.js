@@ -129,7 +129,7 @@ r.post("/review", async (req, res) => {
   const bk = REF_RE.test(R) ? await Booking.findOne({ hotel: h._id, guestTel: String(tel || "").trim(), ref: refGroup(R) }) : null;
   if (!bk) return res.status(400).json({ error: "ไม่พบการจองที่ตรงกับเลขจอง+เบอร์ (รีวิวได้เฉพาะผู้ที่เคยจอง)" });
   const r5 = Math.max(1, Math.min(5, +rating || 5));
-  await Review.create({ hotel: h._id, ref: bk.ref, guestName: (name || bk.guestName || "แขก").trim(), rating: r5, text: String(text || "").slice(0, 500) });
+  await Review.create({ hotel: h._id, ref: bk.ref, guestName: String(name || bk.guestName || "แขก").trim().slice(0, 60), rating: r5, text: String(text || "").slice(0, 500) });
   res.json({ ok: true, message: "ขอบคุณสำหรับรีวิว! จะแสดงหลังโรงแรมอนุมัติ" });
 });
 
