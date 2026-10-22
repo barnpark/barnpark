@@ -8,6 +8,7 @@ import { rateFor } from "../lib/pricing.js";
 import Review from "../models/Review.js";
 import mongoose from "mongoose";
 import { parseDataUrl, fitForLine } from "../lib/images.js";
+import { isStoredUrl } from "../lib/filestore.js";
 import ActivityBooking from "../models/ActivityBooking.js";
 import { sellsStandalone, availability, createActivityBooking } from "../lib/activity.js";
 import { notifyActivity, notifyCancel, notifyPaidReport, holdDeadline, bookingGroup, summarize } from "../lib/notify.js";
@@ -43,7 +44,20 @@ r.get("/img/:kind/:id/:i?", async (req, res) => {
     if (h) { src = h.logoData || ""; key = id + ":l:" + new Date(h.updatedAt || 0).getTime(); }
   }
   if (!src) return res.sendStatus(404);
-  if (/^https?:\/\//i.test(src)) return res.redirect(src);
+  if (/^https?:\/\//i.test(src)) {
+    // รูปบน Supabase ของเรา + ขอขนาดสำหรับ LINE → ดึงมาย่อให้ (เหมือนรูป data URL) · อย่างอื่น redirect ไปลิงก์ตรง
+    if (req.query.w === "line" && isStoredUrl(src)) {
+      try {
+        const r2 = await fetch(src, { signal: AbortSignal.timeout(8000) });
+        const type = String(r2.headers.get("content-type") || "").split(";")[0];
+        if (r2.ok && /^image\//.test(type)) {
+          const out = await fitForLine(key, Buffer.from(await r2.arrayBuffer()), type);
+          return res.set("Content-Type", out.type).set("Cache-Control", "public, max-age=86400").send(out.buf);
+        }
+      } catch { /* โหลดไม่ได้ → redirect แทน */ }
+    }
+    return res.redirect(src);
+  }
   const p = parseDataUrl(src);
   if (!p) return res.sendStatus(404);
   const out = req.query.w === "line" ? await fitForLine(key, p.buf, p.type) : p;

@@ -2,20 +2,21 @@ import { Router } from "express";
 import { runSeed } from "../lib/seed.js";
 import { dailyDigest } from "../lib/notify.js";
 import { maybeMonthlyFeedback } from "../lib/feedback.js";
+import { runBackup } from "../lib/backup.js";
 
 const r = Router();
 
-// สรุปรายวันส่ง LINE/อีเมลให้ทุกโรงแรม — ให้ cron ภายนอกยิงวันละครั้ง
+// สรุปรายวันส่ง LINE/อีเมลให้ทุกโรงแรม + สำรองข้อมูลขึ้น Supabase — ให้ cron ภายนอกยิงวันละครั้ง
 //   GET /api/cron/daily?key=<CRON_KEY>   (ตั้งใน cron-job.org เวลา ~07:00)
 r.get("/cron/daily", async (req, res) => {
   if (!process.env.CRON_KEY) return res.status(403).json({ error: "CRON_KEY ยังไม่ได้ตั้งใน environment" });
   if (req.query.key !== process.env.CRON_KEY) return res.status(403).json({ error: "key ไม่ถูกต้อง" });
-  try {
-    const out = await dailyDigest();
-    const feedback = await maybeMonthlyFeedback().catch((e) => ({ error: String(e.message || e) })); // แบบสอบถามรายเดือน (วันที่ FEEDBACK_DAY)
-    res.json({ ok: true, ...out, feedback });
-  }
-  catch (e) { res.status(500).json({ error: String(e.message || e) }); }
+  let out = {}, err = null;
+  try { out = await dailyDigest(); } catch (e) { err = String(e.message || e); }
+  const feedback = await maybeMonthlyFeedback().catch((e) => ({ error: String(e.message || e) })); // แบบสอบถามรายเดือน (วันที่ FEEDBACK_DAY)
+  const backup = await runBackup().catch((e) => ({ error: String(e.message || e) })); // สำรองข้อมูลรายวันขึ้น Supabase (พังก็ไม่กระทบสรุปรายวัน)
+  if (err) return res.status(500).json({ error: err, feedback, backup });
+  res.json({ ok: true, ...out, feedback, backup });
 });
 
 // เปิด URL ครั้งเดียวเพื่อใส่ข้อมูลตั้งต้น (ไม่ต้องใช้ terminal)
