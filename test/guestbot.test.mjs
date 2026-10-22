@@ -190,9 +190,50 @@ t("general chat → menu once", allText(m).includes("เช็คห้องว
 m = await say("ที่จอดรถมีไหม");
 t("then quiet so staff can answer", m.length === 0, m);
 
+// ---- เตียงเสริม + บริการเสริม/กิจกรรมซื้อพ่วง
+const loft = await RoomType.create({ hotel: h._id, name: "ห้องใต้หลังคา", qty: 1, capacity: 2, basePrice: 1000, extraBedPrice: 300, sort: 5 });
+const massage = await Service.create({ hotel: h._id, name: "นวดไทย", price: 500, unit: "ต่อท่าน", saleMode: "addon", sort: 1 });
+await Service.create({ hotel: h._id, name: "ทัวร์เดี่ยว", price: 800, saleMode: "standalone", sort: 2 });
+await Service.create({ hotel: h._id, name: "ปิดขาย", price: 200, saleMode: "both", hidden: true, sort: 3 });
+await Service.create({ hotel: h._id, name: "ฟรี", price: 0, saleMode: "addon", sort: 4 });
+const kayak = await Service.create({ hotel: h._id, name: "พายเรือ", price: 250, unit: "ต่อครั้ง", saleMode: "both", sort: 5 });
+await say("ห้องว่าง"); await tap("g=din&d=" + day(30));
+m = await tap("g=n&n=2");
+const loftCard = (m.find((x) => x.type === "flex")?.contents?.contents || []).find((b) => b.body.contents[0].text === "ห้องใต้หลังคา");
+t("room card mentions extra bed price", loftCard && allText(loftCard).includes("เตียงเสริม") && allText(loftCard).includes("฿300"), loftCard);
+m = await tap("g=room&id=" + loft._id);
+t("guests offered up to capacity + 2 extra beds", quick(m[0]).filter((d) => d.startsWith("g=pax")).length === 4, quick(m[0]));
+m = await tap("g=pax&n=3");
+t("3 guests in a 2-person room → must add ≥1 bed", JSON.stringify(quick(m[0])).includes("g=eb&n=1") && !JSON.stringify(quick(m[0])).includes("g=eb&n=0") && allText(m).includes("อย่างน้อย 1"), quick(m[0]));
+m = await tap("g=eb&n=0");
+t("too few extra beds rejected", allText(m).includes("เตียงเสริม 1–2"), m);
+m = await tap("g=eb&n=1");
+const adCards = (m.find((x) => x.type === "flex")?.contents?.contents || []).map((b) => b.body.contents[0].text);
+t("add-on cards: only sellable, priced, visible services", JSON.stringify(adCards) === JSON.stringify(["นวดไทย", "พายเรือ"]), adCards);
+m = await tap("g=ad&id=" + massage._id);
+t("ask add-on quantity (per person)", allText(m).includes("กี่ท่าน") && quick(m[0]).includes("g=adq&n=3"), m);
+m = await tap("g=adq&n=2");
+t("add-on summary shows pick and subtotal", allText(m).includes("นวดไทย × 2") && allText(m).includes("฿1,000"), m);
+await tap("g=ad&id=" + kayak._id); await tap("g=adq&n=1");
+await tap("g=ad&id=" + kayak._id);
+m = await tap("g=adq&n=0");
+t("add-on can be removed again", !allText(m).includes("พายเรือ ×"), m);
+m = await tap("g=adok");
+t("then asks name", allText(m).includes("ชื่อ"), m);
+await say("ครอบครัวสาม"); await say("0855555555");
+m = await tap("g=pay&v=transfer");
+t("confirm: room + extra bed + add-on = (1000×2) + (300×2) + 1000", allText(m).includes("฿3,600") && allText(m).includes("เตียงเสริม 1 × 2 คืน") && allText(m).includes("นวดไทย × 2"), m);
+m = await tap("g=ok");
+const fam = db.Booking.find((b) => b.guestName === "ครอบครัวสาม");
+t("booking saved with extra bed + add-ons, amount matches", fam && fam.extraBed === 1 && fam.addonTotal === 1000 && fam.amount === 3600 && fam.addons.length === 1 && fam.addons[0].name === "นวดไทย", fam);
+t("bank transfer details sent", allText(m).includes("123-4-56789-0") || allText(m).includes("1234567890"), m);
+db.Booking.splice(db.Booking.indexOf(db.Booking.find((b) => b._id === fam._id)), 1); // ไม่นับรวมการทดสอบจองค้างจ่ายด้านล่าง
+
 // ---- จองค้างจ่ายได้ไม่เกิน 3 รายการ
 for (let i = 0; i < 3; i++) await Booking.create({ hotel: h._id, roomType: riverside._id, checkin: day(40 + i), checkout: day(41 + i), status: "confirmed", payStatus: "unpaid", lineUserId: GUEST, ref: "BP-OPEN0" + i });
 await say("ห้องว่าง"); await tap("g=din&d=" + day(20)); await tap("g=n&n=1"); await tap("g=room&id=" + garden._id); await tap("g=pax&n=1");
+m = await say("ไม่เอาค่ะ");
+t("typing 'ไม่…' at add-ons skips to name", allText(m).includes("ชื่อ"), m);
 await say("สมชาย"); await say("0812345678"); await tap("g=pay&v=transfer");
 const n0 = db.Booking.length;
 m = await tap("g=ok");
@@ -227,6 +268,11 @@ res = await realFetch(base + "/api/public/book", { method: "POST", headers: { "c
   body: JSON.stringify({ slug: "test-home", roomTypeId: riverside._id, din: day(60), dout: day(62), name: "เว็บ", tel: "0899999999", pax: 2, payMethod: "promptpay" }) });
 const wb = await res.json();
 t("website booking still works", res.status === 200 && wb.ok && wb.amount === 2400 && /^BP-/.test(wb.ref), wb);
+res = await realFetch(base + "/api/public/book", { method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ slug: "test-home", roomTypeId: riverside._id, din: day(70), dout: day(71), name: "เว็บ", tel: "0899999999", pax: 1, payMethod: "promptpay",
+    addons: [{ name: "ทัวร์เดี่ยว", qty: 1 }, { name: "ปิดขาย", qty: 1 }, { serviceId: String(massage._id), qty: 1 }] }) });
+const wb2 = await res.json();
+t("website: standalone-only / hidden services can't be added to a room", res.status === 200 && wb2.addonTotal === 500, wb2);
 res = await realFetch(base + "/api/public/book", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug: "nope" }) });
 t("website: unknown hotel → 404", res.status === 404, res.status);
 
