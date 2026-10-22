@@ -46,6 +46,7 @@
   <button data-v="a-line" onclick="go('a-line');loadLineStatus()">📲 LINE OA</button>
   <button data-v="a-news" onclick="go('a-news');loadNews()">📣 แจ้งอัปเดต</button>
   <button data-v="a-fb" onclick="go('a-fb');loadFb()">💬 Feedback</button>
+  <button data-v="a-store" onclick="go('a-store');loadStorage()">💾 พื้นที่</button>
 </div></div>
 <main><div class="wrap">
   <section id="a-port" class="view on"><h1>โรงแรมในระบบ</h1><p class="sub">คลิกโรงแรมเพื่อดู/แก้</p><div class="metrics" id="a-metrics"></div><div class="cards" id="a-cards"></div></section>
@@ -138,6 +139,9 @@
       <label style="display:flex;gap:6px;align-items:center;font-weight:400;margin:0"><input type="checkbox" id="fbf-text" checked onchange="loadFb()" style="width:auto"> เฉพาะที่มีข้อความ</label></div>
       <div style="overflow-x:auto"><table id="fb-table"></table></div></div>
   </section>
+  <section id="a-store" class="view"><h1>💾 พื้นที่ฐานข้อมูล</h1><p class="sub">ขนาดจริงในฐานข้อมูลของแต่ละที่พัก เทียบกับโควตาฟรี (MongoDB Atlas M0) — รูปทุกรูปเก็บในฐานข้อมูล จึงเป็นส่วนที่ใหญ่ที่สุด</p>
+    <div class="metrics" id="st-metrics"></div>
+    <div class="panel"><div id="st-bar"></div><div style="overflow-x:auto"><table id="st-table"><tr><td class="empty">กำลังโหลด…</td></tr></table></div></div></section>
   <section id="a-bill" class="view"><h1>การเงิน</h1><div class="metrics" id="a-billm"></div><div class="panel"><div style="overflow-x:auto"><table id="a-billtable"></table></div></div>
     <div class="panel"><h3>สำรองข้อมูล</h3><p class="sub" style="margin-top:0">ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON เก็บไว้ (โรงแรม/ห้อง/การจอง/บริการ) — ควรทำสม่ำเสมอ</p><button class="btn" onclick="downloadBackup()">⬇ ดาวน์โหลดไฟล์สำรอง</button></div></section>
   <section id="a-calc" class="view"><h1>ต้นทุน Channex</h1><p class="sub">เทียบค่าที่ Barn Park จ่าย Channex กับค่าบริการที่ที่พักจ่าย · กด “บันทึกให้ทีม” แล้วทุกคนที่เข้าหน้าแอดมินจะเห็นตัวเลขชุดเดียวกัน</p>
@@ -223,6 +227,19 @@ function renderBilling(){
   document.getElementById('a-billtable').innerHTML='<tr><th>โรงแรม</th><th>แพ็กเกจ</th><th>ค่าบริการ/เดือน</th><th>สถานะ</th></tr>'+(HOTELS.length?HOTELS.map(h=>'<tr><td><b>'+esc(h.name)+'</b></td><td>มาตรฐาน</td><td>'+money(h.planFee||800)+'</td><td>'+(h.status==='paused'?'<span class="pill off">พัก</span>':'<span class="pill on">ใช้งาน</span>')+'</td></tr>').join(''):'<tr><td colspan="4" class="empty">—</td></tr>');
 }
 async function approveHotel(id){ try{ const r=await API.post('/admin/hotels/'+id+'/approve',{}); alert('✅ อนุมัติ '+r.hotel.name+' แล้ว\n\nรหัสเชื่อม LINE: '+r.code+' (ใช้ได้ 7 วัน)\nส่งให้ผู้สมัครทาง LINE: '+(r.pushed?'ส่งแล้ว ✅':'— (สมัครผ่านเว็บ)')+'\nส่งอีเมลให้เจ้าของ: '+(r.emailed?'ส่งแล้ว ✅':'— (ยังไม่ได้ตั้ง Brevo หรือไม่มีอีเมล)')+'\n\nถ้ายังไม่ได้รับ ส่งรหัสนี้ให้เจ้าของที่พักเองได้เลย'); API.toast('อนุมัติแล้ว','ok'); HOTELS=await API.get('/hotels'); renderPortfolio(); renderOta(); renderBilling(); }catch(e){API.toast(e.message,'err');} }
+
+// ---- พื้นที่ฐานข้อมูล ----
+function mb(b){return b>=1048576?(b/1048576).toFixed(b>=104857600?0:1)+' MB':Math.max(1,Math.round(b/1024))+' KB';}
+function sbar(pct,color){return '<div style="height:8px;background:var(--line);border-radius:4px;overflow:hidden;min-width:80px"><div style="height:100%;width:'+Math.min(100,Math.max(0,pct)).toFixed(1)+'%;background:'+color+'"></div></div>';}
+async function loadStorage(){
+  const t=document.getElementById('st-table');
+  try{ const s=await API.get('/admin/storage'); const pct=s.usedBytes/s.limitBytes*100;
+    document.getElementById('st-metrics').innerHTML=m('💾 ใช้ไปแล้ว',mb(s.usedBytes)+' / '+mb(s.limitBytes),pct>=80)+m('📊 คิดเป็น',pct.toFixed(1)+'%',pct>=80)+m('🏨 เฉลี่ยต่อที่พัก',s.avgBytes?mb(s.avgBytes):'—')+m('➕ รับเพิ่มได้อีก (ประมาณ)',s.moreHotels==null?'—':'~'+s.moreHotels+' ที่พัก',s.moreHotels!=null&&s.moreHotels<10);
+    document.getElementById('st-bar').innerHTML=sbar(pct,pct>=80?'#b91c1c':'#0d9488')+'<p class="sub" style="margin:6px 0 14px">ที่พักทั้งหมด '+mb(s.hotelBytes)+' · ส่วนกลาง (แชท LINE ตั้งค่า index) '+mb(s.sharedBytes)+(s.db?'':' · ⚠️ อ่านขนาดรวมของฐานไม่ได้ ใช้ผลรวมของที่พักแทน')+'</p>';
+    const top=s.hotels.length?s.hotels[0].bytes:1;
+    t.innerHTML='<tr><th>ที่พัก</th><th>รวม</th><th>รูปและข้อมูลที่พัก</th><th>การจอง</th><th>อื่น ๆ</th><th>% ของโควตา</th><th></th></tr>'+(s.hotels.length?s.hotels.map(h=>'<tr><td><b>'+esc(h.name)+'</b><div class="sub" style="margin:0">'+esc(h.slug||'')+' · '+h.rooms+' ห้อง · '+h.bookingCount+' การจอง</div></td><td><b>'+mb(h.bytes)+'</b></td><td>'+mb(h.content)+'</td><td>'+mb(h.bookings)+'</td><td>'+mb(h.other)+'</td><td>'+(h.bytes/s.limitBytes*100).toFixed(2)+'%</td><td>'+sbar(h.bytes/top*100,'#4f7a5e')+'</td></tr>').join(''):'<tr><td colspan="7" class="empty">ยังไม่มีที่พัก</td></tr>');
+  }catch(e){ t.innerHTML='<tr><td class="empty">โหลดไม่สำเร็จ: '+esc(e.message)+'</td></tr>'; }
+}
 
 // ---- LINE OA Barn Park ----
 async function loadLineStatus(){

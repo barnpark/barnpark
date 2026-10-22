@@ -24,6 +24,7 @@ import PromoCode from "../models/PromoCode.js";
 import Review from "../models/Review.js";
 import LinkCode from "../models/LinkCode.js";
 import { CALC_KEY, cleanCalc } from "../lib/calc.js";
+import { storageReport } from "../lib/storage.js";
 
 const r = Router();
 
@@ -194,6 +195,11 @@ r.get("/admin/checklist", requireAuth, requireAdmin, async (_req, res) => {
     out.push({ id: h._id, name: h.name, slug: h.slug, approved: h.approved !== false, linked, done: c.done, total: c.total, pct: c.pct, missing: c.missing.map((i) => i.label) });
   }
   res.json(out);
+});
+// ===== แอดมิน: พื้นที่ฐานข้อมูลที่แต่ละที่พักใช้ เทียบโควตาฟรี =====
+r.get("/admin/storage", requireAuth, requireAdmin, async (_req, res) => {
+  try { res.json(await storageReport()); }
+  catch (e) { res.status(500).json({ error: "นับพื้นที่ไม่สำเร็จ: " + (e.message || e) }); }
 });
 // ส่งประกาศ "อัปเดตระบบ" + เช็กลิสต์เฉพาะของแต่ละที่ เข้า LINE Barn Park ของทุกคนที่เชื่อมที่พัก (+อีเมล)
 //   body: { title, message, dryRun, email, onlyMissing }
