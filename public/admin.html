@@ -41,7 +41,7 @@
   <button data-v="a-add" onclick="go('a-add')">➕ เพิ่มโรงแรม</button>
   <button data-v="a-detail" onclick="go('a-detail')">🔎 รายละเอียด</button>
   <button data-v="a-ota" onclick="go('a-ota')">🔗 จัดการ OTA</button>
-  <button data-v="a-bill" onclick="go('a-bill')">💳 การเงิน</button>
+  <button data-v="a-bill" onclick="go('a-bill');loadBackups()">💳 การเงิน</button>
   <button data-v="a-calc" onclick="go('a-calc');loadCalc()">🧮 ต้นทุน Channex</button>
   <button data-v="a-line" onclick="go('a-line');loadLineStatus()">📲 LINE OA</button>
   <button data-v="a-news" onclick="go('a-news');loadNews()">📣 แจ้งอัปเดต</button>
@@ -139,11 +139,17 @@
       <label style="display:flex;gap:6px;align-items:center;font-weight:400;margin:0"><input type="checkbox" id="fbf-text" checked onchange="loadFb()" style="width:auto"> เฉพาะที่มีข้อความ</label></div>
       <div style="overflow-x:auto"><table id="fb-table"></table></div></div>
   </section>
-  <section id="a-store" class="view"><h1>💾 พื้นที่ฐานข้อมูล</h1><p class="sub">ขนาดจริงในฐานข้อมูลของแต่ละที่พัก เทียบกับโควตาฟรี (MongoDB Atlas M0) — รูปทุกรูปเก็บในฐานข้อมูล จึงเป็นส่วนที่ใหญ่ที่สุด</p>
+  <section id="a-store" class="view"><h1>💾 พื้นที่ฐานข้อมูล</h1><p class="sub">ขนาดจริงในฐานข้อมูลของแต่ละที่พัก เทียบกับโควตาฟรี (MongoDB Atlas M0) — รูปที่ยังเก็บในฐานข้อมูลเป็นส่วนที่ใหญ่ที่สุด (ย้ายไป Supabase ได้ด้านล่าง)</p>
     <div class="metrics" id="st-metrics"></div>
-    <div class="panel"><div id="st-bar"></div><div style="overflow-x:auto"><table id="st-table"><tr><td class="empty">กำลังโหลด…</td></tr></table></div></div></section>
+    <div class="panel"><div id="st-bar"></div><div style="overflow-x:auto"><table id="st-table"><tr><td class="empty">กำลังโหลด…</td></tr></table></div></div>
+    <div class="panel"><h3>☁️ ที่เก็บรูป (Supabase Storage)</h3><p class="sub" style="margin-top:0">ย้ายรูปห้อง บริการ รูปปก และโลโก้ ออกจากฐานข้อมูลไปเก็บบน Supabase → ฐานข้อมูลเล็กลงมาก รับที่พักได้อีกเยอะ · รูปใหม่ที่อัปโหลดจะขึ้น Supabase อัตโนมัติเมื่อตั้งค่าแล้ว</p>
+      <div id="st-sb" class="sub">กำลังโหลด…</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px"><button class="btn" id="st-mig" onclick="migrateImages()" disabled>ย้ายรูปไป Supabase</button><span id="st-mig-msg" class="sub" style="margin:0"></span></div></div></section>
   <section id="a-bill" class="view"><h1>การเงิน</h1><div class="metrics" id="a-billm"></div><div class="panel"><div style="overflow-x:auto"><table id="a-billtable"></table></div></div>
-    <div class="panel"><h3>สำรองข้อมูล</h3><p class="sub" style="margin-top:0">ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON เก็บไว้ (โรงแรม/ห้อง/การจอง/บริการ) — ควรทำสม่ำเสมอ</p><button class="btn" onclick="downloadBackup()">⬇ ดาวน์โหลดไฟล์สำรอง</button></div></section>
+    <div class="panel"><h3>สำรองข้อมูล</h3><p class="sub" style="margin-top:0">ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON เก็บไว้ (โรงแรม/ห้อง/การจอง/บริการ) — ควรทำสม่ำเสมอ</p><button class="btn" onclick="downloadBackup()">⬇ ดาวน์โหลดไฟล์สำรอง</button>
+      <h3 style="margin-top:22px">สำรองอัตโนมัติรายวัน (Supabase)</h3><p class="sub" style="margin-top:0">ระบบสำรองข้อมูลทั้งระบบ (ไฟล์ .json.gz ไม่มีรหัสผ่าน/โทเคน) ไปเก็บใน bucket ส่วนตัวทุกวันตอน cron รายวันทำงาน · เก็บ 30 วันล่าสุด</p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn ghost" id="bk-now" onclick="backupNow()">☁️ สำรองข้อมูลตอนนี้</button><span id="bk-msg" class="sub" style="margin:0"></span></div>
+      <div style="overflow-x:auto;margin-top:10px"><table id="bk-table"></table></div></div></section>
   <section id="a-calc" class="view"><h1>ต้นทุน Channex</h1><p class="sub">เทียบค่าที่ Barn Park จ่าย Channex กับค่าบริการที่ที่พักจ่าย · กด “บันทึกให้ทีม” แล้วทุกคนที่เข้าหน้าแอดมินจะเห็นตัวเลขชุดเดียวกัน</p>
     <div class="calc-grid">
       <div class="panel"><h3>ตัวเลขของเรา</h3>
@@ -237,9 +243,47 @@ async function loadStorage(){
     document.getElementById('st-metrics').innerHTML=m('💾 ใช้ไปแล้ว',mb(s.usedBytes)+' / '+mb(s.limitBytes),pct>=80)+m('📊 คิดเป็น',pct.toFixed(1)+'%',pct>=80)+m('🏨 เฉลี่ยต่อที่พัก',s.avgBytes?mb(s.avgBytes):'—')+m('➕ รับเพิ่มได้อีก (ประมาณ)',s.moreHotels==null?'—':'~'+s.moreHotels+' ที่พัก',s.moreHotels!=null&&s.moreHotels<10);
     document.getElementById('st-bar').innerHTML=sbar(pct,pct>=80?'#b91c1c':'#0d9488')+'<p class="sub" style="margin:6px 0 14px">ที่พักทั้งหมด '+mb(s.hotelBytes)+' · ส่วนกลาง (แชท LINE ตั้งค่า index) '+mb(s.sharedBytes)+(s.db?'':' · ⚠️ อ่านขนาดรวมของฐานไม่ได้ ใช้ผลรวมของที่พักแทน')+'</p>';
     const top=s.hotels.length?s.hotels[0].bytes:1;
+    const F=s.files||{}; document.getElementById('st-mig').disabled=!F.ready;
+    document.getElementById('st-sb').innerHTML=F.ready?'✅ ตั้งค่า Supabase แล้ว · bucket รูป <b>'+esc(F.bucket)+'</b> · bucket สำรองข้อมูล <b>'+esc(F.backupBucket)+'</b>':'❌ ยังไม่ได้ตั้งค่า — ใส่ <code>SUPABASE_URL</code> และ <code>SUPABASE_SERVICE_KEY</code> ใน Render (Environment) ก่อน ตอนนี้รูปยังเก็บในฐานข้อมูลเหมือนเดิม';
     t.innerHTML='<tr><th>ที่พัก</th><th>รวม</th><th>รูปและข้อมูลที่พัก</th><th>การจอง</th><th>อื่น ๆ</th><th>% ของโควตา</th><th></th></tr>'+(s.hotels.length?s.hotels.map(h=>'<tr><td><b>'+esc(h.name)+'</b><div class="sub" style="margin:0">'+esc(h.slug||'')+' · '+h.rooms+' ห้อง · '+h.bookingCount+' การจอง</div></td><td><b>'+mb(h.bytes)+'</b></td><td>'+mb(h.content)+'</td><td>'+mb(h.bookings)+'</td><td>'+mb(h.other)+'</td><td>'+(h.bytes/s.limitBytes*100).toFixed(2)+'%</td><td>'+sbar(h.bytes/top*100,'#4f7a5e')+'</td></tr>').join(''):'<tr><td colspan="7" class="empty">ยังไม่มีที่พัก</td></tr>');
   }catch(e){ t.innerHTML='<tr><td class="empty">โหลดไม่สำเร็จ: '+esc(e.message)+'</td></tr>'; }
 }
+
+// ย้ายรูป: นับก่อน (dry run) → ยืนยัน → ส่งทีละชุดจนครบ
+async function migrateImages(){
+  const b=document.getElementById('st-mig'),msg=document.getElementById('st-mig-msg'); b.disabled=true; msg.textContent='กำลังนับรูปในฐานข้อมูล…';
+  try{ const d=await API.post('/admin/storage/migrate-images',{dryRun:true}); const f=d.found;
+    if(!f.images){ msg.textContent='✅ ไม่มีรูปในฐานข้อมูลที่ต้องย้ายแล้ว'; b.disabled=false; return; }
+    if(!confirm('พบรูปในฐานข้อมูล '+f.images+' รูป ใน '+f.docs+' รายการ (ประมาณ '+mb(f.bytes)+')\n\nย้ายไป Supabase ตอนนี้เลยไหม?\n(ทำทีละชุด ห้ามปิดหน้านี้จนกว่าจะเสร็จ · ทำซ้ำได้ปลอดภัย)')){ msg.textContent=''; b.disabled=false; return; }
+    let after={}, moved=0, failed=0, skipped=0, freed=0, errs=[];
+    for(let i=0;i<500;i++){
+      const r=await API.post('/admin/storage/migrate-images',{dryRun:false,limit:10,after});
+      moved+=r.moved; failed+=r.failed; skipped+=r.skipped; freed+=r.bytesFreed; after=r.after; errs=errs.concat(r.errors||[]).slice(0,5);
+      msg.textContent='⏳ ย้ายแล้ว '+moved+'/'+f.images+' รูป · คืนพื้นที่ '+mb(freed)+(failed?' · ไม่สำเร็จ '+failed:'');
+      if(r.done) break;
+    }
+    msg.textContent=(failed||skipped?'⚠️ ':'✅ ')+'ย้ายเสร็จ '+moved+' รูป · คืนพื้นที่ '+mb(freed)+(failed?' · ไม่สำเร็จ '+failed+' รูป (กดอีกครั้งเพื่อลองใหม่)':'')+(skipped?' · ข้าม '+skipped+' รายการที่กำลังถูกแก้ (กดอีกครั้ง)':'')+(errs.length?' — '+errs.join(' | '):'');
+    API.toast('ย้ายรูปเสร็จแล้ว','ok'); loadStorage();
+  }catch(e){ msg.textContent='❌ '+e.message; API.toast(e.message,'err'); }
+  b.disabled=false;
+}
+
+// ---- สำรองข้อมูลอัตโนมัติ (Supabase bucket ส่วนตัว) ----
+async function loadBackups(){
+  const t=document.getElementById('bk-table'),msg=document.getElementById('bk-msg');
+  try{ const d=await API.get('/admin/backups'); document.getElementById('bk-now').disabled=!d.ready;
+    if(!d.ready){ msg.textContent='❌ ยังไม่ได้ตั้งค่า Supabase (SUPABASE_URL / SUPABASE_SERVICE_KEY) — ยังไม่มีการสำรองอัตโนมัติ'; t.innerHTML=''; return; }
+    msg.textContent=d.error?'⚠️ อ่านรายการไม่สำเร็จ: '+d.error:'bucket: '+d.backupBucket;
+    t.innerHTML='<tr><th>วันที่</th><th>ขนาด</th><th>บันทึกเมื่อ</th><th></th></tr>'+(d.list.length?d.list.map(f=>'<tr><td><b>'+esc(f.name.replace('.json.gz',''))+'</b></td><td>'+mb(f.size||0)+'</td><td>'+(f.at?new Date(f.at).toLocaleString('th-TH'):'—')+'</td><td><button class="btn ghost sm" data-n="'+esc(f.name)+'" onclick="backupGet(this.dataset.n)">⬇ ดาวน์โหลด</button></td></tr>').join(''):'<tr><td colspan="4" class="empty">ยังไม่มีไฟล์สำรอง</td></tr>');
+  }catch(e){ msg.textContent='โหลดไม่สำเร็จ: '+e.message; }
+}
+async function backupNow(){
+  const b=document.getElementById('bk-now'),msg=document.getElementById('bk-msg'); b.disabled=true; msg.textContent='⏳ กำลังสำรองข้อมูล…';
+  try{ const r=await API.post('/admin/backups',{}); API.toast('สำรองข้อมูลแล้ว ('+mb(r.bytes)+')','ok'); await loadBackups(); msg.textContent='✅ บันทึก '+r.path+' ('+mb(r.bytes)+')'; }
+  catch(e){ msg.textContent='❌ '+e.message; API.toast(e.message,'err'); }
+  b.disabled=false;
+}
+async function backupGet(name){ try{ const r=await API.get('/admin/backups/'+encodeURIComponent(name)+'/link'); location.href=r.url; }catch(e){ API.toast(e.message,'err'); } }
 
 // ---- LINE OA Barn Park ----
 async function loadLineStatus(){

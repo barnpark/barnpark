@@ -1,4 +1,5 @@
 import { Router } from "express";
+import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import Hotel from "../models/Hotel.js";
 import User from "../models/User.js";
@@ -24,7 +25,9 @@ import PromoCode from "../models/PromoCode.js";
 import Review from "../models/Review.js";
 import LinkCode from "../models/LinkCode.js";
 import { CALC_KEY, cleanCalc } from "../lib/calc.js";
-import { storageReport } from "../lib/storage.js";
+import { storageReport, migrateImages } from "../lib/storage.js";
+import { storeReady, storeInfo, putImage, storeImageFields, removeByUrl, removePrefix } from "../lib/filestore.js";
+import { exportData, runBackup, listBackups, backupLink } from "../lib/backup.js";
 
 const r = Router();
 
@@ -64,12 +67,9 @@ r.post("/admin/hotels/:id/approve", requireAuth, requireAdmin, async (req, res) 
 
 // สำรองข้อมูลทั้งระบบเป็น JSON (แอดมินเท่านั้น) — กดดาวน์โหลดเก็บไว้เอง
 r.get("/admin/export", requireAuth, requireAdmin, async (_req, res) => {
-  const [hotels, users, rooms, bookings, services, activityBookings, feedback] = await Promise.all([
-    Hotel.find().lean(), User.find().select("-passwordHash -otpHash").lean(),
-    RoomType.find().lean(), Booking.find().lean(), Service.find().lean(), ActivityBooking.find().lean(), Feedback.find().lean(),
-  ]);
+  const data = await exportData();
   res.setHeader("Content-Disposition", 'attachment; filename="barnpark-backup-' + new Date().toISOString().slice(0, 10) + '.json"');
-  res.json({ exportedAt: new Date().toISOString(), hotels, users, rooms, bookings, services, activityBookings, feedback });
+  res.json(data);
 });
 
 // เพิ่มโรงแรมใหม่ + สร้างบัญชีเจ้าของ (admin เท่านั้น)
@@ -108,10 +108,11 @@ r.get("/hotels/:id", requireAuth, async (req, res) => {
 
 r.post("/hotels", requireAuth, requireAdmin, async (req, res) => {
   if (badImageFields(req.body, ["coverUrl", "promoImage", "logoUrl"])) return res.status(400).json({ error: "ลิงก์รูปไม่ถูกต้อง" });
-  try { res.json(await Hotel.create(req.body)); }
+  try { const id = new mongoose.Types.ObjectId(); const body = { ...req.body, _id: id }; await storeImageFields(body, HOTEL_IMG, `h/${id}/img`); res.json(await Hotel.create(body)); }
   catch (e) { res.status(400).json({ error: String(e.message || e) }); }
 });
 
+const HOTEL_IMG = ["coverUrl", "promoImage", "logoUrl"];
 // ฟิลด์ที่แก้ผ่าน PATCH /hotels/:id ได้ (whitelist) — token/secret ผ่าน /line · รูปที่เก็บในระบบผ่าน /cover /logo เท่านั้น
 const HOTEL_OWNER_FIELDS = ["name", "location", "phone", "lineId", "brandColor", "brandColor2", "accentColor", "accentColor2", "fontFamily", "uiStyle", "template",
   "tagline", "coverUrl", "logoUrl", "about", "amenities", "promoText", "promoImage", "notifyEmail", "notifyLineTo", "promptpayId", "promptpayName",
@@ -160,6 +161,8 @@ r.patch("/hotels/:id", requireAuth, async (req, res) => {
   if (safe.about !== undefined) safe.about = String(safe.about || "").slice(0, 1000);
   if (safe.tagline !== undefined) safe.tagline = String(safe.tagline || "").slice(0, 120);
   if (safe.amenities !== undefined) safe.amenities = (Array.isArray(safe.amenities) ? safe.amenities : []).map((a) => String(a || "").trim().slice(0, 30)).filter(Boolean).slice(0, 20);
+  try { await storeImageFields(safe, HOTEL_IMG, `h/${req.params.id}/img`); }
+  catch (e) { return res.status(502).json({ error: "อัปโหลดรูปไม่สำเร็จ: " + (e.message || e) }); }
   if (safe.holdHours !== undefined) safe.holdHours = Math.max(0, Math.min(720, parseInt(safe.holdHours, 10) || 0));
   if (safe.cancelDays !== undefined) safe.cancelDays = Math.max(0, Math.min(60, parseInt(safe.cancelDays, 10) || 0));
   res.json(await Hotel.findByIdAndUpdate(req.params.id, safe, { new: true }));
@@ -174,14 +177,20 @@ r.post("/hotels/:id/cover", requireAuth, async (req, res) => {
   let dataUrl;
   try { dataUrl = await toDataUrl(p.buf, { max: 1600, quality: 82 }); }
   catch { return res.status(400).json({ error: "อ่านไฟล์รูปไม่ได้ ลองไฟล์อื่น" }); }
-  const coverUrl = `/api/public/img/cover/${req.params.id}/0?v=${Date.now()}`;
-  const h = await Hotel.findByIdAndUpdate(req.params.id, { $set: { coverData: dataUrl, coverUrl } }, { new: true });
+  let coverUrl = `/api/public/img/cover/${req.params.id}/0?v=${Date.now()}`;
+  if (storeReady()) { // ตั้ง Supabase แล้ว → เก็บไฟล์บน Supabase เก็บแค่ลิงก์
+    try { dataUrl = coverUrl = await putImage(dataUrl, `h/${req.params.id}/cover`); }
+    catch (e) { return res.status(502).json({ error: "อัปโหลดรูปไม่สำเร็จ: " + e.message }); }
+  }
+  const h = await Hotel.findByIdAndUpdate(req.params.id, { $set: { coverData: dataUrl, coverUrl } }).select("+coverData");
   if (!h) return res.status(404).json({ error: "not found" });
+  if (h.coverData !== dataUrl) await removeByUrl(h.coverData, `h/${req.params.id}`); // ลบรูปปกเดิม
   res.json({ ok: true, coverUrl });
 });
 r.delete("/hotels/:id/cover", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
-  await Hotel.updateOne({ _id: req.params.id }, { $set: { coverUrl: "" }, $unset: { coverData: 1 } });
+  const old = await Hotel.findByIdAndUpdate(req.params.id, { $set: { coverUrl: "" }, $unset: { coverData: 1 } }).select("+coverData");
+  if (old) await removeByUrl(old.coverData, `h/${req.params.id}`);
   res.json({ ok: true });
 });
 
@@ -194,14 +203,20 @@ r.post("/hotels/:id/logo", requireAuth, async (req, res) => {
   let lg;
   try { lg = await toLogoDataUrl(p.buf); }
   catch { return res.status(400).json({ error: "อ่านไฟล์รูปไม่ได้ ลองไฟล์อื่น" }); }
-  const logoUrl = `/api/public/img/logo/${req.params.id}/0?v=${Date.now()}`;
-  const h = await Hotel.findByIdAndUpdate(req.params.id, { $set: { logoData: lg.dataUrl, logoUrl, logoAspect: lg.aspect } }, { new: true });
+  let logoUrl = `/api/public/img/logo/${req.params.id}/0?v=${Date.now()}`;
+  if (storeReady()) {
+    try { lg.dataUrl = logoUrl = await putImage(lg.dataUrl, `h/${req.params.id}/logo`); }
+    catch (e) { return res.status(502).json({ error: "อัปโหลดรูปไม่สำเร็จ: " + e.message }); }
+  }
+  const h = await Hotel.findByIdAndUpdate(req.params.id, { $set: { logoData: lg.dataUrl, logoUrl, logoAspect: lg.aspect } }).select("+logoData");
   if (!h) return res.status(404).json({ error: "not found" });
+  if (h.logoData !== lg.dataUrl) await removeByUrl(h.logoData, `h/${req.params.id}`); // ลบโลโก้เดิม
   res.json({ ok: true, logoUrl, logoAspect: lg.aspect });
 });
 r.delete("/hotels/:id/logo", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
-  await Hotel.updateOne({ _id: req.params.id }, { $set: { logoUrl: "" }, $unset: { logoData: 1, logoAspect: 1 } });
+  const old = await Hotel.findByIdAndUpdate(req.params.id, { $set: { logoUrl: "" }, $unset: { logoData: 1, logoAspect: 1 } }).select("+logoData");
+  if (old) await removeByUrl(old.logoData, `h/${req.params.id}`);
   res.json({ ok: true });
 });
 
@@ -227,8 +242,29 @@ r.get("/admin/checklist", requireAuth, requireAdmin, async (_req, res) => {
 });
 // ===== แอดมิน: พื้นที่ฐานข้อมูลที่แต่ละที่พักใช้ เทียบโควตาฟรี =====
 r.get("/admin/storage", requireAuth, requireAdmin, async (_req, res) => {
-  try { res.json(await storageReport()); }
+  try { res.json({ ...(await storageReport()), files: storeInfo() }); }
   catch (e) { res.status(500).json({ error: "นับพื้นที่ไม่สำเร็จ: " + (e.message || e) }); }
+});
+// ย้ายรูป data URL ในฐานข้อมูลไป Supabase — body: { dryRun, limit, after } (หน้าแอดมินเรียกซ้ำทีละชุดจนครบ)
+r.post("/admin/storage/migrate-images", requireAuth, requireAdmin, async (req, res) => {
+  const { dryRun = true, limit = 10, after = {} } = req.body || {};
+  try { res.json(await migrateImages({ dryRun: dryRun !== false, limit, after: after && typeof after === "object" ? after : {} })); }
+  catch (e) { res.status(400).json({ error: String(e.message || e) }); }
+});
+// ===== แอดมิน: สำรองข้อมูลอัตโนมัติบน Supabase (bucket ส่วนตัว) =====
+r.get("/admin/backups", requireAuth, requireAdmin, async (_req, res) => {
+  const info = storeInfo();
+  if (!info.ready) return res.json({ ...info, list: [] });
+  try { res.json({ ...info, list: (await listBackups()).slice(0, 40) }); }
+  catch (e) { res.json({ ...info, list: [], error: e.message }); }
+});
+r.post("/admin/backups", requireAuth, requireAdmin, async (_req, res) => {
+  try { const out = await runBackup(); res.status(out.skipped ? 400 : 200).json(out.skipped ? { error: out.skipped } : out); }
+  catch (e) { res.status(502).json({ error: "สำรองข้อมูลไม่สำเร็จ: " + (e.message || e) }); }
+});
+r.get("/admin/backups/:name/link", requireAuth, requireAdmin, async (req, res) => {
+  try { res.json({ url: await backupLink(req.params.name) }); }
+  catch (e) { res.status(e.status === 400 ? 400 : 502).json({ error: String(e.message || e) }); }
 });
 // ส่งประกาศ "อัปเดตระบบ" + เช็กลิสต์เฉพาะของแต่ละที่ เข้า LINE Barn Park ของทุกคนที่เชื่อมที่พัก (+อีเมล)
 //   body: { title, message, dryRun, email, onlyMissing }
@@ -289,6 +325,7 @@ r.post("/admin/hotels/:id/delete", requireAuth, requireAdmin, async (req, res) =
     lineChats: chats.length,
   };
   await Hotel.deleteOne({ _id: hid });
+  deleted.files = await removePrefix(`h/${hid}`); // รูปของที่พักนี้บน Supabase (ถ้ามี)
   console.log("admin deleted hotel", h.slug, "by", req.user.id, JSON.stringify(deleted));
   res.json({ ok: true, name: h.name, deleted });
 });
