@@ -4,6 +4,7 @@ import Service from "../models/Service.js";
 import Hotel from "../models/Hotel.js";
 import { requireAuth, canAccessHotel } from "../lib/auth.js";
 import { createActivityBooking } from "../lib/activity.js";
+import { notifyGuestPaid } from "../lib/notify.js";
 
 const r = Router();
 
@@ -29,7 +30,9 @@ r.patch("/activity-bookings/:id", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, b.hotel)) return res.status(403).json({ error: "forbidden" });
   const set = {};
   for (const k of ["payStatus", "status", "note", "guestName", "guestTel"]) if (req.body[k] !== undefined) set[k] = req.body[k];
-  res.json(await ActivityBooking.findByIdAndUpdate(b._id, { $set: set }, { new: true }));
+  const out = await ActivityBooking.findByIdAndUpdate(b._id, { $set: set }, { new: true });
+  if (set.payStatus === "paid" && b.payStatus !== "paid") notifyGuestPaid(b._id, "act").catch((e) => console.error("notifyGuestPaid", e.message));
+  res.json(out);
 });
 r.delete("/activity-bookings/:id", requireAuth, async (req, res) => {
   const b = await ActivityBooking.findById(req.params.id);

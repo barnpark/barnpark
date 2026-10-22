@@ -28,6 +28,7 @@ const schema = new mongoose.Schema({
   ref:           String,
   extUid:        String, // รหัสยืนยันจาก OTA (อนาคต Channex)
   note:          String,                                  // คำขอพิเศษจากแขก / เวลาที่จะมาถึง
+  lineRemindedAt: Date,                                  // ส่งเตือนก่อนเข้าพักทาง LINE OA ของที่พักแล้ว (กันส่งซ้ำ)
   remindedAt:    Date,                                    // ส่งอีเมลเตือนก่อนเข้าพักแล้ว (กันส่งซ้ำ)
   cancelReason:  String,                                  // guest = แขกยกเลิกเอง · auto-unpaid = ระบบปล่อยห้อง (ไม่ชำระตามเวลา) · hotel = ที่พักยกเลิก
   cancelledAt:   Date,
