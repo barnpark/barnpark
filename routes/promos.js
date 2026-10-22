@@ -29,8 +29,15 @@ r.patch("/promos/:id", requireAuth, async (req, res) => {
   const p = await PromoCode.findById(req.params.id);
   if (!p) return res.status(404).json({ error: "not found" });
   if (!canAccessHotel(req.user, p.hotel)) return res.status(403).json({ error: "forbidden" });
-  const { hotel, ...safe } = req.body;
-  res.json(await PromoCode.findByIdAndUpdate(req.params.id, safe, { new: true }));
+  // whitelist — ย้ายโค้ดไปที่พักอื่น/รีเซ็ตจำนวนที่ใช้ไปแล้วไม่ได้
+  const b = req.body || {}, set = {};
+  if (b.active !== undefined) set.active = b.active === true || b.active === "true";
+  if (b.type !== undefined) { if (!["percent", "amount"].includes(b.type)) return res.status(400).json({ error: "ประเภทส่วนลดไม่ถูกต้อง" }); set.type = b.type; }
+  if (b.value !== undefined) set.value = Math.max(0, Math.min((set.type || p.type) === "percent" ? 100 : 1000000, Number(b.value) || 0));
+  if (b.minNights !== undefined) set.minNights = Math.max(0, Math.min(365, parseInt(b.minNights, 10) || 0));
+  if (b.maxUses !== undefined) set.maxUses = Math.max(0, Math.min(1000000, parseInt(b.maxUses, 10) || 0));
+  if (b.expiresAt !== undefined) { const d = b.expiresAt ? new Date(b.expiresAt) : null; if (d && isNaN(d)) return res.status(400).json({ error: "วันหมดอายุไม่ถูกต้อง" }); set.expiresAt = d; }
+  res.json(await PromoCode.findByIdAndUpdate(p._id, { $set: set }, { new: true }));
 });
 
 r.delete("/promos/:id", requireAuth, async (req, res) => {

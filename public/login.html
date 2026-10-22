@@ -34,7 +34,7 @@
       <div class="field"><label>ทำเล</label><input id="r-loc" placeholder="เช่น เชียงใหม่"></div>
       <div class="field"><label>เบอร์โทร</label><input id="r-phone" placeholder="08x-xxx-xxxx"></div>
       <div class="field"><label>อีเมล (ใช้ล็อกอิน) *</label><input id="r-email" type="email" placeholder="you@example.com"></div>
-      <div class="field"><label>ตั้งรหัสผ่าน * (อย่างน้อย 6 ตัว)</label><input id="r-pw" type="password" placeholder="••••••••"></div>
+      <div class="field"><label>ตั้งรหัสผ่าน * (อย่างน้อย 8 ตัว)</label><input id="r-pw" type="password" placeholder="••••••••"></div>
       <label style="display:flex;gap:8px;align-items:flex-start;font-weight:400;color:#5b7089;font-size:12px;margin-bottom:10px"><input type="checkbox" id="r-consent" style="width:auto;margin-top:2px"><span>ยอมรับ <a href="privacy.html" target="_blank">นโยบายความเป็นส่วนตัว</a> และการเก็บข้อมูลเพื่อให้บริการ</span></label>
       <button class="btn block lg" id="goReg" onclick="doRegister()">สร้างบัญชีที่พัก</button>
       <p class="note" style="text-align:center;margin-top:14px"><a href="#" onclick="backToLogin();return false">‹ มีบัญชีแล้ว เข้าสู่ระบบ</a></p>
@@ -49,7 +49,7 @@
     <div id="stepReset" style="display:none">
       <p class="sub" style="margin:0 0 12px" id="rs-info"></p>
       <div class="field"><label>รหัส 6 หลักจากอีเมล</label><input id="rs-code" inputmode="numeric" maxlength="6" placeholder="______" style="letter-spacing:6px;text-align:center;font-size:20px"></div>
-      <div class="field"><label>รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)</label><input id="rs-pw" type="password" autocomplete="new-password"></div>
+      <div class="field"><label>รหัสผ่านใหม่ (อย่างน้อย 8 ตัว)</label><input id="rs-pw" type="password" autocomplete="new-password"></div>
       <button class="btn block lg" id="goRs" onclick="doReset()">ตั้งรหัสผ่านใหม่ แล้วเข้าสู่ระบบ</button>
       <p class="note" style="text-align:center;margin-top:10px"><a href="#" onclick="showForgot();return false">‹ ขอรหัสใหม่</a></p>
     </div>
@@ -105,7 +105,7 @@ async function doForgot(){ const email=document.getElementById("fg-email").value
     resetEmail=email; showStep("stepReset"); document.getElementById("rs-info").textContent=d.message||("ส่งรหัสไปที่ "+email+" แล้ว"); document.getElementById("rs-code").focus(); }
   catch(e){ showErr(e.message); } b.disabled=false; b.textContent="ส่งรหัสไปที่อีเมล"; }
 async function doReset(){ const code=document.getElementById("rs-code").value.trim(), password=document.getElementById("rs-pw").value;
-  if(code.length<6){ showErr("กรอกรหัส 6 หลักให้ครบ"); return; } if(password.length<6){ showErr("รหัสผ่านใหม่อย่างน้อย 6 ตัวอักษร"); return; }
+  if(code.length<6){ showErr("กรอกรหัส 6 หลักให้ครบ"); return; } if(password.length<8){ showErr("รหัสผ่านใหม่อย่างน้อย 8 ตัวอักษร"); return; }
   const b=document.getElementById("goRs"); b.disabled=true;
   try{ const r=await fetch("/api/auth/reset",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:resetEmail,code,password})}); const d=await r.json().catch(()=>({})); if(!r.ok) throw new Error(d.error||"ตั้งรหัสไม่สำเร็จ");
     showOk("ตั้งรหัสผ่านใหม่แล้ว กำลังเข้าสู่ระบบ…"); API.setToken(d.token); await route(); }
@@ -116,7 +116,7 @@ async function doRegister(){
   const hotelName=v("r-hotel"), email=v("r-email"), password=document.getElementById("r-pw").value;
   document.getElementById("err").style.display="none";
   if(!hotelName||!email||!password){ showErr("กรอกชื่อที่พัก อีเมล และรหัสผ่านให้ครบ"); return; }
-  if(password.length<6){ showErr("รหัสผ่านอย่างน้อย 6 ตัวอักษร"); return; }
+  if(password.length<8){ showErr("รหัสผ่านอย่างน้อย 8 ตัวอักษร"); return; }
   if(!document.getElementById("r-consent").checked){ showErr("กรุณายอมรับนโยบายความเป็นส่วนตัวก่อนสมัคร"); return; }
   const b=document.getElementById("goReg"); b.disabled=true; b.textContent="กำลังสร้างบัญชี…";
   try{
