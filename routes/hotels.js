@@ -11,7 +11,7 @@ import { requireAuth, requireAdmin, canAccessHotel } from "../lib/auth.js";
 import LineChat from "../models/LineChat.js";
 import { issueLinkCode, fmtCode, oaAddUrl, oaPrefillUrl, approveHotel } from "../lib/onboard.js";
 import { detachHotelFromChat } from "../lib/linebot.js";
-import { rememberBase } from "../lib/baseurl.js";
+import { rememberBase, baseUrl } from "../lib/baseurl.js";
 import { badImageFields } from "../lib/security.js";
 import { normalizePromptPayId } from "../lib/promptpay.js";
 import { cleanStayFields, cleanLineId } from "../lib/stay.js";
@@ -285,6 +285,57 @@ r.get("/hotels/:id/line", requireAuth, async (req, res) => {
   res.json({ lineId: h?.lineId || "", connected: !!(h && h.lineChannelToken), guestBot: !!(h && h.lineChannelToken && h.lineChannelSecret) });
 });
 // บันทึกการเชื่อม (token เก็บใน DB, select:false ไม่หลุด API ปกติ)
+// ทดสอบการเชื่อม LINE OA ของโรงแรม (+ ตั้ง Webhook URL ให้อัตโนมัติ) — เช็กทีละขั้นว่าข้อความของแขกมาถึงบอทจองได้ไหม
+//   body: { fix: true } = ตั้ง Webhook URL ให้ถูก (ผ่าน LINE API ด้วย token ของโรงแรม)
+const LINE_API = () => process.env.LINE_API_BASE || "https://api.line.me";
+async function lineCall(token, method, path, body) {
+  try {
+    const r2 = await fetch(LINE_API() + path, {
+      method, headers: { authorization: "Bearer " + token, ...(body ? { "content-type": "application/json" } : {}) },
+      body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000),
+    });
+    const txt = await r2.text();
+    let json = {}; try { json = txt ? JSON.parse(txt) : {}; } catch {}
+    return { ok: r2.ok, status: r2.status, json };
+  } catch (e) { return { ok: false, status: 0, json: { message: String(e.message || e) } }; }
+}
+r.post("/hotels/:id/line/check", requireAuth, async (req, res) => {
+  if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  if (!isOid(req.params.id)) return res.status(404).json({ error: "ไม่พบที่พัก" });
+  const h = await Hotel.findById(req.params.id).select("+lineChannelToken +lineChannelSecret slug").lean();
+  if (!h) return res.status(404).json({ error: "ไม่พบที่พัก" });
+  rememberBase(req);
+  const steps = [], add = (ok, title, msg) => { steps.push({ ok, title, msg }); return ok; };
+  const done = () => res.json({ ok: steps.every((x) => x.ok), steps });
+  const base = baseUrl();
+  const expected = base + "/api/line/webhook/" + encodeURIComponent(h.slug);
+
+  if (!add(!!h.lineChannelToken, "Channel access token", h.lineChannelToken ? "ใส่แล้ว" : "ยังไม่ได้ใส่ — คัดลอกจาก LINE Developers → Messaging API → Channel access token (long-lived)")) return done();
+  const info = await lineCall(h.lineChannelToken, "GET", "/v2/bot/info");
+  if (!add(info.ok, "token ใช้งานได้", info.ok ? `เชื่อมกับ OA “${info.json.displayName || ""}” ${info.json.basicId || ""}` : `LINE ไม่รับ token นี้ (${info.status}) — คัดลอก token ใหม่ (Issue) แล้วบันทึกอีกครั้ง`)) return done();
+  if (!add(!!h.lineChannelSecret, "Channel secret", h.lineChannelSecret ? "ใส่แล้ว" : "ยังไม่ได้ใส่ — ไม่มี secret บอทจะไม่รับจอง (คัดลอกจาก LINE Developers → Basic settings → Channel secret)")) return done();
+  if (!add(/^https:\/\//.test(base), "ที่อยู่เว็บ", /^https:\/\//.test(base) ? base : "ระบบยังไม่รู้ที่อยู่เว็บแบบ https — ตั้ง env PUBLIC_URL ใน Render")) return done();
+
+  let wh = await lineCall(h.lineChannelToken, "GET", "/v2/bot/channel/webhook/endpoint");
+  if (wh.ok && wh.json.endpoint !== expected && req.body && req.body.fix) {
+    const put = await lineCall(h.lineChannelToken, "PUT", "/v2/bot/channel/webhook/endpoint", { endpoint: expected });
+    if (put.ok) wh = await lineCall(h.lineChannelToken, "GET", "/v2/bot/channel/webhook/endpoint");
+  }
+  const urlOk = wh.ok && wh.json.endpoint === expected;
+  add(urlOk, "Webhook URL", urlOk ? expected : `${wh.json.endpoint ? "ตั้งไว้เป็น " + wh.json.endpoint + " (ไม่ตรง)" : "ยังไม่ได้ตั้ง"} — กด “ตั้งค่าให้อัตโนมัติ” หรือวาง ${expected} ใน LINE Developers → Messaging API → Webhook URL`);
+  add(!!(wh.ok && wh.json.active), "เปิด Use webhook", wh.ok && wh.json.active ? "เปิดอยู่" : "ยังปิดอยู่ — LINE Developers → Messaging API → เปิดสวิตช์ “Use webhook” (หรือ LINE OA Manager → ตั้งค่า → การตอบกลับ → เปิด Webhook)");
+  if (!urlOk) return done();
+
+  // ให้ LINE ยิงข้อความทดสอบมาที่ webhook จริง → รู้ว่าเซิร์ฟเวอร์ตอบได้และ secret ตรง
+  const tst = await lineCall(h.lineChannelToken, "POST", "/v2/bot/channel/webhook/test", { endpoint: expected });
+  const sc = tst.json.statusCode;
+  add(!!(tst.ok && tst.json.success), "LINE ส่งข้อความทดสอบถึงเว็บ",
+    tst.ok && tst.json.success ? "ผ่าน ✔ ข้อความของแขกมาถึงบอทจองได้"
+      : sc === 401 ? "เว็บปฏิเสธ (401) — Channel secret ไม่ตรงกับ OA นี้ คัดลอก secret ใหม่จาก Basic settings แล้วบันทึก"
+      : `ไม่ผ่าน (${sc || tst.status}${tst.json.reason ? " " + tst.json.reason : ""}) — ถ้าเว็บเพิ่งตื่น (Render แพ็กเกจฟรี) ลองกดทดสอบอีกครั้ง`);
+  done();
+});
+
 r.patch("/hotels/:id/line", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
   const { lineId, lineChannelToken, lineChannelSecret } = req.body || {};
