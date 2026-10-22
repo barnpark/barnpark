@@ -18,11 +18,12 @@ const schema = new mongoose.Schema({
   payMethod:     { type: String, default: "" },          // promptpay|transfer|cash|ota (วิธีที่แขกเลือก/จ่ายจริง)
   promoCode:     String,                                  // โค้ดส่วนลดที่ใช้
   discount:      { type: Number, default: 0 },            // ส่วนลดต่อห้องนี้ (บาท)
-  addons:        { type: [{ name: String, price: Number, qty: Number }], default: [] }, // บริการเสริมที่ซื้อพ่วง
+  addons:        { type: [{ name: String, price: Number, qty: Number, date: String }], default: [] }, // บริการเสริมที่ซื้อพ่วง (date = วันที่ใช้ ถ้าแขกเลือก)
   addonTotal:    { type: Number, default: 0 },            // ยอดบริการเสริมรวม (เก็บที่ห้องแรกของกลุ่ม)
   breakfast:     { type: String, default: "" },           // "" ไม่มี | included รวมในราคาห้อง | added แขกเลือกเพิ่ม
   breakfastPax:  { type: Number, default: 0 },            // จำนวนท่านที่สั่งอาหารเช้าเพิ่ม
   breakfastTotal:{ type: Number, default: 0 },            // ค่าอาหารเช้าที่สั่งเพิ่ม (เก็บที่ห้องแรกของกลุ่ม)
+  breakfastDates:{ type: [String], default: [] },         // เช้าที่ทานอาหารเช้า (YYYY-MM-DD) · ว่าง + added = ทุกเช้า (การจองรุ่นเดิม)
   notifyChannel: { type: String, default: "email" },     // email|none (ส่งใบยืนยันทางอีเมล — ไม่มี SMS)
   lineUserId:    String,
   ref:           String,

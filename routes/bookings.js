@@ -125,8 +125,8 @@ r.get("/hotels/:hid/bookings/export", requireAuth, async (req, res) => {
   const rows = list.map((b) => [
     b.ref, b.status === "cancelled" ? "ยกเลิก" + (CX_TH[b.cancelReason] ? ` (${CX_TH[b.cancelReason]})` : "") : "ยืนยัน", CH_TH[b.channel] || b.channel || "",
     b.guestName, b.guestTel, b.guestEmail, rn[String(b.roomType)] || "", b.checkin, b.checkout, nights(b.checkin, b.checkout), b.pax || "", b.extraBed || "",
-    b.breakfast === "included" ? "รวมแล้ว" : b.breakfast === "added" ? `เพิ่ม ${b.breakfastPax || ""} ท่าน (${b.breakfastTotal || 0})` : "",
-    (b.addons || []).map((a) => `${a.name} x${a.qty}`).join(" / "), b.discount || "", b.amount || 0,
+    b.breakfast === "included" ? "รวมแล้ว" : b.breakfast === "added" ? `เพิ่ม ${b.breakfastPax || ""} ท่าน (${b.breakfastTotal || 0})${(b.breakfastDates || []).length ? " เช้า " + b.breakfastDates.join(" ") : ""}` : "",
+    (b.addons || []).map((a) => `${a.name} x${a.qty}${a.date ? " " + a.date : ""}`).join(" / "), b.discount || "", b.amount || 0,
     PAY_TH[b.payStatus || ""] ?? b.payStatus, methodTh(b.payMethod), b.payRef || "", b.note || "",
     b.createdAt ? new Date(new Date(b.createdAt).getTime() + 7 * 3600e3).toISOString().slice(0, 16).replace("T", " ") : "",
   ]);

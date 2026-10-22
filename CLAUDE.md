@@ -48,6 +48,7 @@ Barn Park (barnpark.onrender.com) is a multi-tenant direct-booking platform for 
 - LINE: prefer reply messages (free); push only for important alerts. Button labels are at most 20 characters, quick replies at most 13 items.
 - Money is in Thai baht. Dates are `YYYY-MM-DD` strings in Bangkok time (UTC+7).
 - For user-visible changes, add a short Thai bullet to the latest "อัปเดต" section at the end of `README.md`.
+- For changes hotel owners or guests will notice, also add an entry at the top of `CHANGELOG` in `lib/changelog.js` (new unique `id`, today's `date`, Thai `title`, short Thai `items` saying what they get and where to use it). The admin "📣 แจ้งอัปเดต" announcement is built from this list, so it must match what is actually shipped.
 
 ## Testing
 

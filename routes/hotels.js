@@ -19,7 +19,8 @@ import { cleanStayFields, cleanLineId } from "../lib/stay.js";
 import { cleanPayFields } from "../lib/pay.js";
 import { parseDataUrl, toDataUrl, toLogoDataUrl } from "../lib/images.js";
 import { checklist } from "../lib/checklist.js";
-import { announceUpdate, announceLog } from "../lib/announce.js";
+import { announceUpdate, announceLog, changelogStatus } from "../lib/announce.js";
+import { composeAnnouncement } from "../lib/changelog.js";
 import Setting from "../models/Setting.js";
 import PromoCode from "../models/PromoCode.js";
 import Review from "../models/Review.js";
@@ -270,12 +271,18 @@ r.get("/admin/backups/:name/link", requireAuth, requireAdmin, async (req, res) =
 //   body: { title, message, dryRun, email, onlyMissing }
 r.post("/admin/announce", requireAuth, requireAdmin, async (req, res) => {
   rememberBase(req);
-  const { title = "", message = "", dryRun = true, email = false, onlyMissing = false } = req.body || {};
+  const { title = "", message = "", dryRun = true, email = false, onlyMissing = false, changelogIds = [] } = req.body || {};
   if (!String(title).trim()) return res.status(400).json({ error: "ใส่หัวข้อประกาศ" });
-  try { res.json(await announceUpdate({ title: String(title).slice(0, 80), message: String(message).slice(0, 1500), dryRun: dryRun !== false, email: !!email, onlyMissing: !!onlyMissing })); }
+  const ids = (Array.isArray(changelogIds) ? changelogIds : []).slice(0, 50).map(String);
+  try { res.json(await announceUpdate({ title: String(title).slice(0, 80), message: String(message).slice(0, 1500), dryRun: dryRun !== false, email: !!email, onlyMissing: !!onlyMissing, changelogIds: ids })); }
   catch (e) { res.status(400).json({ error: String(e.message || e) }); }
 });
 r.get("/admin/announce/log", requireAuth, requireAdmin, async (_req, res) => res.json(await announceLog()));
+// รายการอัปเดตที่ขึ้นเว็บแล้ว (lib/changelog.js) + ประกาศไปแล้วหรือยัง · ?compose=id1,id2 → ข้อความประกาศจากรายการที่เลือก
+r.get("/admin/changelog", requireAuth, requireAdmin, async (req, res) => {
+  const ids = String(req.query.compose || "").split(",").filter(Boolean).slice(0, 50);
+  res.json({ entries: await changelogStatus(), ...(ids.length ? composeAnnouncement(ids) : {}) });
+});
 
 // ===== แอดมิน: ลบที่พักถาวร (ห้อง การจอง บริการ บัญชีเจ้าของ การเชื่อม LINE ฯลฯ) — ต้องพิมพ์ slug ยืนยัน =====
 const isOid = (s) => /^[a-f0-9]{24}$/i.test(String(s || ""));
