@@ -23,6 +23,7 @@ import setupRoutes from "./routes/setup.js";
 import lineRoutes from "./routes/line.js";
 import activityRoutes from "./routes/activities.js";
 import feedbackRoutes from "./routes/feedback.js";
+import devRoutes from "./routes/dev.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -42,10 +43,12 @@ app.use("/api/public/report-paid", rateLimit({ windowMs: 10 * 60 * 1000, max: 10
 app.use("/api/public/review", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/promo", rateLimit({ windowMs: 10 * 60 * 1000, max: 30, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/book-activity", rateLimit({ windowMs: 10 * 60 * 1000, max: 20, message: "ส่งคำขอจองบ่อยเกินไป กรุณารอสักครู่" }));
+app.use("/api/dev", rateLimit({ windowMs: 10 * 60 * 1000, max: 60, message: "เรียกบ่อยเกินไป" }));
 app.use("/api/public/book", rateLimit({ windowMs: 10 * 60 * 1000, max: 20, message: "ส่งคำขอจองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/line", lineRoutes);
+app.use("/api/dev", devRoutes); // GitHub แจ้งผลงานแก้เว็บที่สั่งผ่าน LINE (lib/devjobs.js)
 app.use("/api", setupRoutes);
 app.use("/api", hotelRoutes);
 app.use("/api", roomRoutes);

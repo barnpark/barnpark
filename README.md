@@ -85,3 +85,10 @@ npm start                 # เปิด http://localhost:3000
 - ไฟล์แยกไว้ส่งต่อ: `easyBooking/Channex-Calculator.html` (เปิดในเบราว์เซอร์ได้เลย ไม่ต้องล็อกอิน)
 - กราฟในแท็บต้นทุน Channex **ชี้/ลากได้** (เมาส์ นิ้ว หรือปุ่มลูกศร) → เห็นต้นทุน Channex ต่อที่ และส่วนต่างต่อเดือนของแต่ละราคา ณ จำนวนที่พักนั้น
 - **ลบที่พักถาวร**: หน้าแอดมิน → รายละเอียดที่พัก → “🗑 ลบที่พักนี้” → แสดงก่อนว่าจะลบอะไรบ้าง (ห้อง การจอง — เตือนถ้ามีการจองที่ยังไม่ถึงวันเช็คเอาท์ — กิจกรรม โปรโมชัน รีวิว บัญชีเจ้าของ/พนักงาน ความเห็น) · ต้องพิมพ์ slug ยืนยัน · ระบบถอดที่พักออกจาก LINE ของทุกคนที่เชื่อมไว้ให้ · API: `GET /api/admin/hotels/:id/delete-preview`, `POST /api/admin/hotels/:id/delete` `{confirm: "<slug>"}` (แอดมินเท่านั้น) · ถ้าแค่หยุดชั่วคราวให้ตั้งสถานะ “พัก” แทน
+
+## อัปเดต 19 ต.ค. 2026 — สั่งงานแก้เว็บผ่าน LINE ให้ Claude Code
+- ทีมพิมพ์ **`งาน: <สิ่งที่อยากให้แก้>`** ในแชท LINE Barn Park (เฉพาะ LINE ที่อนุญาตใน `DEV_LINE_USERS` + `ADMIN_LINE_TO`) → Barn Park สั่ง GitHub Actions (`.github/workflows/line-job.yml`) → Claude Code แก้โค้ด รัน `npm test` → push สาขา `line-job/<เลขงาน>` + เปิด **Pull Request** + ไฟล์ zip → แจ้งผลกลับใน LINE · **ไม่ merge เอง** เว็บจริงเปลี่ยนเมื่อเบลล์กด Merge
+- พิมพ์ `สถานะงาน` ดู 5 งานล่าสุด · โค้ด: `lib/devjobs.js`, `routes/dev.js` (`POST /api/dev/job-callback` ใช้ header `x-dev-secret`), `models/DevJob.js`, `.github/scripts/`
+- `CLAUDE.md` = คู่มือโปรเจกต์ให้ Claude Code (ใช้ได้ทั้งงานจาก LINE และตอนเปิด Claude Code เองบนเครื่อง)
+- `npm test` (`test/run.mjs`): ตรวจ syntax ทุกไฟล์ + สคริปต์ในหน้าเว็บ + ชุดทดสอบ `test/*.test.mjs` (ไม่ต้องมีฐานข้อมูล)
+- ตั้งค่าครั้งเดียว: ดู **`DEV-AGENT-SETUP.md`** (GitHub secrets + Render env: `GITHUB_TOKEN`, `GITHUB_REPO`, `DEV_LINE_USERS`, `DEV_JOB_SECRET`)
