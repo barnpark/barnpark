@@ -8,7 +8,9 @@ globalThis.fetch = async (url, opt = {}) => {
 };
 const Hotel = (await import("../models/Hotel.js")).default;
 const RoomType = (await import("../models/RoomType.js")).default;
-const { latLngFromUrl, expandShortMapUrl, hotelsForMap } = await import("../lib/geo.js");
+const Review = (await import("../models/Review.js")).default;
+const Booking = (await import("../models/Booking.js")).default;
+const { latLngFromUrl, expandShortMapUrl, hotelsForMap, mapAvailability } = await import("../lib/geo.js");
 
 let ok = 0, bad = 0;
 const t = (n, c, x) => { if (c) ok++; else { bad++; console.log("FAIL", n, x !== undefined ? JSON.stringify(x).slice(0, 300) : ""); } };
@@ -31,16 +33,19 @@ t("non-short links not fetched", (fetches.length, await expandShortMapUrl("https
 
 // ---- รายการบนแผนที่
 const hotels = [
-  { _id: "h1", name: "บ้านริมน้ำ", slug: "rimnam", location: "เชียงใหม่", mapUrl: "https://www.google.com/maps/search/?api=1&query=18.7883,98.9853", coverUrl: "https://cdn.example/c.jpg" },
+  { _id: "h1", name: "บ้านริมน้ำ", slug: "rimnam", location: "เชียงใหม่", mapUrl: "https://www.google.com/maps/search/?api=1&query=18.7883,98.9853", coverUrl: "https://cdn.example/c.jpg", amenities: ["🏊 สระว่ายน้ำ", "🐶 รับสัตว์เลี้ยง"], cancelDays: 5 },
   { _id: "h2", name: "สวนป่า", slug: "suanpa", location: "กาญจนบุรี", mapUrl: "https://maps.app.goo.gl/AbCdEf", coverUrl: "data:image/png;base64,xx" },
-  { _id: "h3", name: "ไม่มีหมุด", slug: "nopin", location: "น่าน", mapUrl: "" },
+  { _id: "h3", name: "ไม่มีหมุด", slug: "nopin", location: "น่าน", mapUrl: "", allowGuestCancel: false, amenities: ["🍳 อาหารเช้า"] },
   { _id: "h4", name: "จำพิกัดแล้ว", slug: "cached", mapUrl: "https://maps.app.goo.gl/Cached", geoFrom: "https://maps.app.goo.gl/Cached", geo: { lat: 12.5, lng: 99.9 } },
 ];
 let lastQuery = null; const saved = [];
 Hotel.find = (q) => { lastQuery = q; return { select() { return this; }, sort() { return this; }, lean: async () => hotels.map((h) => ({ ...h })) }; };
 Hotel.updateOne = async (q, u) => { saved.push([q._id, u.$set]); return { modifiedCount: 1 }; };
-RoomType.find = (q) => ({ select() { return this; }, lean: async () => [
-  { hotel: "h1", basePrice: 1500 }, { hotel: "h1", basePrice: 900 }, { hotel: "h2", basePrice: 1200 } ] });
+let rtQuery = null;
+RoomType.find = (q) => { rtQuery = q; return { select() { return this; }, lean: async () => [
+  { hotel: "h1", basePrice: 1500 }, { hotel: "h1", basePrice: 900, breakfast: "optional", breakfastPrice: 150 }, { hotel: "h2", basePrice: 1200, breakfast: "none" } ] }; };
+let rvQuery = null;
+Review.find = (q) => { rvQuery = q; return { select() { return this; }, lean: async () => [{ hotel: "h1", rating: 5 }, { hotel: "h1", rating: 4 }, { hotel: "h1", rating: 4 }, { hotel: "h2", rating: 9 }] }; };
 redirects = { "https://maps.app.goo.gl/AbCdEf": "https://www.google.com/maps/place/Home/@14.0,99.5,15z" };
 const before = fetches.length;
 const list = await hotelsForMap({ fresh: true });
@@ -53,7 +58,12 @@ t("remembered coords reused, no fetch", by.cached.lat === 12.5 && !fetches.slice
 t("lowest visible room price", by.rimnam.priceFrom === 900 && by.suanpa.priceFrom === 1200 && by.nopin.priceFrom === null);
 t("cover: https only (no inline data images)", by.rimnam.cover === "https://cdn.example/c.jpg" && by.suanpa.cover === "");
 t("coords saved with the link they came from", saved.some(([id, s]) => id === "h2" && s.geoFrom === "https://maps.app.goo.gl/AbCdEf" && s.geo.lat === 14) && saved.some(([id, s]) => id === "h3" && s.geo === null));
-t("no private fields leak", list.every((h) => eq(Object.keys(h).sort(), ["cover", "lat", "lng", "location", "name", "priceFrom", "slug", "tagline"])), Object.keys(list[0]));
+t("no private fields leak", list.every((h) => eq(Object.keys(h).sort(), ["amenities", "breakfast", "cover", "freeCancelDays", "lat", "lng", "location", "name", "priceFrom", "rating", "reviews", "slug", "tagline"])), Object.keys(list[0]));
+t("rating = average of approved reviews only", rvQuery.approved === true && by.rimnam.rating === 4.3 && by.rimnam.reviews === 3 && by.suanpa.rating === 5 && by.nopin.rating === null && by.nopin.reviews === 0, [by.rimnam, rvQuery]);
+t("breakfast from rooms or the hotel's amenities", by.rimnam.breakfast === true && by.suanpa.breakfast === false && by.nopin.breakfast === true);
+t("free cancellation days (null when guests can't cancel online)", by.rimnam.freeCancelDays === 5 && by.suanpa.freeCancelDays === 3 && by.nopin.freeCancelDays === null);
+t("amenities passed for filters", eq(by.rimnam.amenities, ["🏊 สระว่ายน้ำ", "🐶 รับสัตว์เลี้ยง"]) && eq(by.cached.amenities, []));
+t("only rooms on sale counted", rtQuery.hidden.$ne === true && rtQuery.basePrice.$gt === 0);
 const n0 = fetches.length;
 await hotelsForMap();
 t("cached for 5 minutes", fetches.length === n0);
@@ -77,6 +87,34 @@ t("Hotel edit (onMap/status/approved/mapUrl) clears map cache", run(Hotel, "find
 t("Hotel created/saved clears map cache", run(Hotel, "save"));
 t("map's own geo save does NOT clear cache (no loop)", !run(Hotel, "updateOne", { $set: { geo: { lat: 1, lng: 2 }, geoFrom: "x" } }));
 t("room price/visibility change clears map cache", run(RoomType, "findOneAndUpdate", { $set: { basePrice: 500 } }) && run(RoomType, "deleteOne") && run(RoomType, "save"));
+
+t("review approve/delete clears map cache", run(Review, "findOneAndUpdate", { approved: true }) && run(Review, "deleteOne"));
+
+// ---- ห้องว่างตามวันที่บนแผนที่ (หน้าแรก)
+const rts = [
+  { _id: "r1", hotel: "h1", qty: 2, capacity: 2, basePrice: 1500, seasons: [{ from: "2026-12-20", to: "2027-01-05", price: 2500, minNights: 2 }] },
+  { _id: "r2", hotel: "h1", qty: 1, capacity: 4, basePrice: 2200 },
+  { _id: "r3", hotel: "h2", qty: 1, capacity: 2, basePrice: 1200 },
+];
+let bkList = [];
+Hotel.find = () => ({ select() { return this; }, lean: async () => [{ _id: "h1", slug: "rimnam" }, { _id: "h2", slug: "suanpa" }, { _id: "h3", slug: "nopin" }] });
+RoomType.find = () => ({ select() { return this; }, lean: async () => rts });
+Booking.find = () => ({ select() { return this; }, lean: async () => bkList });
+let A = Object.fromEntries((await mapAvailability("2026-11-01", "2026-11-03", 2)).map((a) => [a.slug, a]));
+t("avail: free hotel, lowest price of free rooms", A.rimnam.available && A.rimnam.from === 1500 && A.rimnam.rooms === 3 && A.suanpa.available && A.suanpa.from === 1200, A);
+t("avail: hotel without rooms on sale → not available", A.nopin.available === false && A.nopin.from === null);
+bkList = [{ roomType: "r1", checkin: "2026-11-01", checkout: "2026-11-02" }, { roomType: "r1", checkin: "2026-11-02", checkout: "2026-11-04" }, { roomType: "r3", checkin: "2026-10-31", checkout: "2026-11-02" }];
+A = Object.fromEntries((await mapAvailability("2026-11-01", "2026-11-03", 2)).map((a) => [a.slug, a]));
+t("avail: night-by-night — r1 has 1 room left, r3 full", A.rimnam.available && A.rimnam.rooms === 2 && A.rimnam.from === 1500 && A.suanpa.available === false, A);
+A = Object.fromEntries((await mapAvailability("2026-11-01", "2026-11-03", 3)).map((a) => [a.slug, a]));
+t("avail: enough beds for the group (2 + 4 > 3)", A.rimnam.available);
+A = Object.fromEntries((await mapAvailability("2026-11-01", "2026-11-03", 7)).map((a) => [a.slug, a]));
+t("avail: too many guests → not available", A.rimnam.available === false);
+bkList = [];
+A = Object.fromEntries((await mapAvailability("2026-12-24", "2026-12-25", 2)).map((a) => [a.slug, a]));
+t("avail: season min nights skips that room, uses the next one", A.rimnam.available && A.rimnam.from === 2200 && A.rimnam.rooms === 1, A.rimnam);
+A = Object.fromEntries((await mapAvailability("2026-12-24", "2026-12-26", 2)).map((a) => [a.slug, a]));
+t("avail: seasonal price on check-in date", A.rimnam.from === 2200 && A.rimnam.rooms === 3, A.rimnam);
 
 console.log(`geo: ${ok} passed, ${bad} failed`);
 process.exit(bad ? 1 : 0);

@@ -8,6 +8,7 @@ import { rateLimit } from "./lib/ratelimit.js";
 import { securityHeaders, blockOperators } from "./lib/security.js";
 import { releaseExpiredHolds } from "./lib/holds.js";
 import { bookPageHandler } from "./lib/og.js";
+import { robotsTxt, sitemapXml, siteBase } from "./lib/seo.js";
 import { migratePalettes } from "./lib/presets.js";
 import Hotel from "./models/Hotel.js";
 
@@ -43,6 +44,7 @@ app.use("/api/public/report-paid", rateLimit({ windowMs: 10 * 60 * 1000, max: 10
 app.use("/api/public/review", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/receipt", rateLimit({ windowMs: 10 * 60 * 1000, max: 60, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/map", rateLimit({ windowMs: 10 * 60 * 1000, max: 120, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
+app.use("/sitemap.xml", rateLimit({ windowMs: 10 * 60 * 1000, max: 30, message: "เรียกบ่อยเกินไป" }));
 app.use("/api/public/promo", rateLimit({ windowMs: 10 * 60 * 1000, max: 30, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/book-activity", rateLimit({ windowMs: 10 * 60 * 1000, max: 20, message: "ส่งคำขอจองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/dev", rateLimit({ windowMs: 10 * 60 * 1000, max: 60, message: "เรียกบ่อยเกินไป" }));
@@ -64,6 +66,11 @@ app.use("/api", reviewRoutes);
 app.use("/api", activityRoutes);
 app.use("/api", feedbackRoutes);
 
+// ให้ Google หาเจอ (lib/seo.js)
+app.get("/robots.txt", (req, res) => res.type("text/plain").set("Cache-Control", "public, max-age=3600").send(robotsTxt(siteBase(req))));
+app.get("/sitemap.xml", async (req, res, next) => {
+  try { res.type("application/xml").set("Cache-Control", "public, max-age=3600").send(await sitemapXml(siteBase(req))); } catch (e) { next(e); }
+});
 // หน้าจองของแต่ละที่พัก (ใส่ชื่อ/รูปปกใน meta ให้ลิงก์ที่แชร์ใน LINE/Facebook ขึ้นการ์ดสวย ๆ)
 app.get("/book.html", bookPageHandler(path.join(__dirname, "public", "book.html")));
 // เสิร์ฟหน้าเว็บ (static)

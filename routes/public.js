@@ -16,7 +16,7 @@ import { breakfastOf, roomAmenities, stayInfo, lineContactUrl, lineLabel } from 
 import { promptPayPayload, normalizePromptPayId } from "../lib/promptpay.js";
 import { payMethodsOf, resolvePayChoice } from "../lib/pay.js";
 import { createRoomBooking } from "../lib/booking.js";
-import { hotelsForMap } from "../lib/geo.js";
+import { hotelsForMap, mapAvailability } from "../lib/geo.js";
 import { receiptData, receiptUrl, checkKey, findHotelBySlug } from "../lib/receipt.js";
 import { usedPeaks } from "../lib/availability.js";
 
@@ -81,6 +81,18 @@ r.get("/receipt", async (req, res) => {
 r.get("/map", async (_req, res) => {
   try { res.set("Cache-Control", "no-cache").json(await hotelsForMap()); } // เบราว์เซอร์ถามใหม่ทุกครั้ง (ลบ/ซ่อนที่พักแล้วหายจากแผนที่ทันที)
   catch (e) { console.error("map", e.message); res.status(500).json({ error: "โหลดแผนที่ไม่สำเร็จ" }); }
+});
+// ห้องว่างบนแผนที่ตามวันที่ — /api/public/map/avail?din=2026-11-01&dout=2026-11-03&guests=2 · ไม่เกิน 30 คืน ล่วงหน้าไม่เกิน 2 ปี
+const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
+const bkkToday = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+r.get("/map/avail", async (req, res) => {
+  const din = String(req.query.din || ""), dout = String(req.query.dout || "");
+  const guests = Math.max(1, Math.min(30, parseInt(req.query.guests, 10) || 1));
+  const nights = YMD_RE.test(din) && YMD_RE.test(dout) ? Math.round((new Date(dout + "T00:00:00Z") - new Date(din + "T00:00:00Z")) / 864e5) : NaN;
+  const today = bkkToday(), far = new Date(Date.now() + 730 * 864e5).toISOString().slice(0, 10);
+  if (!(nights >= 1 && nights <= 30) || din < today || din > far) return res.status(400).json({ error: "วันที่ไม่ถูกต้อง (1–30 คืน ตั้งแต่วันนี้)" });
+  try { res.set("Cache-Control", "no-store").json(await mapAvailability(din, dout, guests)); }
+  catch (e) { console.error("map avail", e.message); res.status(500).json({ error: "ค้นหาห้องว่างไม่สำเร็จ" }); }
 });
 
 // QR PromptPay ของที่พัก ตามยอดที่ต้องจ่าย — สร้างฝั่งเซิร์ฟเวอร์ (ไม่พึ่ง CDN, แขกกดค้างบันทึกรูปไปสแกนในแอปธนาคารได้)
@@ -153,17 +165,24 @@ r.get("/reviews/:slug", async (req, res) => {
   if (!h) return res.json([]);
   res.json(await Review.find({ hotel: h._id, approved: true }).sort("-createdAt").limit(20));
 });
-// แขกเขียนรีวิว — ต้องยืนยันด้วยเลขจอง + เบอร์ (กันรีวิวปลอม) · รออนุมัติก่อนแสดง
+// แขกเขียนรีวิว — เฉพาะผู้ที่เข้าพัก/ใช้บริการจริง (การจองไม่ถูกยกเลิก และถึงวันเข้าพักแล้ว) · 1 รีวิวต่อเลขจอง · รออนุมัติก่อนแสดง
+// ยืนยันตัวด้วย เลขจอง + เบอร์ (หน้าจอง) หรือ เลขจอง + รหัสลิงก์ใบเสร็จ k (หน้าใบเสร็จ)
 r.post("/review", async (req, res) => {
-  const { slug, ref, tel, rating, text, name } = req.body || {};
-  const h = await Hotel.findOne({ slug });
+  const { slug, ref, tel, k, rating, text, name } = req.body || {};
+  const h = await Hotel.findOne({ slug: String(slug || "") });
   if (!h) return res.status(404).json({ error: "ไม่พบที่พัก" });
   const R = String(ref || "").trim().toUpperCase().replace(/-\d+$/, "");
-  const bk = REF_RE.test(R) ? await Booking.findOne({ hotel: h._id, guestTel: String(tel || "").trim(), ref: refGroup(R) }) : null;
+  const who = k ? (checkKey(h, R, String(k)) ? {} : null) : tel ? { guestTel: String(tel).trim() } : null;
+  let bk = null;
+  if (who && REF_RE.test(R)) bk = await Booking.findOne({ hotel: h._id, ...who, ref: refGroup(R), status: { $ne: "cancelled" } });
+  else if (who && /^BA-[A-Z0-9]{6}$/.test(R)) bk = await ActivityBooking.findOne({ hotel: h._id, ...who, ref: R, status: { $ne: "cancelled" } });
   if (!bk) return res.status(400).json({ error: "ไม่พบการจองที่ตรงกับเลขจอง+เบอร์ (รีวิวได้เฉพาะผู้ที่เคยจอง)" });
-  const r5 = Math.max(1, Math.min(5, +rating || 5));
-  await Review.create({ hotel: h._id, ref: bk.ref, guestName: String(name || bk.guestName || "แขก").trim().slice(0, 60), rating: r5, text: String(text || "").slice(0, 500) });
-  res.json({ ok: true, message: "ขอบคุณสำหรับรีวิว! จะแสดงหลังโรงแรมอนุมัติ" });
+  if (String(bk.checkin || bk.date || "") > bkkToday()) return res.status(400).json({ error: "รีวิวได้หลังวันเข้าพัก/วันใช้บริการ — ขอบคุณที่จองกับเรา แล้วกลับมารีวิวหลังเข้าพักนะคะ" });
+  const gref = String(bk.ref).replace(/-\d+$/, "");
+  if (await Review.findOne({ hotel: h._id, ref: refGroup(gref) })) return res.status(409).json({ error: "การจองนี้รีวิวไปแล้ว ขอบคุณค่ะ" });
+  const r5 = Math.max(1, Math.min(5, Math.round(+rating) || 5));
+  await Review.create({ hotel: h._id, ref: gref, guestName: String(name || bk.guestName || "แขก").trim().slice(0, 60), rating: r5, text: String(text || "").slice(0, 500) });
+  res.json({ ok: true, message: "ขอบคุณสำหรับรีวิว! จะแสดงหลังที่พักอนุมัติ" });
 });
 
 // แขกยกเลิกการจองเอง (ตรวจด้วยเลขจอง + เบอร์โทร) — ตามนโยบายของโรงแรม
