@@ -184,6 +184,8 @@
         <div><label>Channel access token</label><input id="s-line-token" type="password" placeholder="วางค่า token (จาก Messaging API)"></div>
         <div><label>Channel secret</label><input id="s-line-secret" type="password" placeholder="วางค่า channel secret"></div>
         <div><label>LINE ผู้รับแจ้งเตือน (userId/กลุ่ม)</label><input id="s-line-notify" placeholder="Uxxxx… (ดูวิธีได้ด้านล่าง)"></div>
+        <div style="grid-column:1/-1"><label>🔀 ใช้ OA นี้ร่วมกับระบบอื่น (ไม่บังคับ) — Webhook ของระบบเดิม</label><input id="s-line-fwd" placeholder="https://… (เช่น เว็บส่วนตัวที่มีคำสั่งของตัวเองใน OA นี้)" inputmode="url">
+          <p class="note" style="margin:4px 0 0">ใส่เมื่อ OA นี้มีระบบอื่นใช้อยู่ด้วย — Barn Park จะตอบเฉพาะเรื่องจอง (“ห้องว่าง” “จองห้อง” “การจองของฉัน” “จองกิจกรรม” ปุ่มของบอท และสลิปของการจองที่รอชำระ) ข้อความอื่นทั้งหมดส่งต่อไปที่ลิงก์นี้ให้ระบบเดิมตอบตามปกติ · เว้นว่าง = Barn Park ตอบทุกข้อความ</p></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap"><button class="btn" onclick="saveLine()">บันทึกการเชื่อม LINE</button><button class="btn ghost" id="line-check-btn" onclick="checkLine(true)">🔌 ทดสอบและตั้งค่าอัตโนมัติ</button><span id="line-status" class="note" style="margin:0"></span></div>
       <div id="line-check" style="margin-top:10px"></div>
@@ -650,7 +652,7 @@ async function fillSettings(){
   document.getElementById('s-line-webhook').value=location.origin+'/api/line/webhook/'+encodeURIComponent(HOTEL.slug);
   document.getElementById('s-pp-id').value=HOTEL.promptpayId||'';document.getElementById('s-pp-name').value=HOTEL.promptpayName||''; ppPreview();
   document.getElementById('s-taxid').value=HOTEL.taxId||'';document.getElementById('s-address').value=HOTEL.address||'';
-  try{ const ls=await API.get('/hotels/'+HID+'/line'); document.getElementById('line-status').textContent=ls.guestBot?'✔ เชื่อม LINE OA แล้ว · แขกเช็คห้องว่าง จอง และชำระเงินในแชทได้':ls.connected?'✔ เชื่อม LINE OA แล้ว · ใส่ Channel secret เพื่อเปิดให้แขกจองในแชท':'ยังไม่ได้เชื่อม'; }catch{}
+  try{ const ls=await API.get('/hotels/'+HID+'/line'); document.getElementById('s-line-fwd').value=ls.forwardUrl||''; document.getElementById('line-status').textContent=ls.guestBot?'✔ เชื่อม LINE OA แล้ว · แขกเช็คห้องว่าง จอง และชำระเงินในแชทได้':ls.connected?'✔ เชื่อม LINE OA แล้ว · ใส่ Channel secret เพื่อเปิดให้แขกจองในแชท':'ยังไม่ได้เชื่อม'; }catch{}
   setupLinePanel();
 }
 function ppPreview(){ const box=document.getElementById('pp-test'); if(!box) return; const id=String(HOTEL.promptpayId||'').replace(/\D/g,''); const on=document.getElementById('s-pay-pp'); if(!id||(on&&!on.checked)){ box.style.display='none'; return; }
@@ -767,10 +769,14 @@ async function toggleHideRT(id){ const t=RT.find(x=>String(x._id)===String(id));
 async function editDescRT(id){ const t=RT.find(x=>String(x._id)===String(id)); if(!t)return; const v=prompt('คำอธิบายห้อง (แสดงบนการ์ดห้องในหน้าจอง)',t.description||''); if(v===null)return; const d=v.trim().slice(0,300); try{ await API.patch('/rooms/'+id,{description:d}); t.description=d; renderRooms(); API.toast('บันทึกคำอธิบายแล้ว','ok'); }catch(e){API.toast(e.message,'err');} }
 async function editAmenRT(id){ const t=RT.find(x=>String(x._id)===String(id)); if(!t)return; const v=prompt('สิ่งอำนวยความสะดวกในห้อง (คั่นด้วย , ) เช่น แอร์, Wi-Fi, น้ำอุ่น, ทีวี',(t.amenities||[]).join(', ')); if(v===null)return; const list=v.split(',').map(x=>x.trim()).filter(Boolean).slice(0,20); try{ await API.patch('/rooms/'+id,{amenities:list}); t.amenities=list; renderRooms(); API.toast('บันทึกแล้ว','ok'); }catch(e){API.toast(e.message,'err');} }
 async function toggleHideSvc(id){ const s=SVC.find(x=>String(x._id)===String(id)); if(!s)return; try{ await API.patch('/services/'+id,{hidden:!s.hidden}); s.hidden=!s.hidden; renderSvc(); API.toast(s.hidden?'ปิดขายแล้ว':'เปิดขายแล้ว','ok'); }catch(e){API.toast(e.message,'err');} }
-async function checkLine(fix){
+async function checkLine(fix,takeover){
   const box=document.getElementById('line-check'),b=document.getElementById('line-check-btn');
   b.disabled=true; box.innerHTML='<p class="note">กำลังทดสอบกับ LINE…</p>';
-  try{ const r=await API.post('/hotels/'+HID+'/line/check',{fix:!!fix});
+  try{ const r=await API.post('/hotels/'+HID+'/line/check',{fix:!!fix,takeover:!!takeover});
+    if(r.conflict&&fix&&!takeover){ b.disabled=false;
+      if(confirm('LINE OA นี้ต่อกับระบบอื่นอยู่:\n'+r.conflict+'\n\nเปลี่ยนให้ข้อความมาที่ Barn Park ก่อนไหม?\nข้อความที่ไม่ใช่การจอง (เช่น คำสั่งของระบบเดิม) จะส่งต่อไปที่ลิงก์ด้านบนให้ — ทั้งสองระบบใช้ OA เดียวกันได้\n\nกด “ยกเลิก” = ไม่เปลี่ยนอะไร')) return checkLine(true,true);
+      box.innerHTML='<div class="why" style="text-align:left">'+r.steps.map(x=>(x.ok?'✅ ':'❌ ')+'<b>'+esc(x.title)+'</b> — '+esc(x.msg)).join('<br>')+'<br>ยังไม่ได้เปลี่ยนอะไร</div>'; return; }
+    if(takeover){ try{ const ls=await API.get('/hotels/'+HID+'/line'); document.getElementById('s-line-fwd').value=ls.forwardUrl||''; }catch{} }
     box.innerHTML='<div class="why" style="text-align:left">'+r.steps.map(x=>(x.ok?'✅ ':'❌ ')+'<b>'+esc(x.title)+'</b> — '+esc(x.msg)).join('<br>')+(r.ok?'<br><b>พร้อมแล้ว 🎉 แขกทัก LINE OA แล้วพิมพ์ “ห้องว่าง” จองได้เลย</b>':'')+'</div>';
     if(r.ok) document.getElementById('line-status').textContent='✔ แขกเช็คห้องว่าง จอง และชำระเงินในแชทได้';
   }catch(e){ box.innerHTML='<p class="note">ทดสอบไม่สำเร็จ: '+esc(e.message)+'</p>'; }
@@ -782,7 +788,7 @@ async function saveLine(){
   const secret=document.getElementById('s-line-secret').value.trim();
   const notifyLineTo=document.getElementById('s-line-notify').value.trim();
   try{
-    const body={}; if(token)body.lineChannelToken=token; if(secret)body.lineChannelSecret=secret;
+    const body={lineForwardUrl:document.getElementById('s-line-fwd').value.trim()}; if(token)body.lineChannelToken=token; if(secret)body.lineChannelSecret=secret;
     const lr=await API.patch('/hotels/'+HID+'/line',body); if(lr&&lr.lineId&&!HOTEL.lineId){ HOTEL.lineId=lr.lineId; document.getElementById('s-line-id').value=lr.lineId; API.toast('ใส่ปุ่มแชท LINE บนหน้าจองให้แล้ว: '+lr.lineId,'ok'); }
     const updated=await API.patch('/hotels/'+HID,{notifyLineTo}); Object.assign(HOTEL,updated);
     document.getElementById('s-line-token').value=''; document.getElementById('s-line-secret').value='';

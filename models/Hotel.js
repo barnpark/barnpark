@@ -59,6 +59,7 @@ const schema = new mongoose.Schema({
   // ===== ความลับต่อโรงแรม — select:false กันหลุดออก API ปกติ =====
   lineChannelToken:  { type: String, select: false }, // Channel access token ของ LINE OA โรงแรม
   lineChannelSecret: { type: String, select: false }, // Channel secret (ตรวจ signature webhook)
+  lineForwardUrl:    { type: String, select: false }, // OA ใช้ร่วมกับระบบอื่น: ข้อความที่ไม่ใช่ของ Barn Park ส่งต่อไป Webhook นี้ (lib/lineforward.js)
 }, { timestamps: true });
 
 export default mongoose.model("Hotel", schema);

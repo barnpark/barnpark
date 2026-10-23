@@ -10,7 +10,7 @@ const calls = [];
 globalThis.fetch = async (url, opt = {}) => {
   url = String(url);
   if (url.startsWith("http://127.0.0.1")) return realFetch(url, opt);
-  calls.push({ url, token: (opt.headers || {}).authorization, body: opt.body ? JSON.parse(opt.body) : null });
+  calls.push({ url, token: (opt.headers || {}).authorization, sig: (opt.headers || {})["x-line-signature"], raw: opt.body ? String(opt.body) : "", body: opt.body ? JSON.parse(String(opt.body)) : null });
   if (url.includes("/v2/bot/profile/")) return new Response(JSON.stringify(PROFILES[url.split("/").pop()] || {}), { status: 200 });
   if (url.startsWith("https://api.line.me/v2/bot/")) return fakeLineApi(url, opt);
   return new Response("{}", { status: 200 });
@@ -429,6 +429,48 @@ LINE.tokenOk = true;
 db.Hotel[0].lineChannelSecret = "";
 ck = await check(owner, { fix: true });
 t("check: missing secret → reported", !ck.j.ok && failed(ck.j).includes("Channel secret"), ck.j);
+
+// ---- ใช้ OA เดียวร่วมกับระบบอื่น: Barn Park ตอบเฉพาะเรื่องจอง ที่เหลือส่งต่อ Webhook เดิม
+const { cleanForwardUrl } = await import("../lib/lineforward.js");
+t("forward URL: https only, no own host / our webhook / IP / localhost", cleanForwardUrl("https://other.example/hook") === "https://other.example/hook" && cleanForwardUrl("") === ""
+  && [ "http://other.example/hook", "https://bp.test/x", "https://x.example/api/line/webhook/a", "https://10.0.0.1/h", "https://localhost/h", "nope" ].every((u) => cleanForwardUrl(u) === null));
+db.Hotel[0].lineChannelSecret = "hotel-secret"; db.Hotel[0].lineForwardUrl = "https://other.example/hook";
+const OTHER = "U" + "7".repeat(32);
+const ev = (o) => ({ replyToken: "r" + Math.random(), webhookEventId: "e" + Math.random(), source: { type: "user", userId: OTHER }, timestamp: 1, mode: "active", ...o });
+const tx = (s) => ev({ type: "message", message: { type: "text", id: "m", text: s } });
+const send2 = async (events) => { const c = calls.length; const r2 = await hook("test-home", { destination: "Udest", events }, "hotel-secret"); await new Promise((r) => setTimeout(r, 40));
+  const after = calls.slice(c); return { status: r2.status, fwd: after.filter((x) => x.url === "https://other.example/hook"), replies: after.filter((x) => x.url.endsWith("/reply")) }; };
+const okSig = (f) => crypto.createHmac("sha256", "hotel-secret").update(f.raw).digest("base64") === f.sig;
+let sh = await send2([tx("ฝากกิจกรรม")]);
+t("shared: 'ฝากกิจกรรม' forwarded to the other system, Barn Park silent", sh.fwd.length === 1 && sh.replies.length === 0 && sh.fwd[0].body.events[0].message.text === "ฝากกิจกรรม" && okSig(sh.fwd[0]), sh);
+sh = await send2([tx("เมนู")]);
+t("shared: generic 'เมนู' forwarded", sh.fwd.length === 1 && sh.replies.length === 0, sh);
+sh = await send2([ev({ type: "follow" })]);
+t("shared: add-friend (follow) forwarded", sh.fwd.length === 1 && sh.replies.length === 0, sh);
+sh = await send2([tx("ห้องว่าง")]);
+t("shared: 'ห้องว่าง' answered by Barn Park, not forwarded", sh.fwd.length === 0 && sh.replies.length === 1 && JSON.stringify(sh.replies[0].body).includes("เข้าพักวันไหน"), sh);
+sh = await send2([tx("ฝากกิจกรรม")]);
+t("shared: in the middle of booking → Barn Park keeps the conversation", sh.fwd.length === 0 && sh.replies.length === 1, sh);
+await send2([ev({ type: "postback", postback: { data: "g=x" } })]);
+sh = await send2([tx("ฝากกิจกรรม"), tx("การจองของฉัน")]);
+t("shared: mixed batch → only foreign event forwarded, re-signed with channel secret", sh.fwd.length === 1 && sh.fwd[0].body.events.length === 1 && sh.fwd[0].body.events[0].message.text === "ฝากกิจกรรม" && sh.fwd[0].body.destination === "Udest" && okSig(sh.fwd[0]) && sh.replies.length === 1, sh);
+sh = await send2([ev({ type: "message", message: { type: "image", id: "i1" } })]);
+t("shared: photo with nothing to pay → forwarded", sh.fwd.length === 1 && sh.replies.length === 0, sh);
+sh = await send2([ev({ type: "postback", postback: { data: "action=other-system" } })]);
+t("shared: other system's own buttons forwarded", sh.fwd.length === 1 && sh.replies.length === 0, sh);
+const gr = await send2([{ ...tx("ฝากกิจกรรม"), source: { type: "group", groupId: "C1", userId: OTHER } }]);
+t("shared: group messages forwarded", gr.fwd.length === 1 && gr.replies.length === 0, gr);
+db.Hotel[0].lineForwardUrl = "";
+sh = await send2([tx("ฝากกิจกรรม")]);
+t("not shared: nothing forwarded (Barn Park handles the OA alone)", sh.fwd.length === 0, sh);
+
+// ---- ปุ่มตั้งค่าอัตโนมัติไม่เขียนทับ Webhook ของระบบอื่นเงียบ ๆ
+db.Hotel[0].lineChannelSecret = "hotel-secret"; LINE.endpoint = "https://other.example/hook"; LINE.active = true;
+ck = await check(owner, { fix: true });
+t("check: OA connected to another system → asks first, changes nothing", !ck.j.ok && ck.j.conflict === "https://other.example/hook" && LINE.endpoint === "https://other.example/hook" && !db.Hotel[0].lineForwardUrl, ck.j);
+ck = await check(owner, { fix: true, takeover: true });
+t("check+takeover: keeps old webhook as forward target, points OA to Barn Park, test passes", ck.j.ok && LINE.endpoint === "https://bp.test/api/line/webhook/test-home" && db.Hotel[0].lineForwardUrl === "https://other.example/hook" && JSON.stringify(ck.j).includes("ร่วมกับระบบอื่น"), ck.j);
+db.Hotel[0].lineForwardUrl = "";
 srv.close();
 
 console.log(`guestbot: ${ok} passed, ${bad} failed`);
