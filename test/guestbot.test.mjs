@@ -433,7 +433,8 @@ t("check: missing secret → reported", !ck.j.ok && failed(ck.j).includes("Chann
 // ---- ใช้ OA เดียวร่วมกับระบบอื่น: Barn Park ตอบเฉพาะเรื่องจอง ที่เหลือส่งต่อ Webhook เดิม
 const { cleanForwardUrl } = await import("../lib/lineforward.js");
 t("forward URL: https only, no own host / our webhook / IP / localhost", cleanForwardUrl("https://other.example/hook") === "https://other.example/hook" && cleanForwardUrl("") === ""
-  && [ "http://other.example/hook", "https://bp.test/x", "https://x.example/api/line/webhook/a", "https://10.0.0.1/h", "https://localhost/h", "nope" ].every((u) => cleanForwardUrl(u) === null));
+  && cleanForwardUrl("https://barnbarn-site.onrender.com/api/line/webhook") === "https://barnbarn-site.onrender.com/api/line/webhook"
+  && [ "https://barnpark.onrender.com/api/line/webhook/barnbarn", "https://other.example/api/line/webhook/barnbarn", "http://other.example/hook", "https://bp.test/x", "https://x.example/api/line/webhook/a", "https://10.0.0.1/h", "https://localhost/h", "nope" ].every((u) => cleanForwardUrl(u) === null));
 db.Hotel[0].lineChannelSecret = "hotel-secret"; db.Hotel[0].lineForwardUrl = "https://other.example/hook";
 const OTHER = "U" + "7".repeat(32);
 const ev = (o) => ({ replyToken: "r" + Math.random(), webhookEventId: "e" + Math.random(), source: { type: "user", userId: OTHER }, timestamp: 1, mode: "active", ...o });
