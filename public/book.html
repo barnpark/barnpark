@@ -198,6 +198,12 @@ body.modal-open #chatfab,body.modal-open #bp-lang{display:none!important}
 .bfrow{display:flex;gap:10px;align-items:center;justify-content:space-between;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 12px;margin:8px 0 0;font-size:13.5px}
 .bfrow label{display:flex;gap:8px;align-items:center;font-weight:700;margin:0;cursor:pointer;color:#9a3412;font-size:13.5px}
 .bfrow select{width:auto;padding:5px 8px}
+.bfdays{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+.bfdays label{display:inline-flex;align-items:center;gap:6px;border:1px solid #fed7aa;background:#fff;border-radius:999px;padding:6px 11px;font-size:13px;font-weight:600;cursor:pointer;color:#9a3412;margin:0}
+.bfdays label.on{background:#ffedd5;border-color:#fb923c}
+.bfdays input{width:auto;margin:0}
+.adl{padding:4px 0 4px 26px}
+.adl select{width:auto;flex:1;min-width:0;padding:6px 8px;font-size:13.5px}
 .qrwrap{display:flex;justify-content:center;padding:12px;background:#fff;border:1px solid var(--line);border-radius:16px;width:fit-content;margin:6px auto}
 .bankcard{background:linear-gradient(135deg,#0f2540,#1e3a5f);color:#fff;border-radius:16px;padding:18px;text-align:left;margin:6px 0}
 .bankcard .bn{font-size:13px;opacity:.85} .bankcard .no{font-size:24px;font-weight:800;letter-spacing:1.5px;margin:6px 0;font-family:ui-monospace,Menlo,Consolas,monospace} .bankcard .ac{font-size:14px}
@@ -1153,11 +1159,29 @@ function payOptions(){ const pm=payM(), B=HOTEL.bank, o=[];
   return o; }
 function payOptsHtml(opts,cur,fn,id){ return '<div class="paym" id="'+id+'" role="radiogroup">'+opts.map(o=>'<div class="opt'+(o.k===cur?' on':'')+'" role="radio" tabindex="0" aria-checked="'+(o.k===cur)+'" data-p="'+o.k+'" onclick="'+fn+'(this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();'+fn+'(this)}"><span class="ic">'+o.ic+'</span><div><div class="t">'+o.t+'</div><div class="d">'+o.d+'</div></div><span class="rd"></span></div>').join('')+'</div>'; }
 function pick(id){ sel=AVAIL.find(r=>r.roomTypeId===id); if(!sel) return; const pax=paxNum(), av=Math.max(1,sel.available);
-  gRooms=Math.min(Math.max(1,Math.ceil(pax/(sel.capacity||2))),av); gEB=0; gDiscount=0; gPromoCode=""; gPay="";
+  gRooms=Math.min(Math.max(1,Math.ceil(pax/(sel.capacity||2))),av); gEB=0; gDiscount=0; gPromoCode=""; gPay=""; ADL=[];
   renderSum(); openModal("bkModal"); const b=document.querySelector("#bkModal .bk-body"); if(b) b.scrollTop=0; }
 function bfOpts(pax,cap){ let o=""; const mx=Math.max(1,Math.min(20,(sel.available||1)*(cap+2))); for(let i=1;i<=mx;i++) o+='<option value="'+i+'"'+(i===Math.min(pax,mx)?' selected':'')+'>'+uPax(i)+'</option>'; return o; }
-function addonRow(s,i){ return '<div class="line-it"><div class="n">'+svcIcon(s.name)+' '+esc(s.name)+'<small>'+money(s.price)+(s.description?' · '+esc(s.description):'')+'</small></div><div class="stepper"><button type="button" aria-label="'+T("ลด","Less")+'" id="adm-'+i+'" onclick="addonStep('+i+',-1)" disabled>−</button><output id="adq-'+i+'">0</output><button type="button" aria-label="'+T("เพิ่ม","More")+'" onclick="addonStep('+i+',1)">+</button></div><input type="hidden" class="g-addon" id="ad-'+i+'" data-i="'+i+'" data-name="'+esc(s.name)+'" data-price="'+(s.price||0)+'" value="0"></div>'; }
-function addonStep(i,d){ const el=$("ad-"+i); if(!el) return; const q=Math.max(0,Math.min(20,(+el.value||0)+d)); el.value=q; $("adq-"+i).textContent=q; $("adm-"+i).disabled=!q; recalc(); }
+// วันของการเข้าพัก — อาหารเช้าเลือกเป็นรายเช้า (เช้าหลังแต่ละคืน) · บริการเสริมเลือกวันที่ใช้ (วันเข้า … วันออก) ตรงกับที่เซิร์ฟเวอร์ตรวจ
+const ymdAdd=(ymd,n)=>{ const d=new Date(ymd+"T00:00:00Z"); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); };
+function stayMornings(){ const a=val("g-din"), b=val("g-dout"), o=[]; if(!a||!b) return o; for(let d=ymdAdd(a,1); d<=b&&o.length<60; d=ymdAdd(d,1)) o.push(d); return o; }
+function stayDays(){ const a=val("g-din"); return a?[a].concat(stayMornings()):[]; }
+function bfHtml(pax,cap){ const ms=stayMornings();
+  return '<div class="bfrow"><label>🍳 '+T("อาหารเช้า","Breakfast")+' <span style="font-weight:400">'+money(sel.breakfastPrice)+T("/ท่าน/เช้า","/person/morning")+'</span></label><select id="g-bfpax" onchange="recalc()" aria-label="'+T("จำนวนท่าน","Guests")+'">'+bfOpts(pax,cap)+'</select></div>'+
+   '<div class="bfdays" id="g-bfdays" role="group" aria-label="'+T("เลือกเช้าที่จะทาน","Choose mornings")+'">'+ms.map(m=>'<label><input type="checkbox" class="g-bfd" value="'+m+'" onchange="bfTog(this)"> '+dayShort(m)+'</label>').join('')+
+   (ms.length>1?'<button type="button" class="btn ghost sm" onclick="bfAll()">'+T("ทุกเช้า","Every morning")+'</button>':'')+'</div>'+
+   '<p class="note" style="margin:4px 0 0">'+T("เลือกเฉพาะเช้าที่จะทานที่ที่พัก — วันไหนออกไปหาทานเองไม่ต้องเลือก","Tick only the mornings you'll eat here")+'</p>'; }
+function bfTog(el){ el.parentElement.classList.toggle("on",el.checked); recalc(); }
+function bfAll(){ const all=[...document.querySelectorAll(".g-bfd")], on=all.every(c=>c.checked); all.forEach(c=>{ c.checked=!on; c.parentElement.classList.toggle("on",!on); }); recalc(); }
+function bfDates(){ return [...document.querySelectorAll(".g-bfd")].filter(c=>c.checked).map(c=>c.value); }
+// บริการเสริม: แต่ละรายการเพิ่มได้หลายวัน — ADL = [{i: ลำดับใน SVC, date, qty}]
+let ADL=[];
+function addonRow(s,i){ return '<div class="ad-it"><div class="line-it"><div class="n">'+svcIcon(s.name)+' '+esc(s.name)+'<small>'+money(s.price)+(s.description?' · '+esc(s.description):'')+'</small></div><button type="button" class="btn ghost sm" onclick="adAdd('+i+')">＋ '+T("เพิ่ม","Add")+'</button></div><div id="adl-'+i+'"></div></div>'; }
+function adRender(i){ const box=$("adl-"+i); if(!box) return; const days=stayDays();
+  box.innerHTML=ADL.map((x,k)=>x.i!==i?'':'<div class="line-it adl"><select onchange="adDate('+k+',this.value)" aria-label="'+T("วันที่ใช้","Day")+'">'+days.map(d=>'<option value="'+d+'"'+(d===x.date?' selected':'')+'>'+dayShort(d)+'</option>').join('')+'</select><div class="stepper"><button type="button" aria-label="'+T("ลด","Less")+'" onclick="adStep('+k+',-1)">−</button><output>'+x.qty+'</output><button type="button" aria-label="'+T("เพิ่ม","More")+'" onclick="adStep('+k+',1)">+</button></div></div>').join(''); }
+function adAdd(i){ const days=stayDays(), used=ADL.filter(x=>x.i===i).map(x=>x.date), d=days.find(x=>!used.includes(x)); if(!d){ API.toast(T("เพิ่มครบทุกวันแล้ว — ปรับจำนวนได้เลย","Already added for every day — adjust the number"),"err"); return; } ADL.push({i,date:d,qty:1}); adRender(i); recalc(); }
+function adStep(k,d){ const x=ADL[k]; if(!x) return; x.qty=Math.min(20,x.qty+d); if(x.qty<=0) ADL.splice(k,1); adRender(x.i); recalc(); }
+function adDate(k,v){ const x=ADL[k]; if(!x) return; const dup=ADL.findIndex((y,j)=>j!==k&&y.i===x.i&&y.date===v); if(dup>=0){ ADL[dup].qty=Math.min(20,ADL[dup].qty+x.qty); ADL.splice(k,1); } else x.date=v; adRender(x.i); recalc(); }
 function renderSum(){
   const box=$("g-sum"); if(!sel){ box.innerHTML=""; return; }
   const pax=paxNum(), cap=sel.capacity||2, av=Math.max(1,sel.available), need=Math.max(1,Math.ceil(pax/cap)), ebP=Number(sel.extraBedPrice||0), q=Math.min(Math.max(1,gRooms),av);
@@ -1171,7 +1195,7 @@ function renderSum(){
     '<div class="grp"><h4>🛏 '+T("ห้องพัก","Your room")+'</h4>'+(pax>cap?'<p class="note" style="color:var(--brand-ink);margin:0 0 8px">👥 '+uPax(pax)+' — '+T("แนะนำ "+need+" ห้อง","we suggest "+uRoom(need))+'</p>':'')+
      '<div class="'+(ebP>0?'row2':'')+'"><div class="field" style="margin:0"><label for="g-qty">'+T("จำนวนห้อง","Rooms")+'</label><select id="g-qty" onchange="recalc()">'+ro+'</select></div>'+(ebP>0?'<div class="field" style="margin:0"><label for="g-eb">'+T("เตียงเสริม (+"+money(ebP)+"/คืน)","Extra bed (+"+money(ebP)+"/night)")+'</label><select id="g-eb" onchange="recalc()">'+eo+'</select></div>':'')+'</div>'+
      (sel.breakfast==="included"?'<div class="holdnote ok">🍳 '+T("ราคานี้รวมอาหารเช้าแล้ว","Breakfast included")+'</div>':'')+
-     (sel.breakfast==="optional"?'<div class="bfrow"><label><input type="checkbox" id="g-bf" onchange="recalc()" style="width:auto"> 🍳 '+T("เพิ่มอาหารเช้า","Add breakfast")+' <span style="font-weight:400">'+money(sel.breakfastPrice)+T("/ท่าน/คืน","/person/night")+'</span></label><select id="g-bfpax" onchange="recalc()" aria-label="'+T("จำนวนท่าน","Guests")+'">'+bfOpts(pax,cap)+'</select></div>':'')+'</div>'+
+     (sel.breakfast==="optional"?bfHtml(pax,cap):'')+'</div>'+
     (SVC.length?'<div class="grp"><h4>✨ '+T("บริการเสริม","Extras")+' <span style="font-weight:400;color:var(--muted);font-size:13px">('+T("ไม่บังคับ","optional")+')</span></h4>'+SVC.map(addonRow).join('')+'</div>':'')+
     '<div class="grp"><h4>🧾 '+T("สรุปราคา","Price summary")+'</h4>'+
      '<div class="srow"><span style="color:var(--muted)" id="g-line"></span><span id="g-room-amt"></span></div>'+
@@ -1198,11 +1222,11 @@ async function applyPromo(){
   try{ const r=await API.pubPromo({ slug, code, nights:gN, subtotal:tt.subtotal }); gDiscount=r.discount; gPromoCode=code; msg.style.color="var(--green)"; msg.textContent="✔ "+r.label; recalc(); }
   catch(e){ gDiscount=0; gPromoCode=""; msg.style.color="var(--red)"; msg.textContent="✗ "+e.message; recalc(); }
 }
-function addonSum(){ let t=0; document.querySelectorAll(".g-addon").forEach(s=>{ t+=(+s.dataset.price||0)*(+s.value||0); }); return t; }
-function collectAddons(){ const a=[]; document.querySelectorAll(".g-addon").forEach(s=>{ const q=+s.value||0; if(q>0){ const sv=SVC[+s.dataset.i]; a.push({ serviceId:sv&&sv._id, name:s.dataset.name, qty:q }); } }); return a; }
+function addonSum(){ return ADL.reduce((t,x)=>t+Number((SVC[x.i]||{}).price||0)*x.qty,0); }
+function collectAddons(){ return ADL.filter(x=>SVC[x.i]&&x.qty>0).map(x=>({ serviceId:SVC[x.i]._id, name:SVC[x.i].name, qty:x.qty, date:x.date })).sort((a,b)=>a.date.localeCompare(b.date)); }
 // ยอดอาหารเช้า — คิดแบบเดียวกับเซิร์ฟเวอร์ (จำนวนท่านไม่เกิน ห้อง × (คนต่อห้อง + เตียงเสริม))
-function bfCalc(q,eb){ if(!sel||sel.breakfast!=="optional") return {pax:0,total:0}; const c=$("g-bf"); if(!c||!c.checked) return {pax:0,total:0};
-  const mx=q*(Math.max(1,sel.capacity||2)+eb), p=Math.max(1,Math.min(mx,+val("g-bfpax")||1)); return {pax:p,total:p*Number(sel.breakfastPrice||0)*gN}; }
+function bfCalc(q,eb){ if(!sel||sel.breakfast!=="optional") return {pax:0,total:0,dates:[]}; const ds=bfDates(); if(!ds.length) return {pax:0,total:0,dates:[]};
+  const mx=q*(Math.max(1,sel.capacity||2)+eb), p=Math.max(1,Math.min(mx,+val("g-bfpax")||1)); return {pax:p,total:p*Number(sel.breakfastPrice||0)*ds.length,dates:ds}; }
 function totals(){ const q=+val("g-qty")||1, eb=$("g-eb")?(+val("g-eb")||0):0;
   const ebP=Number(sel.extraBedPrice||0), per=(Number(sel.basePrice)+eb*ebP)*gN, subtotal=per*q, addon=addonSum(), bf=bfCalc(q,eb);
   return { q, eb, ebP, per, subtotal, addon, bf, total:Math.max(0,subtotal-gDiscount)+addon+bf.total }; }
@@ -1210,7 +1234,7 @@ function curTotal(){ return totals().total; }
 function recalc(){ if(!sel) return; const tt=totals(); gRooms=tt.q; gEB=tt.eb;
   $("g-line").textContent=money(sel.basePrice)+(tt.eb>0?" + "+T("เตียงเสริม","extra bed")+" "+money(tt.eb*tt.ebP):"")+" × "+uNight(gN)+" × "+uRoom(tt.q);
   $("g-room-amt").textContent=money(tt.subtotal);
-  const br=$("g-bf-row"); if(tt.bf.total>0){ br.style.display="flex"; $("g-bf-sum").textContent="+"+money(tt.bf.total)+" ("+uPax(tt.bf.pax)+" × "+uNight(gN)+")"; } else br.style.display="none";
+  const br=$("g-bf-row"); if(tt.bf.total>0){ br.style.display="flex"; $("g-bf-sum").textContent="+"+money(tt.bf.total)+" ("+uPax(tt.bf.pax)+" × "+T(tt.bf.dates.length+" เช้า",tt.bf.dates.length+" morning"+(tt.bf.dates.length>1?"s":""))+")"; } else br.style.display="none";
   const ar=$("g-addon-row"); if(tt.addon>0){ ar.style.display="flex"; $("g-addon-sum").textContent="+"+money(tt.addon); } else ar.style.display="none";
   const dr=$("g-disc-row"); if(gDiscount>0){ dr.style.display="flex"; $("g-disc").textContent="-"+money(gDiscount); } else dr.style.display="none";
   $("g-total").textContent=money(tt.total); $("g-foot-total").textContent=money(tt.total);
@@ -1255,7 +1279,7 @@ function reportPaid(){ const ref=val("pay-ref").trim(); if(PAY_MODE==="act") sub
 function payLater(){ if(PAY_MODE==="act") submitAct(false,"",PAY_METHOD); else submitBooking(false,"",PAY_METHOD); }
 async function submitBooking(paid,payRef,method){ const btns=["g-confirm","pay-done","pay-later"].map($).filter(Boolean); btns.forEach(b=>b.disabled=true);
   const tt=totals(), email=val("g-mail").trim(), tel=val("g-tel").trim(), addons=collectAddons();
-  try { const res=await API.pubBook({ slug, roomTypeId:sel.roomTypeId, din:val("g-din"), dout:val("g-dout"), name:val("g-gname").trim(), tel, email, pax:paxNum(), notify:"email", rooms:tt.q, extraBed:tt.eb, paid, payRef, payMethod:method, promoCode:gPromoCode, addons, breakfast:tt.bf.pax>0, breakfastPax:tt.bf.pax, note:val("g-note").trim() });
+  try { const res=await API.pubBook({ slug, roomTypeId:sel.roomTypeId, din:val("g-din"), dout:val("g-dout"), name:val("g-gname").trim(), tel, email, pax:paxNum(), notify:"email", rooms:tt.q, extraBed:tt.eb, paid, payRef, payMethod:method, promoCode:gPromoCode, addons, breakfast:tt.bf.pax>0, breakfastPax:tt.bf.pax, breakfastDates:tt.bf.dates, note:val("g-note").trim() });
     closeModal("payModal"); closeModal("bkModal"); showDone("room",Object.assign({},res,{tel,email,pax:paxNum(),addons,payMethod:res.payMethod||method}));
     setTimeout(()=>gSearch(),900);
   } catch(e){ API.toast(T("จองไม่สำเร็จ: ","Booking failed: ")+e.message,"err"); }
@@ -1334,8 +1358,8 @@ function showDone(kind,d){ DONE=Object.assign({},d,{kind}); const H=HOTEL;
       row(T("เช็คอิน","Check-in"),dayTxt(d.checkin)+(H.checkInTime?"<br><small>"+T("ตั้งแต่ "+H.checkInTime+" น.","from "+H.checkInTime)+"</small>":""))+
       row(T("เช็คเอาท์","Check-out"),dayTxt(d.checkout)+(H.checkOutTime?"<br><small>"+T("ก่อน "+H.checkOutTime+" น.","by "+H.checkOutTime)+"</small>":""))+
       row(T("จำนวน","Stay"),uNight(d.nights)+(d.pax?" · "+uPax(d.pax):""))+
-      row(T("อาหารเช้า","Breakfast"),d.breakfast==="included"?T("รวมแล้ว ✓","Included ✓"):d.breakfast==="added"?uPax(d.breakfastPax)+" · "+money(d.breakfastTotal):"")+
-      row(T("บริการเสริม","Extras"),(d.addons||[]).map(a=>esc(a.name)+" ×"+a.qty).join(", "))+
+      row(T("อาหารเช้า","Breakfast"),d.breakfast==="included"?T("รวมแล้ว ✓","Included ✓"):d.breakfast==="added"?uPax(d.breakfastPax)+((d.breakfastDates||[]).length?" · "+d.breakfastDates.map(dayShort).join(", "):"")+" · "+money(d.breakfastTotal):"")+
+      row(T("บริการเสริม","Extras"),(d.addons||[]).map(a=>esc(a.name)+" ×"+a.qty+(a.date?" ("+dayShort(a.date)+")":"")).join(", "))+
       row(T("ส่วนลด","Discount"),d.discount?"-"+money(d.discount):"");
   } else rows=row(T("กิจกรรม","Activity"),esc(d.serviceName))+row(T("วัน/เวลา","When"),dayTxt(d.date)+(d.time?" · "+esc(d.time):""))+row(T("จำนวน","Guests"),uPax(d.qty));
   const pst=cancelled?T("ยกเลิกแล้ว","Cancelled"):free?T("ไม่มีค่าใช้จ่าย","Free"):rep?T("แจ้งโอนแล้ว · รอที่พักตรวจสอบ","Reported · awaiting check"):paid?T("ชำระแล้ว ✅","Paid ✅"):onsite?T("จ่ายที่เคาน์เตอร์ตอนเช็คอิน","Pay at the property"):T("ยังไม่ชำระ","Not paid yet");

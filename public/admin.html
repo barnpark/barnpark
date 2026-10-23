@@ -120,7 +120,8 @@
       <div class="field"><label>รายละเอียด (ไม่บังคับ)</label><textarea id="nw-msg" rows="5" maxlength="1500" placeholder="มีอะไรใหม่ ทำอย่างไร"></textarea></div>
       <label style="display:flex;gap:8px;align-items:center;font-weight:400"><input type="checkbox" id="nw-email" style="width:auto"> ส่งอีเมลถึงที่พักด้วย (อีเมลรับแจ้งเตือนของแต่ละที่)</label>
       <label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:6px"><input type="checkbox" id="nw-miss" style="width:auto"> ส่งเฉพาะที่พักที่ยังตั้งค่าไม่ครบ</label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn ghost" onclick="sampleNews()">✍️ ใช้ข้อความตัวอย่าง (อัปเดตล่าสุด)</button><button class="btn ghost" onclick="announce(true)">👀 ตรวจก่อนส่ง</button><button class="btn" onclick="announce(false)">📣 ส่งประกาศ</button></div>
+      <div class="field" style="margin-top:12px"><label>📝 อัปเดตที่ขึ้นเว็บแล้ว — ติ๊กรายการที่จะประกาศ (ที่ยังไม่เคยประกาศติ๊กไว้ให้แล้ว)</label><div id="nw-cl" class="note" style="margin:0">กำลังโหลด…</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn ghost" onclick="sampleNews()">✍️ ใส่ข้อความจากรายการที่ติ๊ก</button><button class="btn ghost" onclick="announce(true)">👀 ตรวจก่อนส่ง</button><button class="btn" onclick="announce(false)">📣 ส่งประกาศ</button></div>
       <div id="nw-result" class="note" style="margin-top:10px"></div>
       <p class="note">1 คน = 1 ข้อความ push ของ LINE OA (ประกาศ + การ์ดเช็กลิสต์รวมอยู่ในข้อความเดียว) · ดูโควตาคงเหลือได้ที่ LINE Official Account Manager</p></div>
     <div class="panel"><h3>✅ ความพร้อมของแต่ละที่พัก</h3><div style="overflow-x:auto"><table id="nw-check"></table></div></div>
@@ -305,6 +306,7 @@ async function issueLineCode(){ if(!cur)return; try{ const r=await API.post('/ho
 // ---- แจ้งอัปเดต + เช็กความครบ ----
 let NW_DRY=null;
 async function loadNews(){
+  loadChangelog();
   try{ const list=await API.get('/admin/checklist');
     document.getElementById('nw-check').innerHTML='<tr><th>ที่พัก</th><th>LINE</th><th>ความครบ</th><th>ยังขาด</th></tr>'+list.map(h=>'<tr'+(h.approved?'':' style="opacity:.55"')+'><td><b>'+esc(h.name)+'</b><br><span class="note" style="margin:0">'+esc(h.slug)+(h.approved?'':' · รออนุมัติ')+'</span></td><td>'+(h.linked?'✅ '+h.linked+' คน':'<span style="color:var(--muted)">ยังไม่เชื่อม</span>')+'</td>'+
       '<td style="min-width:120px"><div style="height:8px;background:var(--line);border-radius:4px"><div style="height:8px;width:'+Math.max(4,h.pct)+'%;background:'+(h.pct===100?'var(--green)':'var(--brand)')+';border-radius:4px"></div></div><span class="note" style="margin:0">'+h.done+'/'+h.total+'</span></td><td style="font-size:12.5px">'+(h.missing.length?h.missing.map(esc).join(' · '):'🎉 ครบ')+'</td></tr>').join('');
@@ -313,19 +315,29 @@ async function loadNews(){
     document.getElementById('nw-log').innerHTML=log.length?log.map(x=>'• '+new Date(x.at).toLocaleString('th-TH')+' — <b>'+esc(x.title)+'</b> · LINE '+x.lineUsers+' คน · อีเมล '+x.emails+(x.errors?' · ⚠️ ผิดพลาด '+x.errors:'')).join('<br>'):'ยังไม่เคยส่ง';
   }catch{}
 }
-function sampleNews(){
-  document.getElementById('nw-title').value='อัปเดตใหม่: อาหารเช้า · เวลาเช็คอิน · แผนที่ · กฎที่พัก';
-  document.getElementById('nw-msg').value='✨ มีอะไรใหม่\n🍳 ตั้งอาหารเช้าแต่ละห้องได้: รวมในราคา / ให้แขกเลือกเพิ่ม (คิดราคาต่อท่าน)\n🕑 เวลาเช็คอิน-เช็คเอาท์ + 📍 แผนที่ (ส่งตำแหน่งจากมือถือได้เลย) + 📜 กฎที่พัก — แสดงบนหน้าจองและอีเมลยืนยัน\n🔔 มีจองใหม่/แขกแจ้งโอน/แขกยกเลิก แจ้งเข้า LINE นี้ทันที พร้อมปุ่มยืนยันรับเงิน\n💳 QR พร้อมเพย์แก้แล้ว สแกนจ่ายได้ทุกธนาคาร (ลองสแกน QR ทดสอบ ฿1 ได้ที่ ตั้งค่าเว็บ → PromptPay)\n\nตั้งค่าได้ที่ 🎨 ตั้งค่าเว็บ → 🛎 ข้อมูลการเข้าพัก';
+// ข้อความประกาศมาจากรายการอัปเดตในโค้ด (lib/changelog.js) — ขึ้นเว็บพร้อมฟีเจอร์จริงเสมอ
+async function loadChangelog(){
+  const box=document.getElementById('nw-cl');
+  try{ const r=await API.get('/admin/changelog');
+    box.innerHTML=r.entries.length?r.entries.map(c=>'<label style="display:flex;gap:8px;align-items:flex-start;font-weight:400;margin:6px 0;color:var(--navy)"><input type="checkbox" class="nw-cli" value="'+esc(c.id)+'"'+(c.sent?'':' checked')+' style="width:auto;margin-top:3px"><span><b>'+esc(c.title)+'</b> <span class="note" style="margin:0">'+esc(c.date)+(c.sent?' · ส่งแล้ว':' · <b style="color:var(--brand)">ใหม่</b>')+'</span><br><span class="note" style="margin:0">'+c.items.map(esc).join('<br>')+'</span></span></label>').join(''):'ยังไม่มีรายการ';
+  }catch(e){ box.textContent='โหลดไม่สำเร็จ: '+e.message; }
+}
+const clIds=()=>[...document.querySelectorAll('.nw-cli')].filter(c=>c.checked).map(c=>c.value);
+async function sampleNews(){
+  const ids=clIds(); if(!ids.length){ API.toast('ติ๊กรายการอัปเดตก่อน','err'); return; }
+  try{ const r=await API.get('/admin/changelog?compose='+encodeURIComponent(ids.join(',')));
+    document.getElementById('nw-title').value=r.title; document.getElementById('nw-msg').value=r.message; NW_DRY=null;
+  }catch(e){ API.toast(e.message,'err'); }
 }
 async function announce(dry){
-  const body={title:val('nw-title'),message:document.getElementById('nw-msg').value.trim(),dryRun:dry,email:document.getElementById('nw-email').checked,onlyMissing:document.getElementById('nw-miss').checked};
+  const body={title:val('nw-title'),message:document.getElementById('nw-msg').value.trim(),dryRun:dry,email:document.getElementById('nw-email').checked,onlyMissing:document.getElementById('nw-miss').checked,changelogIds:clIds()};
   if(!body.title){ API.toast('ใส่หัวข้อประกาศก่อน','err'); return; }
   const out=document.getElementById('nw-result');
   if(!dry){ if(!NW_DRY){ API.toast('กด “ตรวจก่อนส่ง” ก่อน 1 ครั้ง','err'); return; }
     if(!confirm('ส่งประกาศ “'+body.title+'” เข้า LINE '+NW_DRY.lineUsers+' คน'+(body.email?' + อีเมล '+NW_DRY.emails+' ที่':'')+' ?\n(ใช้โควตา push '+NW_DRY.lineUsers+' ข้อความ)')) return; }
   try{ const r=await API.post('/admin/announce',body);
     if(dry){ NW_DRY=r; out.innerHTML='👀 จะส่งถึง <b>'+r.lineUsers+'</b> คนใน LINE (ใช้โควตา '+r.lineQuota+' ข้อความ)'+(body.email?' · อีเมล '+r.emails+' ที่':'')+' · ที่พัก '+r.hotels.length+' แห่ง'+(r.lineReady?'':' · ⚠️ ยังไม่ได้ตั้ง LINE_CHANNEL_TOKEN')+'<br>'+r.hotels.map(h=>'— '+esc(h.name)+' ('+h.pct+'%) · LINE '+h.linked+' คน').join('<br>'); }
-    else { NW_DRY=null; out.innerHTML='✅ ส่งแล้ว: LINE '+r.sentLine+' คน · อีเมล '+r.sentEmail+' ที่'+(r.errors.length?'<br>⚠️ '+r.errors.map(esc).join('<br>'):''); loadNews(); }
+    else { NW_DRY=null; out.innerHTML='✅ ส่งแล้ว: LINE '+r.sentLine+' คน · อีเมล '+r.sentEmail+' ที่'+(r.errors.length?'<br>⚠️ '+r.errors.map(esc).join('<br>'):''); loadNews(); loadChangelog(); }
   }catch(e){ out.textContent='✗ '+e.message; }
 }
 // ---- Feedback ----
