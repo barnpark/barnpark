@@ -21,6 +21,7 @@ import { parseDataUrl, toDataUrl, toLogoDataUrl } from "../lib/images.js";
 import { checklist } from "../lib/checklist.js";
 import { announceUpdate, announceLog, changelogStatus } from "../lib/announce.js";
 import { composeAnnouncement } from "../lib/changelog.js";
+import { cleanForwardUrl } from "../lib/lineforward.js";
 import Setting from "../models/Setting.js";
 import PromoCode from "../models/PromoCode.js";
 import Review from "../models/Review.js";
@@ -353,9 +354,9 @@ r.post("/admin/calc/channex", requireAuth, requireAdmin, async (req, res) => {
 // ดูสถานะการเชื่อม (ไม่คืน token)
 r.get("/hotels/:id/line", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
-  const h = await Hotel.findById(req.params.id).select("+lineChannelToken +lineChannelSecret lineId");
-  // guestBot = แขกเช็คห้องว่าง/จอง/ชำระเงินในแชท OA ได้ (ต้องมีทั้ง token และ secret เพื่อตรวจลายเซ็น)
-  res.json({ lineId: h?.lineId || "", connected: !!(h && h.lineChannelToken), guestBot: !!(h && h.lineChannelToken && h.lineChannelSecret) });
+  const h = await Hotel.findById(req.params.id).select("+lineChannelToken +lineChannelSecret +lineForwardUrl lineId");
+  // guestBot = แขกเช็คห้องว่าง/จอง/ชำระเงินในแชท OA ได้ (ต้องมีทั้ง token และ secret เพื่อตรวจลายเซ็น) · forwardUrl = ใช้ OA ร่วมกับระบบอื่น
+  res.json({ lineId: h?.lineId || "", connected: !!(h && h.lineChannelToken), guestBot: !!(h && h.lineChannelToken && h.lineChannelSecret), forwardUrl: (h && h.lineForwardUrl) || "" });
 });
 // บันทึกการเชื่อม (token เก็บใน DB, select:false ไม่หลุด API ปกติ)
 // ทดสอบการเชื่อม LINE OA ของโรงแรม (+ ตั้ง Webhook URL ให้อัตโนมัติ) — เช็กทีละขั้นว่าข้อความของแขกมาถึงบอทจองได้ไหม
@@ -375,7 +376,7 @@ async function lineCall(token, method, path, body) {
 r.post("/hotels/:id/line/check", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
   if (!isOid(req.params.id)) return res.status(404).json({ error: "ไม่พบที่พัก" });
-  const h = await Hotel.findById(req.params.id).select("+lineChannelToken +lineChannelSecret slug").lean();
+  const h = await Hotel.findById(req.params.id).select("+lineChannelToken +lineChannelSecret +lineForwardUrl slug").lean();
   if (!h) return res.status(404).json({ error: "ไม่พบที่พัก" });
   rememberBase(req);
   const steps = [], add = (ok, title, msg) => { steps.push({ ok, title, msg }); return ok; };
@@ -390,6 +391,16 @@ r.post("/hotels/:id/line/check", requireAuth, async (req, res) => {
   if (!add(/^https:\/\//.test(base), "ที่อยู่เว็บ", /^https:\/\//.test(base) ? base : "ระบบยังไม่รู้ที่อยู่เว็บแบบ https — ตั้ง env PUBLIC_URL ใน Render")) return done();
 
   let wh = await lineCall(h.lineChannelToken, "GET", "/v2/bot/channel/webhook/endpoint");
+  // OA นี้ต่อกับระบบอื่นอยู่ → ห้ามเขียนทับเงียบ ๆ: ถามเจ้าของก่อน (takeover) แล้วเก็บ URL เดิมไว้ส่งต่อข้อความที่ไม่ใช่ของ Barn Park
+  const other = wh.ok && wh.json.endpoint && wh.json.endpoint !== expected && !/\/api\/line\/webhook\//.test(wh.json.endpoint) ? wh.json.endpoint : "";
+  if (other && !(req.body && req.body.takeover)) {
+    add(false, "OA นี้ต่อกับระบบอื่นอยู่", `Webhook ตอนนี้คือ ${other} — ถ้าเปลี่ยนมาที่ Barn Park ระบบจะส่งต่อข้อความที่ไม่ใช่การจอง (เช่น คำสั่งของระบบเดิม) ไปที่ลิงก์นี้ให้ ทั้งสองระบบใช้ OA เดียวกันได้`);
+    return res.json({ ok: false, steps, conflict: other });
+  }
+  if (other && req.body.takeover) {
+    const keep = cleanForwardUrl(other);
+    if (keep && !h.lineForwardUrl) { await Hotel.updateOne({ _id: h._id }, { $set: { lineForwardUrl: keep } }); h.lineForwardUrl = keep; }
+  }
   if (wh.ok && wh.json.endpoint !== expected && req.body && req.body.fix) {
     const put = await lineCall(h.lineChannelToken, "PUT", "/v2/bot/channel/webhook/endpoint", { endpoint: expected });
     if (put.ok) wh = await lineCall(h.lineChannelToken, "GET", "/v2/bot/channel/webhook/endpoint");
@@ -397,6 +408,7 @@ r.post("/hotels/:id/line/check", requireAuth, async (req, res) => {
   const urlOk = wh.ok && wh.json.endpoint === expected;
   add(urlOk, "Webhook URL", urlOk ? expected : `${wh.json.endpoint ? "ตั้งไว้เป็น " + wh.json.endpoint + " (ไม่ตรง)" : "ยังไม่ได้ตั้ง"} — กด “ตั้งค่าให้อัตโนมัติ” หรือวาง ${expected} ใน LINE Developers → Messaging API → Webhook URL`);
   add(!!(wh.ok && wh.json.active), "เปิด Use webhook", wh.ok && wh.json.active ? "เปิดอยู่" : "ยังปิดอยู่ — LINE Developers → Messaging API → เปิดสวิตช์ “Use webhook” (หรือ LINE OA Manager → ตั้งค่า → การตอบกลับ → เปิด Webhook)");
+  if (h.lineForwardUrl) add(true, "ใช้ OA ร่วมกับระบบอื่น", `ข้อความที่ไม่ใช่การจองส่งต่อไปที่ ${h.lineForwardUrl}`);
   if (!urlOk) return done();
 
   // ให้ LINE ยิงข้อความทดสอบมาที่ webhook จริง → รู้ว่าเซิร์ฟเวอร์ตอบได้และ secret ตรง
@@ -411,8 +423,13 @@ r.post("/hotels/:id/line/check", requireAuth, async (req, res) => {
 
 r.patch("/hotels/:id/line", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
-  const { lineId, lineChannelToken, lineChannelSecret } = req.body || {};
+  const { lineId, lineChannelToken, lineChannelSecret, lineForwardUrl } = req.body || {};
   const set = {};
+  if (lineForwardUrl !== undefined) {
+    const v = cleanForwardUrl(lineForwardUrl);
+    if (v === null) return res.status(400).json({ error: "Webhook ของระบบเดิมไม่ถูกต้อง — ต้องเป็นลิงก์ https ของระบบอื่น (ไม่ใช่ลิงก์ของ Barn Park)" });
+    set.lineForwardUrl = v;
+  }
   if (lineId !== undefined) {
     const v = cleanLineId(lineId);
     if (v === null) return res.status(400).json({ error: "LINE ไม่ถูกต้อง — ใส่ @ID ของ LINE OA (เช่น @baanbaan) หรือลิงก์ lin.ee / line.me" });

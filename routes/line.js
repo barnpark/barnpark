@@ -4,7 +4,8 @@ import Hotel from "../models/Hotel.js";
 import LineChat from "../models/LineChat.js";
 import * as L from "../lib/line.js";
 import { handleEvents } from "../lib/linebot.js";
-import { handleGuestEvent } from "../lib/guestbot.js";
+import { handleGuestEvent, guestClaims } from "../lib/guestbot.js";
+import { forwardEvents } from "../lib/lineforward.js";
 import { setupRichMenus, menuIds } from "../lib/richmenu.js";
 import { rememberBase, baseUrl } from "../lib/baseurl.js";
 import { requireAuth, requireAdmin } from "../lib/auth.js";
@@ -15,13 +16,17 @@ const r = Router();
 //   https://<your-app>.onrender.com/api/line/webhook/<slug>
 // ตั้ง Channel secret แล้ว → เปิดบอทจองห้องของแขก (lib/guestbot.js): เช็คห้องว่าง จอง ชำระเงิน ในแชท
 // ยังไม่ตั้ง secret → โหมดตั้งค่า: ตอบ userId/groupId กลับ เอาไปวางในช่อง "LINE ผู้รับแจ้งเตือน" (ไม่เปิดรับจอง เพราะตรวจลายเซ็นไม่ได้)
+// มี lineForwardUrl = OA ใช้ร่วมกับระบบอื่น: Barn Park รับเฉพาะคำสั่งของตัวเอง (guestClaims) ที่เหลือส่งต่อ (lib/lineforward.js)
 const seenGuest = new Set();
 r.post("/webhook/:slug", async (req, res) => {
-  const h = await Hotel.findOne({ slug: req.params.slug }).select("+lineChannelToken +lineChannelSecret").lean();
+  const h = await Hotel.findOne({ slug: req.params.slug }).select("+lineChannelToken +lineChannelSecret +lineForwardUrl").lean();
   if (!h || !h.lineChannelToken) return res.sendStatus(200); // ตอบ 200 เสมอ กัน LINE retry
-  const events = (req.body && req.body.events) || [];
+  const body = req.body || {}, events = body.events || [], shared = !!h.lineForwardUrl;
+  const fwd = (list, all) => forwardEvents(h, { body, events: list, rawBody: req.rawBody, signature: req.get("x-line-signature"), all });
 
   if (!h.lineChannelSecret) {
+    // ใช้ร่วมกับระบบอื่นแต่ยังไม่มี secret → ส่งต่อทั้งหมดตามเดิม ไม่ตอบอะไร (ระบบเดิมตรวจลายเซ็นเอง)
+    if (shared) { res.sendStatus(200); return void fwd(events, true); }
     for (const ev of events) {
       const uid = ev?.source?.userId, gid = ev?.source?.groupId;
       if (ev.type !== "message" || !ev.replyToken) continue;
@@ -36,9 +41,15 @@ r.post("/webhook/:slug", async (req, res) => {
   if (!L.verifySignature(req.rawBody, req.get("x-line-signature"), h.lineChannelSecret)) return res.sendStatus(401);
   rememberBase(req);
   res.sendStatus(200); // ตอบ LINE ทันที แล้วค่อยประมวลผล
+  const mine = [], others = [];
   for (const ev of events) {
     const id = ev.webhookEventId;
     if (id) { if (seenGuest.has(id)) continue; seenGuest.add(id); if (seenGuest.size > 2000) seenGuest.delete(seenGuest.values().next().value); }
+    if (shared) { ((await guestClaims(h, ev).catch(() => false)) ? mine : others).push(ev); continue; }
+    mine.push(ev);
+  }
+  if (others.length) fwd(others, others.length === events.length);
+  for (const ev of mine) {
     const gid = ev?.source?.groupId || ev?.source?.roomId;
     if (gid) { // กลุ่มของทีมที่พัก: พิมพ์ "id" เพื่อดู groupId (บอทไม่รับจองในกลุ่ม)
       if (ev.type === "message" && /^(id|groupid|ไอดี)$/i.test(String(ev.message?.text || "").trim()))
