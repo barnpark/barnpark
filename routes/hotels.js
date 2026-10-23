@@ -119,7 +119,7 @@ const HOTEL_IMG = ["coverUrl", "promoImage", "logoUrl"];
 const HOTEL_OWNER_FIELDS = ["name", "location", "phone", "lineId", "brandColor", "brandColor2", "accentColor", "accentColor2", "fontFamily", "uiStyle", "template",
   "tagline", "coverUrl", "logoUrl", "about", "amenities", "promoText", "promoImage", "notifyEmail", "notifyLineTo", "promptpayId", "promptpayName",
   "payPromptpay", "payTransfer", "payOnsite", "bankName", "bankAccountNo", "bankAccountName", "taxId", "address",
-  "checkInTime", "checkOutTime", "mapUrl", "houseRules", "allowGuestCancel", "cancelDays", "holdHours"];
+  "checkInTime", "checkOutTime", "mapUrl", "houseRules", "allowGuestCancel", "cancelDays", "holdHours", "onMap"];
 const HOTEL_ADMIN_FIELDS = [...HOTEL_OWNER_FIELDS, "status", "approved", "planFee", "slug", "ota"]; // อนุมัติ/ค่าบริการ/สถานะ/slug/OTA = แอดมินเท่านั้น
 const HOTEL_STATUS = ["active", "onboarding", "paused"], OTA_CH = ["agoda", "booking", "trip", "airbnb"];
 const COLOR_RE = /^#[0-9a-f]{3,8}$/i;
@@ -134,6 +134,7 @@ r.patch("/hotels/:id", requireAuth, async (req, res) => {
   for (const k of ["brandColor", "brandColor2", "accentColor", "accentColor2"]) if (safe[k] !== undefined && !COLOR_RE.test(String(safe[k]))) return res.status(400).json({ error: "รหัสสีไม่ถูกต้อง (เช่น #0d9488)" });
   if (safe.notifyEmail !== undefined) { safe.notifyEmail = String(safe.notifyEmail || "").trim().slice(0, 120); if (safe.notifyEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safe.notifyEmail)) return res.status(400).json({ error: "อีเมลรับแจ้งเตือนไม่ถูกต้อง" }); }
   if (safe.allowGuestCancel !== undefined) safe.allowGuestCancel = safe.allowGuestCancel === true || safe.allowGuestCancel === "true";
+  if (safe.onMap !== undefined) safe.onMap = safe.onMap === true || safe.onMap === "true";
   if (isAdmin) {
     if (safe.status !== undefined && !HOTEL_STATUS.includes(safe.status)) return res.status(400).json({ error: "สถานะไม่ถูกต้อง" });
     if (safe.approved !== undefined) safe.approved = safe.approved === true || safe.approved === "true";
