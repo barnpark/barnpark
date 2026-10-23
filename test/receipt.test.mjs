@@ -3,7 +3,7 @@ Object.assign(process.env, { JWT_SECRET: "test-secret-0123456789-abcdef", PUBLIC
 const realFetch = globalThis.fetch;
 const express = (await import("express")).default;
 const M = {};
-for (const n of ["Hotel", "RoomType", "Booking", "ActivityBooking"]) M[n] = (await import(`../models/${n}.js`)).default;
+for (const n of ["Hotel", "RoomType", "Booking", "ActivityBooking", "Review"]) M[n] = (await import(`../models/${n}.js`)).default;
 const { receiptKey, receiptUrl, receiptData } = await import("../lib/receipt.js");
 const { sign } = await import("../lib/auth.js");
 const publicRoutes = (await import("../routes/public.js")).default;
@@ -11,7 +11,7 @@ const bookingRoutes = (await import("../routes/bookings.js")).default;
 
 let ok = 0, bad = 0;
 const t = (n, c, x) => { if (c) ok++; else { bad++; console.log("FAIL", n, x !== undefined ? JSON.stringify(x).slice(0, 400) : ""); } };
-const q = (v) => ({ select() { return this; }, sort() { return this; }, lean: async () => (typeof v === "function" ? v() : v) });
+const q = (v) => ({ select() { return this; }, sort() { return this; }, lean: async () => (typeof v === "function" ? v() : v), then(ok, no) { return this.lean().then(ok, no); } });
 
 const HID = "64b7f0c2a1b2c3d4e5f60718", OTHER = "64b7f0c2a1b2c3d4e5f60719";
 const hotel = { _id: HID, name: "บ้านทดสอบ", slug: "test-home", taxId: "0105555000000", phone: "0811111111", address: "1 ถ.ทดสอบ", brandColor: "#7c2d12", accentColor: "#d97706", fontFamily: "Prompt", uiStyle: "soft", template: "classic", lineChannelToken: "SECRET-TOKEN" };
@@ -27,6 +27,11 @@ M.Booking.find = (f) => q(() => rooms.filter((b) => b.hotel === f.hotel && f.ref
 M.Booking.findById = (id) => q(() => rooms.find((b) => b._id === id) || null);
 M.ActivityBooking.findOne = (f) => q(() => (f.ref === "BA-XYZ789" ? { hotel: HID, ref: "BA-XYZ789", serviceName: "คลาสทำอาหาร", date: "2026-11-05", time: "09:00", qty: 2, amount: 1200, status: "confirmed", payStatus: "unpaid", guestName: "Anna", guestTel: "0811" } : null));
 
+const reviews = [];
+M.Review.findOne = (f) => q(() => reviews.find((x) => String(x.hotel) === String(f.hotel) && f.ref.test(x.ref)) || null);
+M.Review.create = async (doc) => { reviews.push(doc); return doc; };
+M.Booking.findOne = (f) => q(() => rooms.find((b) => b.hotel === f.hotel && f.ref.test(b.ref) && (!f.guestTel || b.guestTel === f.guestTel) && (!f.status || b.status !== f.status.$ne)) || null);
+
 // ---- รหัสลับของลิงก์
 const k = receiptKey(HID, "BP-ABC123");
 t("key is stable, per hotel + booking, and the same for sub-rooms", k && k === receiptKey(HID, "BP-ABC123-1") && k !== receiptKey(OTHER, "BP-ABC123") && k !== receiptKey(HID, "BP-ABC124"));
@@ -41,6 +46,8 @@ t("no secrets / contact details leak", !JSON.stringify(d).includes("SECRET-TOKEN
 t("paid status", d.payStatus === "paid" && d.status === "confirmed" && d.kind === "room");
 const a = await receiptData(hotel, "BA-XYZ789");
 t("activity receipt", a.kind === "act" && a.total === 1200 && a.lines[0].detail.time === "09:00" && a.payStatus === "unpaid");
+t("policy: check-in times + free-cancel days", d.policy.cancelDays === 3 && a.policy.cancelDays === 3 && (await receiptData({ ...hotel, allowGuestCancel: false }, "BP-ABC123")).policy.cancelDays === null, d.policy);
+t("review not offered before the stay", d.review === "" && a.review === "");
 t("bad ref → null", (await receiptData(hotel, "NOPE")) === null && (await receiptData(hotel, "BP-ZZZZZZ")) === null);
 
 // ---- API สาธารณะ + ลิงก์ในเว็บหลังบ้าน
@@ -63,6 +70,28 @@ j = await r.json();
 t("owner gets the receipt link", r.status === 200 && j.url === receiptUrl(hotel, "BP-ABC123"), j);
 r = await realFetch(`${base}/api/bookings/64b7f0c2a1b2c3d4e5f60701/receipt-link`, { headers: { authorization: "Bearer " + stranger } });
 t("other hotel's owner refused", r.status === 403);
+
+// ---- รีวิวจากผู้เข้าพักจริง (ยืนยันด้วยรหัสลิงก์ใบเสร็จ หรือ เบอร์โทร)
+const post = (body) => realFetch(`${base}/api/public/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(async (x) => ({ status: x.status, json: await x.json() }));
+let p = await post({ slug: "test-home", ref: "BP-ABC123", k, rating: 5, text: "ดีมาก" });
+t("review before check-in refused", p.status === 400 && /หลังวันเข้าพัก/.test(p.json.error) && !reviews.length, p);
+for (const b of rooms) { b.checkin = "2026-10-01"; b.checkout = "2026-10-03"; }
+t("receipt offers a review after the stay", (await receiptData(hotel, "BP-ABC123")).review === "open");
+p = await post({ slug: "test-home", ref: "BP-ABC123", k: "wrong-key-wrong-key-xx", rating: 5 });
+t("review with a wrong key refused", p.status === 400 && !reviews.length, p);
+p = await post({ slug: "test-home", ref: "BP-ABC123", tel: "0800000000", rating: 5 });
+t("review with a wrong phone refused", p.status === 400 && !reviews.length, p);
+p = await post({ slug: "test-home", ref: "BP-ABC123", rating: 5 });
+t("review without key or phone refused", p.status === 400 && !reviews.length, p);
+p = await post({ slug: "test-home", ref: "BP-ABC123-1", k, rating: 9, text: "x".repeat(900), name: "<b>Som</b>" });
+t("review with the receipt key saved (group ref, clamped rating/text, waits for approval)", p.status === 200 && reviews.length === 1 && reviews[0].ref === "BP-ABC123" && reviews[0].rating === 5 && reviews[0].text.length === 500 && reviews[0].approved === undefined, [p, reviews[0] && { ...reviews[0], text: "" }]);
+p = await post({ slug: "test-home", ref: "BP-ABC123", tel: "0899999999", rating: 4 });
+t("one review per booking", p.status === 409 && reviews.length === 1, p);
+t("receipt shows the review as done", (await receiptData(hotel, "BP-ABC123")).review === "done");
+reviews.length = 0; rooms.forEach((b) => { b.status = "cancelled"; });
+p = await post({ slug: "test-home", ref: "BP-ABC123", tel: "0899999999", rating: 4 });
+t("cancelled booking can't review", p.status === 400 && !reviews.length, p);
+t("cancelled booking: no review box", (await receiptData(hotel, "BP-ABC123")).review === "");
 srv.close();
 
 console.log(`receipt: ${ok} passed, ${bad} failed`);
