@@ -53,6 +53,9 @@ const schema = new mongoose.Schema({
   approved:    { type: Boolean, default: true },      // แอดมินอนุมัติเปิดรับจองหรือยัง (สมัครเอง = false)
   planFee:     { type: Number, default: 800 },
   allowGuestCancel: { type: Boolean, default: true }, // ให้แขกยกเลิกเองได้ไหม
+  onMap:       { type: Boolean, default: true },      // แสดงบนแผนที่หน้าแรก Barn Park (ปิดได้ในเว็บหลังบ้าน)
+  geo:         { lat: Number, lng: Number },          // พิกัดจาก mapUrl (lib/geo.js คำนวณให้เอง)
+  geoFrom:     String,                                // mapUrl ที่ใช้คำนวณ geo ล่าสุด (เปลี่ยนลิงก์ = คำนวณใหม่)
   cancelDays:  { type: Number, default: 3 },          // ยกเลิกฟรีก่อนเช็คอินกี่วัน
   holdHours:   { type: Number, default: 24 },         // ปล่อยห้องที่จองค้างไม่จ่ายอัตโนมัติ (ชม.) · 0 = ปิด
   ota:         { type: [otaSchema], default: [] },

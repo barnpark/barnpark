@@ -8,6 +8,7 @@
 <link rel="icon" href="media/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="media/apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <style>
   /* สีตามโลโก้ BARNPARK */
   :root{--brand:#0E4B2E;--brand2:#3A8A4B}
@@ -35,12 +36,67 @@
   .vid video{display:block;width:100%;height:100%;background:#0f2540}
   .vid .cap{text-align:center;color:var(--muted);font-size:14px;margin:12px 0 0}
   @media(max-width:640px){.hero2{padding-bottom:96px}.vid{margin-top:-64px;padding:0 12px}.vid .frame{border-radius:14px}}
+  /* ===== แผนที่ที่พักทั่วไทย (สำหรับแขก) ===== */
+  .lnav .links{display:flex;gap:6px;align-items:center}
+  .lnav .links a.tx{color:var(--navy);text-decoration:none;font-weight:600;font-size:14px;padding:8px 10px;border-radius:10px}
+  .lnav .links a.tx:hover{background:#f1f5f9}
+  @media(max-width:640px){.lnav .links a.tx{display:none}}
+  .explore{background:linear-gradient(180deg,#f2f8f3 0%,#fff 70%);padding:34px 0 46px;scroll-margin-top:62px}
+  .explore .head{text-align:center;max-width:720px;margin:0 auto 22px}
+  .explore .tag{display:inline-block;background:#e3f1e6;color:var(--brand);font-weight:700;font-size:13px;padding:6px 14px;border-radius:999px;margin-bottom:12px}
+  .explore h1{font-size:clamp(26px,4vw,38px);line-height:1.4;font-weight:800;color:var(--brand);margin:0 0 8px}
+  .explore .head p{color:var(--muted);margin:0;font-size:15.5px;line-height:1.7}
+  .xgrid{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:16px;align-items:start}
+  .xmap{position:sticky;top:76px;height:560px;border-radius:20px;overflow:hidden;border:1px solid var(--line);box-shadow:0 18px 40px -26px rgba(14,75,46,.45);background:#e8eef0}
+  #hmap{width:100%;height:100%}
+  .xlist{display:flex;flex-direction:column;gap:10px;min-width:0}
+  .xsearch{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:4px 6px 4px 12px}
+  .xsearch input{border:none;outline:none;flex:1;min-width:0;font-size:15px;padding:9px 0;background:none}
+  .xcount{font-size:13px;color:var(--muted);margin:2px 2px 0}
+  .hc{display:flex;gap:12px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px;cursor:pointer;text-align:left;transition:box-shadow .15s,border-color .15s}
+  .hc:hover,.hc.on{border-color:var(--brand2);box-shadow:0 8px 22px -14px rgba(14,75,46,.6)}
+  .hc .ph{width:92px;height:76px;border-radius:12px;flex:none;background:#dfeee2 center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:var(--brand)}
+  .hc .bd{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
+  .hc b{font-size:15.5px;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hc .lc{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hc .ft{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto}
+  .hc .pr{font-size:13px;color:var(--navy)} .hc .pr strong{color:var(--brand);font-size:15px}
+  .hc .nopin{font-size:11.5px;color:#9a6b12;background:#fff7e6;border-radius:999px;padding:2px 8px;white-space:nowrap}
+  .hc a.go{font-size:13px;font-weight:700;color:#fff;background:var(--brand);padding:6px 12px;border-radius:999px;text-decoration:none;white-space:nowrap}
+  .xempty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:22px;text-align:center;color:var(--muted);font-size:14px}
+  .pin{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--brand);border:3px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}
+  .pin span{transform:rotate(45deg);font-size:15px;line-height:1}
+  .pin.on{background:#e8833a}
+  .leaflet-popup-content{margin:10px 12px;font-family:inherit}
+  .pp{width:210px} .pp .im{height:96px;border-radius:10px;background:#dfeee2 center/cover no-repeat;margin-bottom:8px}
+  .pp b{display:block;font-size:15px;color:var(--navy)} .pp .lc{font-size:12.5px;color:var(--muted);margin:2px 0 6px}
+  .pp a{display:block;text-align:center;background:var(--brand);color:#fff !important;font-weight:700;border-radius:999px;padding:7px 0;text-decoration:none;margin-top:8px}
+  .owners-tag{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;font-weight:700;font-size:13px;padding:6px 14px;border-radius:999px;margin-bottom:14px}
+  #owners{scroll-margin-top:62px}
+  @media(max-width:860px){.xgrid{grid-template-columns:1fr}.xmap{position:relative;top:0;height:380px;order:-1}}
 </style>
 </head>
 <body>
 <div class="lnav"><div class="in"><a class="bp-logo" href="/" aria-label="BARNPARK หน้าแรก"><img src="media/barnpark-logo.svg" alt="BARNPARK"></a>
-  <a class="btn ghost sm" href="login.html" data-th="เข้าสู่ระบบโรงแรม" data-en="Hotel login">เข้าสู่ระบบโรงแรม</a></div></div>
-<div class="hero2"><div class="wrap">
+  <div class="links"><a class="tx" href="#explore" data-th="ค้นหาที่พัก" data-en="Find a stay">ค้นหาที่พัก</a><a class="tx" href="#owners" data-th="สำหรับเจ้าของที่พัก" data-en="For hosts">สำหรับเจ้าของที่พัก</a>
+  <a class="btn ghost sm" href="login.html" data-th="เข้าสู่ระบบโรงแรม" data-en="Hotel login">เข้าสู่ระบบโรงแรม</a></div></div></div>
+<section class="explore" id="explore" aria-label="แผนที่ที่พัก"><div class="wrap">
+  <div class="head">
+    <span class="tag" data-th="🇹🇭 ที่พักชุมชนและโฮมสเตย์ทั่วไทย" data-en="🇹🇭 Community stays & homestays across Thailand">🇹🇭 ที่พักชุมชนและโฮมสเตย์ทั่วไทย</span>
+    <h1 data-th="เที่ยวไทย พักกับคนท้องถิ่น" data-en="Stay local across Thailand">เที่ยวไทย พักกับคนท้องถิ่น</h1>
+    <p data-th="เลือกที่พักจากแผนที่ แล้วจองตรงกับเจ้าของ — ราคาตรงจากที่พัก ไม่มีค่าธรรมเนียมแอบแฝง" data-en="Pick a place on the map and book directly with the host — the host's own price, no hidden fees">เลือกที่พักจากแผนที่ แล้วจองตรงกับเจ้าของ — ราคาตรงจากที่พัก ไม่มีค่าธรรมเนียมแอบแฝง</p>
+  </div>
+  <div class="xgrid">
+    <div class="xlist">
+      <label class="xsearch"><span aria-hidden="true">🔎</span><input id="xq" type="search" autocomplete="off" data-th-ph="ค้นหาชื่อที่พัก หรือจังหวัด" data-en-ph="Search by name or province" placeholder="ค้นหาชื่อที่พัก หรือจังหวัด" aria-label="ค้นหาที่พัก"></label>
+      <div class="xcount" id="xcount" aria-live="polite"></div>
+      <div id="xcards" class="xlist"><div class="xempty" data-th="กำลังโหลดที่พัก…" data-en="Loading stays…">กำลังโหลดที่พัก…</div></div>
+    </div>
+    <div class="xmap"><div id="hmap" role="region" aria-label="แผนที่ประเทศไทย"></div></div>
+  </div>
+</div></section>
+<div class="hero2" id="owners"><div class="wrap">
+  <span class="owners-tag" data-th="สำหรับเจ้าของที่พัก" data-en="For property owners">สำหรับเจ้าของที่พัก</span>
   <img class="hero-logo" src="media/barnpark-logo-white.svg" alt="BARNPARK">
   <h1 data-th="เว็บจองตรงของที่พักคุณ · จัดการทั้งหมดใน LINE" data-en="Your own direct-booking website · managed in LINE">เว็บจองตรงของที่พักคุณ · จัดการทั้งหมดใน LINE</h1>
   <p data-th="ระบบจองที่พัก สำหรับที่พักชุมชนและ SME — รับจองตรง กันจองซ้อน พร้อมหน้าเว็บของโรงแรมในตัว" data-en="A booking system for community stays & SMEs — take direct bookings, prevent double-booking, with a built-in website for your property.">ระบบจองที่พัก สำหรับที่พักชุมชนและ SME — รับจองตรง กันจองซ้อน พร้อมหน้าเว็บของโรงแรมในตัว</p>
@@ -62,6 +118,7 @@
 </div></div>
 <div style="text-align:center;padding:24px 0;color:var(--muted);font-size:13px">© BARN-PARK · <a href="privacy.html" data-th="นโยบายความเป็นส่วนตัว" data-en="Privacy policy">นโยบายความเป็นส่วนตัว</a></div>
 <script src="api.js"></script>
+<script src="vendor/leaflet/leaflet.js"></script>
 <script>API.applyI18n(); API.mountLangToggle(); API.mountSupport();
 // โหมดภาษาอังกฤษ → ใช้วิดีโอ/ภาพปกเวอร์ชันอังกฤษ (ปุ่มสลับภาษาจะรีโหลดหน้าอยู่แล้ว)
 (function () {
@@ -70,6 +127,61 @@
   if (!v || !s) return;
   v.poster = v.getAttribute("data-en-poster"); s.src = s.getAttribute("data-en-src"); v.load();
   document.getElementById("video").setAttribute("aria-label", "Barn Park intro video");
+})();
+
+// ===== แผนที่ที่พักทั่วไทย — ข้อมูลจาก /api/public/map (lib/geo.js) =====
+(function () {
+  var T = API.t, esc = API.esc, cards = document.getElementById("xcards"), cnt = document.getElementById("xcount"), q = document.getElementById("xq");
+  var HOTELS = [], MK = {}, map = null, cur = "";
+  var TH_BOUNDS = [[5.6, 97.3], [20.5, 105.7]];
+  if (q && API.lang() === "en") q.placeholder = q.getAttribute("data-en-ph");
+  var bookUrl = function (h) { return "book.html?h=" + encodeURIComponent(h.slug); };
+  var price = function (h) { return h.priceFrom ? T("เริ่มต้น ", "From ") + "<strong>" + API.money(h.priceFrom) + "</strong>" + T("/คืน", "/night") : ""; };
+  var photo = function (h, cls) { return h.cover ? '<div class="' + cls + '" style="background-image:url(\'' + esc(h.cover).replace(/'/g, "%27") + '\')"></div>' : '<div class="' + cls + '">' + esc((h.name || "?").trim().charAt(0)) + "</div>"; };
+  function initMap() {
+    if (!window.L) { document.querySelector(".xmap").style.display = "none"; return; } // โหลด Leaflet ไม่ได้ → ใช้รายการอย่างเดียว
+    map = L.map("hmap", { scrollWheelZoom: false, zoomSnap: 0.5 }).fitBounds(TH_BOUNDS);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
+    map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
+    map.on("click", function () { map.scrollWheelZoom.enable(); });
+  }
+  function icon(on) { return L.divIcon({ className: "", html: '<div class="pin' + (on ? " on" : "") + '"><span>🏡</span></div>', iconSize: [34, 34], iconAnchor: [17, 34], popupAnchor: [0, -32] }); }
+  function popup(h) { return '<div class="pp">' + (h.cover ? photo(h, "im") : "") + "<b>" + esc(h.name) + '</b><div class="lc">📍 ' + esc(h.location || "") + "</div>" + (h.priceFrom ? '<div class="lc">' + price(h) + "</div>" : "") + '<a href="' + bookUrl(h) + '">' + T("ดูห้องและจอง", "See rooms & book") + "</a></div>"; }
+  function focus(slug, fly) {
+    cur = slug;
+    document.querySelectorAll(".hc").forEach(function (c) { c.classList.toggle("on", c.getAttribute("data-s") === slug); });
+    Object.keys(MK).forEach(function (k) { MK[k].setIcon(icon(k === slug)); });
+    var m = MK[slug];
+    if (m && map) { if (fly) map.flyTo(m.getLatLng(), Math.max(map.getZoom(), 11), { duration: 0.8 }); m.openPopup(); }
+  }
+  function render() {
+    var term = (q.value || "").trim().toLowerCase();
+    var list = HOTELS.filter(function (h) { return !term || (h.name + " " + h.location + " " + h.tagline).toLowerCase().indexOf(term) >= 0; });
+    var provs = {}; list.forEach(function (h) { if (h.location) provs[h.location] = 1; });
+    cnt.textContent = list.length ? T("ที่พัก " + list.length + " แห่ง" + (Object.keys(provs).length ? " · " + Object.keys(provs).length + " พื้นที่" : ""), list.length + (list.length > 1 ? " stays" : " stay")) : "";
+    cards.innerHTML = list.length ? list.map(function (h) {
+      return '<div class="hc" role="button" tabindex="0" data-s="' + esc(h.slug) + '">' + photo(h, "ph") + '<div class="bd"><b>' + esc(h.name) + '</b><span class="lc">📍 ' + esc(h.location || T("ประเทศไทย", "Thailand")) + (h.lat == null ? ' <span class="nopin">' + T("ยังไม่ปักหมุดบนแผนที่", "Not on the map yet") + "</span>" : "") + "</span>" +
+        '<div class="ft"><span class="pr">' + price(h) + '</span><a class="go" href="' + bookUrl(h) + '">' + T("ดูและจอง", "View & book") + "</a></div></div></div>";
+    }).join("") : '<div class="xempty">' + (HOTELS.length ? T("ไม่พบที่พักที่ตรงกับคำค้น", "No stays match your search") : T("ยังไม่มีที่พักบนแผนที่ — เร็ว ๆ นี้", "No stays on the map yet — coming soon")) + "</div>";
+    if (map) {
+      Object.keys(MK).forEach(function (k) { map.removeLayer(MK[k]); }); MK = {};
+      var pts = [];
+      list.forEach(function (h) {
+        if (h.lat == null) return;
+        MK[h.slug] = L.marker([h.lat, h.lng], { icon: icon(h.slug === cur), title: h.name, alt: h.name }).addTo(map).bindPopup(popup(h))
+          .on("click", function () { focus(h.slug, false); var c = document.querySelector('.hc[data-s="' + h.slug + '"]'); if (c) c.scrollIntoView({ block: "nearest", behavior: "smooth" }); });
+        pts.push([h.lat, h.lng]);
+      });
+      if (pts.length > 1) map.fitBounds(pts, { padding: [40, 40], maxZoom: 10 }); else if (pts.length === 1) map.setView(pts[0], 10); else map.fitBounds(TH_BOUNDS);
+    }
+  }
+  cards.addEventListener("click", function (e) { if (e.target.closest("a")) return; var c = e.target.closest(".hc"); if (c) focus(c.getAttribute("data-s"), true); });
+  cards.addEventListener("keydown", function (e) { var c = e.target.closest(".hc"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); focus(c.getAttribute("data-s"), true); } });
+  q.addEventListener("input", render);
+  initMap();
+  fetch("/api/public/map").then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function (d) { HOTELS = Array.isArray(d) ? d : []; render(); })
+    .catch(function () { cards.innerHTML = '<div class="xempty">' + T("โหลดรายชื่อที่พักไม่สำเร็จ ลองรีเฟรชอีกครั้ง", "Couldn't load stays — please refresh") + "</div>"; });
 })();</script>
 </body>
 </html>

@@ -16,6 +16,7 @@ import { breakfastOf, roomAmenities, stayInfo, lineContactUrl, lineLabel } from 
 import { promptPayPayload, normalizePromptPayId } from "../lib/promptpay.js";
 import { payMethodsOf, resolvePayChoice } from "../lib/pay.js";
 import { createRoomBooking } from "../lib/booking.js";
+import { hotelsForMap } from "../lib/geo.js";
 import { usedPeaks } from "../lib/availability.js";
 
 // เลขจองต้องตรงเป๊ะ (BP-XXXXXX) — ห้ามค้นแบบขึ้นต้นด้วย ไม่งั้นใส่แค่ "BP-" ก็ยกเลิกทุกการจองของเบอร์นั้นได้
@@ -63,6 +64,12 @@ r.get("/img/:kind/:id/:i?", async (req, res) => {
   if (!p) return res.sendStatus(404);
   const out = req.query.w === "line" ? await fitForLine(key, p.buf, p.type) : p;
   res.set("Content-Type", out.type).set("Cache-Control", "public, max-age=86400").send(out.buf);
+});
+
+// ===== แผนที่ที่พักทั่วไทย (หน้าแรก) — ชื่อ จังหวัด พิกัด รูปปก ราคาเริ่มต้น · แคช 5 นาที
+r.get("/map", async (_req, res) => {
+  try { res.set("Cache-Control", "public, max-age=300").json(await hotelsForMap()); }
+  catch (e) { console.error("map", e.message); res.status(500).json({ error: "โหลดแผนที่ไม่สำเร็จ" }); }
 });
 
 // QR PromptPay ของที่พัก ตามยอดที่ต้องจ่าย — สร้างฝั่งเซิร์ฟเวอร์ (ไม่พึ่ง CDN, แขกกดค้างบันทึกรูปไปสแกนในแอปธนาคารได้)

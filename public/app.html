@@ -232,6 +232,7 @@
       <button class="btn" style="margin-top:12px" onclick="saveHotel()">บันทึกข้อมูลการเข้าพัก</button></div>
     <div class="panel"><h3>นโยบายการยกเลิก</h3><p class="sub" style="margin-top:0">กำหนดเองว่าจะให้แขกยกเลิกออนไลน์ได้ไหม และยกเลิกฟรีก่อนเช็คอินกี่วัน</p>
       <div class="formgrid">
+        <div><label>แสดงบนแผนที่หน้าแรก Barn Park</label><select id="s-onmap"><option value="yes">แสดง (ใช้ตำแหน่งจากลิงก์แผนที่)</option><option value="no">ไม่แสดง</option></select></div>
         <div><label>ให้แขกยกเลิกออนไลน์</label><select id="s-cancel-allow"><option value="yes">อนุญาต</option><option value="no">ไม่อนุญาต (ติดต่อโรงแรมเท่านั้น)</option></select></div>
         <div><label>ยกเลิกฟรีก่อนเช็คอิน (วัน)</label><input id="s-cancel-days" type="number" value="3" min="0"></div>
         <div><label>“จองไว้ก่อน โอนทีหลัง” ต้องโอนภายใน (ชม.)</label><input id="s-hold-hours" type="number" value="24" min="0" placeholder="0 = ปิด"></div>
@@ -631,6 +632,7 @@ async function fillSettings(){
   Object.keys(API.THEME_FONTS).forEach(f=>API.loadFont(f)); // โหลดฟอนต์ล่วงหน้าให้เลือกเห็นผล
   // นโยบายยกเลิก
   document.getElementById('s-cancel-allow').value=(HOTEL.allowGuestCancel===false)?'no':'yes';
+  document.getElementById('s-onmap').value=(HOTEL.onMap===false)?'no':'yes';
   document.getElementById('s-cancel-days').value=HOTEL.cancelDays??3;
   document.getElementById('s-hold-hours').value=HOTEL.holdHours??24;
   document.getElementById('s-cin').value=HOTEL.checkInTime||''; document.getElementById('s-cout').value=HOTEL.checkOutTime||'';
@@ -711,7 +713,7 @@ async function saveHotel(){
     promptpayId:document.getElementById('s-pp-id').value.trim(),promptpayName:document.getElementById('s-pp-name').value.trim(),
     taxId:document.getElementById('s-taxid').value.trim(),address:document.getElementById('s-address').value.trim(),
     template:document.getElementById('s-template').value,
-    allowGuestCancel:document.getElementById('s-cancel-allow').value==='yes',cancelDays:+document.getElementById('s-cancel-days').value||0,
+    allowGuestCancel:document.getElementById('s-cancel-allow').value==='yes',onMap:document.getElementById('s-onmap').value==='yes',cancelDays:+document.getElementById('s-cancel-days').value||0,
     holdHours:+document.getElementById('s-hold-hours').value||0,
     checkInTime:document.getElementById('s-cin').value,checkOutTime:document.getElementById('s-cout').value,
     mapUrl:document.getElementById('s-map').value.trim(),houseRules:document.getElementById('s-rules').value.trim(),
