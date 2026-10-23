@@ -5,6 +5,7 @@ import Hotel from "../models/Hotel.js";
 import { requireAuth, canAccessHotel } from "../lib/auth.js";
 import { createActivityBooking } from "../lib/activity.js";
 import { notifyGuestPaid } from "../lib/notify.js";
+import { receiptUrl } from "../lib/receipt.js";
 
 const r = Router();
 
@@ -35,6 +36,17 @@ r.patch("/activity-bookings/:id", requireAuth, async (req, res) => {
   const out = await ActivityBooking.findByIdAndUpdate(b._id, { $set: set }, { new: true });
   if (set.payStatus === "paid" && b.payStatus !== "paid") notifyGuestPaid(b._id, "act").catch((e) => console.error("notifyGuestPaid", e.message));
   res.json(out);
+});
+// ลิงก์ใบเสร็จของการจองกิจกรรม (เว็บหลังบ้าน → ปุ่ม 🧾 ใบเสร็จ)
+r.get("/activity-bookings/:id/receipt-link", requireAuth, async (req, res) => {
+  if (!/^[a-f0-9]{24}$/i.test(String(req.params.id))) return res.status(404).json({ error: "not found" });
+  const b = await ActivityBooking.findById(req.params.id).select("hotel ref").lean();
+  if (!b) return res.status(404).json({ error: "not found" });
+  if (!canAccessHotel(req.user, b.hotel)) return res.status(403).json({ error: "forbidden" });
+  const h = await Hotel.findById(b.hotel).select("slug").lean();
+  const url = h && receiptUrl(h, b.ref);
+  if (!url) return res.status(400).json({ error: "ยังออกลิงก์ใบเสร็จไม่ได้ (ต้องตั้ง JWT_SECRET ใน Render)" });
+  res.json({ url });
 });
 r.delete("/activity-bookings/:id", requireAuth, async (req, res) => {
   const b = await ActivityBooking.findById(req.params.id);
