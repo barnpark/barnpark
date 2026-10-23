@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>ใบเสร็จ · BARN-PARK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="icon" href="media/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* ใบเสร็จ / ใบยืนยันการจอง — สี ฟอนต์ ความโค้ง มาจากธีมของที่พัก (API.applyTheme) · หัวกระดาษตามเทมเพลตที่ที่พักเลือก */
+  body{background:#eef2f5}
+  .rbar{max-width:820px;margin:18px auto 0;padding:0 16px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+  .doc{max-width:820px;margin:12px auto 40px;background:#fff;border-radius:var(--card-radius);box-shadow:0 20px 50px -30px rgba(15,37,64,.45);overflow:hidden;position:relative}
+  .pad{padding:28px 34px}
+  .hd{display:flex;gap:16px;align-items:center;justify-content:space-between}
+  .hd .who{display:flex;gap:14px;align-items:center;min-width:0}
+  .lg{width:58px;height:58px;border-radius:calc(var(--card-radius)*.6);background:#fff;display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden;font-weight:800;font-size:24px;color:var(--brand-ink)}
+  .lg img{max-width:100%;max-height:100%;object-fit:contain}
+  .hn{font-family:var(--font-head);font-size:22px;font-weight:800;line-height:1.3;margin:0}
+  .ha{font-size:13px;opacity:.85;margin-top:2px;line-height:1.5}
+  .dt{text-align:right;flex:none}
+  .dt .t{font-family:var(--font-head);font-size:20px;font-weight:800;letter-spacing:.3px}
+  .dt .n{font-size:13px;opacity:.85}
+  /* หัวกระดาษ 4 แบบ ตามเทมเพลตของหน้าจอง */
+  .hd-band{background:linear-gradient(120deg,var(--brand),var(--brand2));color:var(--on-brand)}            /* rich · fullscreen · immersive · split */
+  .hd-band .lg{box-shadow:0 2px 10px rgba(0,0,0,.18)}
+  .hd-classic{text-align:center;border-bottom:3px double var(--accent);color:var(--ink)}                    /* classic · editorial */
+  .hd-classic .hd{flex-direction:column}.hd-classic .who{flex-direction:column}.hd-classic .dt{text-align:center}
+  .hd-classic .hn{font-size:26px;color:var(--brand-ink)}
+  .hd-classic .lg{border:1px solid var(--line)}
+  .hd-soft{background:color-mix(in srgb,var(--accent) 14%,#fff);color:var(--ink);position:relative;overflow:hidden} /* magazine · bento · simple */
+  .hd-soft:before{content:"";position:absolute;width:200px;height:200px;border-radius:50%;background:color-mix(in srgb,var(--brand) 18%,transparent);right:-60px;top:-90px}
+  .hd-soft .hd{position:relative}.hd-soft .hn{color:var(--brand-ink)}
+  .hd-line{border-top:6px solid var(--brand);border-bottom:1px solid var(--line);color:var(--ink)}         /* catalog · อื่น ๆ */
+  .hd-line .hn{color:var(--brand-ink)}
+  .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px 24px;margin:4px 0 20px}
+  .meta .k{font-size:12px;color:var(--muted);font-weight:700}
+  .meta .v{font-size:14.5px}
+  .billto [contenteditable]{outline:none;border-bottom:1px dashed var(--line);min-height:1.4em;display:block}
+  .billto [contenteditable]:empty:before{content:attr(data-ph);color:#9aa8b6}
+  table{width:100%;border-collapse:collapse;font-size:14.5px}
+  th{text-align:left;font-size:12px;color:var(--muted);font-weight:700;border-bottom:2px solid var(--brand);padding:8px 6px}
+  td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+  td small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+  .r{text-align:right;white-space:nowrap}
+  .sum{margin:14px 0 0 auto;max-width:320px;font-size:14.5px}
+  .sum div{display:flex;justify-content:space-between;padding:4px 6px}
+  .sum .tot{border-top:2px solid var(--brand);margin-top:6px;padding-top:10px;font-size:18px;font-weight:800;color:var(--brand-ink)}
+  .stamp{display:table;margin:18px 34px -14px auto;transform:rotate(-8deg);border:3px solid currentColor;border-radius:12px;padding:6px 14px;font-weight:800;font-size:18px;opacity:.85;pointer-events:none;text-align:center;line-height:1.25}
+  .stamp small{display:block;font-size:11px;font-weight:700}
+  .stamp.paid{color:var(--green)}.stamp.due{color:var(--amber)}.stamp.cx{color:var(--red)}
+  .foot{border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .msg{max-width:520px;margin:60px auto;background:#fff;border-radius:18px;padding:28px;text-align:center;color:var(--muted)}
+  @media(max-width:640px){.pad{padding:20px 18px}.hd{flex-direction:column;align-items:flex-start}.dt{text-align:left}.hd-classic .hd{align-items:center}.stamp{margin:16px 18px -8px auto;font-size:15px}}
+  @media print{
+    @page{size:A4;margin:12mm}
+    body{background:#fff}.rbar,.lang-toggle,#bp-lang,.bp-support{display:none !important}
+    .doc{box-shadow:none;margin:0;max-width:none;border-radius:0}
+    .hd-band,.hd-soft,.stamp,th,.sum .tot{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .billto [contenteditable]{border-bottom:none}.billto [contenteditable]:empty{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="rbar" id="bar" style="display:none">
+  <button class="btn ghost sm" onclick="history.length>1?history.back():location.href='/'" data-th="← กลับ" data-en="← Back">← กลับ</button>
+  <button class="btn sm" onclick="window.print()" data-th="🖨 พิมพ์ / บันทึกเป็น PDF" data-en="🖨 Print / Save as PDF">🖨 พิมพ์ / บันทึกเป็น PDF</button>
+</div>
+<div id="out"><div class="msg" data-th="กำลังโหลดเอกสาร…" data-en="Loading…">กำลังโหลดเอกสาร…</div></div>
+<script src="api.js"></script>
+<script>
+API.applyI18n(); API.mountLangToggle();
+(function () {
+  var T = API.t, esc = API.esc, money = API.money, out = document.getElementById("out");
+  var P = new URLSearchParams(location.search);
+  var TH_M = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."], EN_M = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function day(ymd, year) { var d = new Date(String(ymd).slice(0, 10) + "T00:00:00Z"); if (isNaN(d)) return ymd || ""; return d.getUTCDate() + " " + (API.lang() === "en" ? EN_M : TH_M)[d.getUTCMonth()] + (year ? " " + (API.lang() === "en" ? d.getUTCFullYear() : d.getUTCFullYear() + 543) : ""); }
+  var HEAD = { rich: "band", fullscreen: "band", immersive: "band", split: "band", classic: "classic", editorial: "classic", magazine: "soft", bento: "soft", simple: "soft" };
+  var PAY = { promptpay: ["พร้อมเพย์", "PromptPay"], transfer: ["โอนเข้าบัญชี", "Bank transfer"], cash: ["เงินสด", "Cash"], onsite: ["ชำระที่ที่พัก", "Paid at property"], ota: ["ผ่าน OTA", "Via OTA"] };
+  function fail(th, en) { out.innerHTML = '<div class="msg">' + T(th, en) + "</div>"; }
+  if (!P.get("h") || !P.get("ref") || !P.get("k")) return fail("ลิงก์ไม่ครบ — เปิดจากลิงก์ในอีเมลหรือ LINE ยืนยันการจอง", "Incomplete link — please open it from your confirmation email or LINE");
+  fetch("/api/public/receipt?h=" + encodeURIComponent(P.get("h")) + "&ref=" + encodeURIComponent(P.get("ref")) + "&k=" + encodeURIComponent(P.get("k")))
+    .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; }); })
+    .then(render).catch(function () { fail("ไม่พบเอกสาร หรือลิงก์ไม่ถูกต้อง", "Document not found, or the link is invalid"); });
+
+  function lineDetail(l, d) {
+    var x = l.detail || {};
+    if (d.kind === "act") return day(x.date, true) + (x.time ? " · " + x.time : "");
+    if (x.nights != null && x.checkin) return day(x.checkin) + " → " + day(x.checkout, true) + " · " + T(x.nights + " คืน", x.nights + " night" + (x.nights > 1 ? "s" : "")) + (x.rooms > 1 ? " × " + T(x.rooms + " ห้อง", x.rooms + " rooms") : "") + (x.extraBed ? " · " + T("เตียงเสริม " + x.extraBed, "extra bed " + x.extraBed) : "");
+    if (x.dates && x.dates.length) return T(x.pax + " ท่าน · เช้า ", x.pax + " guest(s) · ") + x.dates.map(function (s) { return day(s); }).join(", ");
+    if (x.pax) return T(x.pax + " ท่าน × " + x.nights + " คืน", x.pax + " guest(s) × " + x.nights + " night(s)");
+    if (x.date) return day(x.date, true);
+    return "";
+  }
+  function render(d) {
+    var h = d.hotel || {};
+    API.applyTheme(h);
+    var paid = d.payStatus === "paid", cx = d.status === "cancelled";
+    var title = cx ? T("การจองที่ยกเลิก", "Cancelled booking") : paid ? T("ใบเสร็จรับเงิน", "Receipt") : T("ใบยืนยันการจอง", "Booking confirmation");
+    document.title = title + " " + d.ref + " · " + (h.name || "");
+    var number = (paid ? "R-" : "") + d.ref;
+    var head = HEAD[h.template] || "line";
+    var logo = h.logoUrl ? '<img src="' + esc(h.logoUrl) + '" alt="">' : esc((h.name || "?").trim().charAt(0));
+    var stamp = cx ? '<div class="stamp cx">' + T("ยกเลิกแล้ว", "CANCELLED") + "</div>"
+      : paid ? '<div class="stamp paid">' + T("ชำระแล้ว", "PAID") + "<small>" + esc(T((PAY[d.payMethod] || [""])[0], (PAY[d.payMethod] || ["", ""])[1])) + "</small></div>"
+      : d.payStatus === "reported" ? '<div class="stamp due">' + T("แจ้งโอนแล้ว", "PAYMENT SENT") + "<small>" + T("รอที่พักตรวจ", "being checked") + "</small></div>"
+      : d.payStatus === "onsite" ? '<div class="stamp due">' + T("ชำระที่ที่พัก", "PAY ON ARRIVAL") + "</div>"
+      : '<div class="stamp due">' + T("ยังไม่ชำระ", "UNPAID") + "</div>";
+    var when = d.kind === "act" ? day(d.date, true) + (d.time ? " · " + d.time : "") : day(d.checkin) + " → " + day(d.checkout, true);
+    var rows = (d.lines || []).map(function (l) {
+      return "<tr><td><b>" + esc(T(l.th, l.en)) + "</b><small>" + esc(lineDetail(l, d)) + '</small></td><td class="r">' + l.qty + '</td><td class="r">' + money(l.amount) + "</td></tr>";
+    }).join("");
+    out.innerHTML =
+      '<div class="doc">' +
+        '<div class="pad hd-' + head + '"><div class="hd"><div class="who"><div class="lg">' + logo + '</div><div><p class="hn">' + esc(h.name || "") + '</p><div class="ha">' + esc(h.address || "") + (h.phone ? "<br>" + T("โทร ", "Tel ") + esc(h.phone) : "") + (h.taxId ? "<br>" + T("เลขประจำตัวผู้เสียภาษี ", "Tax ID ") + esc(h.taxId) : "") + "</div></div></div>" +
+          '<div class="dt"><div class="t">' + title + '</div><div class="n">' + T("เลขที่ ", "No. ") + esc(number) + "<br>" + T("วันที่ ", "Date ") + day(d.issuedAt, true) + "</div></div></div></div>" +
+        stamp +
+        '<div class="pad">' +
+          '<div class="meta">' +
+            '<div><div class="k">' + T("ผู้จอง", "Guest") + '</div><div class="v">' + esc(d.guestName || "-") + "</div></div>" +
+            '<div><div class="k">' + T("เลขการจอง", "Booking no.") + '</div><div class="v">' + esc(d.ref) + "</div></div>" +
+            '<div><div class="k">' + (d.kind === "act" ? T("วันใช้บริการ", "Date") : T("เข้าพัก", "Stay")) + '</div><div class="v">' + esc(when) + "</div></div>" +
+            '<div class="billto"><div class="k">' + T("ออกในนาม (ถ้าต้องการ)", "Bill to (optional)") + '</div><div class="v"><span contenteditable="true" data-ph="' + T("ชื่อบริษัท / ชื่อผู้ชำระ", "Company / payer name") + '"></span><span contenteditable="true" data-ph="' + T("ที่อยู่ · เลขผู้เสียภาษี", "Address · Tax ID") + '"></span></div></div>' +
+          "</div>" +
+          "<table><thead><tr><th>" + T("รายการ", "Description") + '</th><th class="r">' + T("จำนวน", "Qty") + '</th><th class="r">' + T("จำนวนเงิน (บาท)", "Amount (THB)") + "</th></tr></thead><tbody>" + rows + "</tbody></table>" +
+          '<div class="sum">' + (d.discount ? "<div><span>" + T("ส่วนลด", "Discount") + (d.promoCode ? " (" + esc(d.promoCode) + ")" : "") + "</span><span>-" + money(d.discount) + "</span></div>" : "") +
+            '<div class="tot"><span>' + T("รวมทั้งสิ้น", "Total") + "</span><span>" + money(d.total) + "</span></div></div>" +
+        "</div>" +
+        '<div class="pad foot"><span>' + T("เอกสารนี้ออกโดยระบบ ไม่ใช่ใบกำกับภาษี", "System-generated document · not a tax invoice") + "</span><span>BARN-PARK · " + esc(h.name || "") + "</span></div>" +
+      "</div>";
+    document.getElementById("bar").style.display = "flex";
+  }
+})();
+</script>
+</body>
+</html>

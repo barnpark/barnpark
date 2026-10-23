@@ -1,8 +1,10 @@
 import { Router } from "express";
 import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
+import Hotel from "../models/Hotel.js";
 import RoomType from "../models/RoomType.js";
 import { requireAuth, canAccessHotel } from "../lib/auth.js";
+import { receiptUrl } from "../lib/receipt.js";
 import { notifyBooking, notifyCancel, notifyGuestPaid } from "../lib/notify.js";
 import { methodTh } from "../lib/pay.js";
 import { usedPeak } from "../lib/availability.js";
@@ -79,6 +81,17 @@ const groupFilter = (bk) => {
   const g = /^(BP-[A-Z0-9]{6})(-\d+)?$/.exec(String(bk.ref || ""));
   return g ? { hotel: bk.hotel, ref: new RegExp("^" + g[1] + "(-\\d+)?$") } : { _id: bk._id };
 };
+// ลิงก์ใบเสร็จของการจองนี้ (เว็บหลังบ้าน → ปุ่ม 🧾 ใบเสร็จ)
+r.get("/bookings/:id/receipt-link", requireAuth, async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: "not found" });
+  const bk = await Booking.findById(req.params.id).select("hotel ref").lean();
+  if (!bk) return res.status(404).json({ error: "not found" });
+  if (!canAccessHotel(req.user, bk.hotel)) return res.status(403).json({ error: "forbidden" });
+  const h = await Hotel.findById(bk.hotel).select("slug").lean();
+  const url = h && receiptUrl(h, bk.ref);
+  if (!url) return res.status(400).json({ error: "ยังออกลิงก์ใบเสร็จไม่ได้ (ต้องตั้ง JWT_SECRET ใน Render)" });
+  res.json({ url });
+});
 r.post("/bookings/:id/cancel", requireAuth, async (req, res) => {
   const bk = await Booking.findById(req.params.id);
   if (!bk) return res.status(404).json({ error: "not found" });

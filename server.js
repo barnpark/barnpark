@@ -41,6 +41,7 @@ app.use("/api/auth/forgot", rateLimit({ windowMs: 15 * 60 * 1000, max: 5, messag
 app.use("/api/public/lookup", rateLimit({ windowMs: 10 * 60 * 1000, max: 15, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/report-paid", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/review", rateLimit({ windowMs: 10 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
+app.use("/api/public/receipt", rateLimit({ windowMs: 10 * 60 * 1000, max: 60, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/map", rateLimit({ windowMs: 10 * 60 * 1000, max: 120, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/promo", rateLimit({ windowMs: 10 * 60 * 1000, max: 30, message: "ลองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/public/book-activity", rateLimit({ windowMs: 10 * 60 * 1000, max: 20, message: "ส่งคำขอจองบ่อยเกินไป กรุณารอสักครู่" }));

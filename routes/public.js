@@ -17,6 +17,7 @@ import { promptPayPayload, normalizePromptPayId } from "../lib/promptpay.js";
 import { payMethodsOf, resolvePayChoice } from "../lib/pay.js";
 import { createRoomBooking } from "../lib/booking.js";
 import { hotelsForMap } from "../lib/geo.js";
+import { receiptData, receiptUrl, checkKey, findHotelBySlug } from "../lib/receipt.js";
 import { usedPeaks } from "../lib/availability.js";
 
 // เลขจองต้องตรงเป๊ะ (BP-XXXXXX) — ห้ามค้นแบบขึ้นต้นด้วย ไม่งั้นใส่แค่ "BP-" ก็ยกเลิกทุกการจองของเบอร์นั้นได้
@@ -64,6 +65,16 @@ r.get("/img/:kind/:id/:i?", async (req, res) => {
   if (!p) return res.sendStatus(404);
   const out = req.query.w === "line" ? await fitForLine(key, p.buf, p.type) : p;
   res.set("Content-Type", out.type).set("Cache-Control", "public, max-age=86400").send(out.buf);
+});
+
+// ===== ใบเสร็จ / ใบยืนยันการจอง (public/receipt.html) — ต้องมีรหัสลับ k ที่ระบบออกให้ (ลิงก์ในอีเมล/LINE/หน้าเช็กการจอง)
+r.get("/receipt", async (req, res) => {
+  const { h: slug, ref, k } = req.query;
+  const h = await findHotelBySlug(slug);
+  if (!h || !ref || !checkKey(h, String(ref), String(k || ""))) return res.status(404).json({ error: "ไม่พบเอกสาร หรือลิงก์ไม่ถูกต้อง" });
+  const d = await receiptData(h, String(ref));
+  if (!d) return res.status(404).json({ error: "ไม่พบการจอง" });
+  res.set("Cache-Control", "no-store").json(d);
 });
 
 // ===== แผนที่ที่พักทั่วไทย (หน้าแรก) — ชื่อ จังหวัด พิกัด รูปปก ราคาเริ่มต้น · แคช 5 นาที
@@ -232,7 +243,7 @@ r.post("/lookup", async (req, res) => {
       roomName: s.roomName, rooms: s.rooms, checkin: s.checkin, checkout: s.checkout, nights: s.nights, pax: s.pax,
       breakfast: s.breakfast, breakfastPax: s.breakfastPax, breakfastTotal: s.breakfastTotal, addons: s.addons, discount: s.discount,
       amount: s.amount, payStatus: s.payStatus, payMethod: first.payMethod || "", holdUntil: live.length ? holdDeadline(h, live[0]) : null,
-      guestName: s.guestName,
+      guestName: s.guestName, receiptUrl: receiptUrl(h, s.ref),
     });
   }
   if (/^BA-[A-Z0-9]{6}$/.test(R)) {
@@ -240,7 +251,7 @@ r.post("/lookup", async (req, res) => {
     if (!ab) return notFound();
     return res.json({
       kind: "act", ref: ab.ref, status: ab.status, serviceName: ab.serviceName, date: ab.date, time: ab.time, qty: ab.qty,
-      amount: ab.amount, payStatus: ab.payStatus, payMethod: ab.payMethod || "", guestName: ab.guestName,
+      amount: ab.amount, payStatus: ab.payStatus, payMethod: ab.payMethod || "", guestName: ab.guestName, receiptUrl: receiptUrl(h, ab.ref),
     });
   }
   return notFound();
@@ -270,7 +281,7 @@ r.post("/book-activity", async (req, res) => {
   try {
     const b = await createActivityBooking(h, svc, { date, time, qty, name, tel, email, note: String(note || "").slice(0, 300), paid: !!paid, payRef: String(payRef || "").slice(0, 60), payStatus: pc.payStatus, payMethod: pc.method });
     notifyActivity(b._id).catch((e) => console.error("notifyActivity", e.message));
-    res.json({ ok: true, ref: b.ref, amount: b.amount, qty: b.qty, date: b.date, time: b.time, payStatus: b.payStatus, payMethod: b.payMethod || "" });
+    res.json({ ok: true, ref: b.ref, amount: b.amount, qty: b.qty, date: b.date, time: b.time, payStatus: b.payStatus, payMethod: b.payMethod || "", receiptUrl: receiptUrl(h, b.ref) });
   } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 
