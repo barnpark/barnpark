@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { bumpMapOnChange } from "../lib/mapcache.js";
 
 const otaSchema = new mongoose.Schema({
   channel: String,                 // agoda | booking | trip | airbnb
@@ -65,4 +66,5 @@ const schema = new mongoose.Schema({
   lineForwardUrl:    { type: String, select: false }, // OA ใช้ร่วมกับระบบอื่น: ข้อความที่ไม่ใช่ของ Barn Park ส่งต่อไป Webhook นี้ (lib/lineforward.js)
 }, { timestamps: true });
 
+bumpMapOnChange(schema, ["geo", "geoFrom"]); // แผนที่หน้าแรกอัปเดตทันทีเมื่อที่พักเปลี่ยน (lib/mapcache.js)
 export default mongoose.model("Hotel", schema);

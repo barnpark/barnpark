@@ -58,5 +58,25 @@ const n0 = fetches.length;
 await hotelsForMap();
 t("cached for 5 minutes", fetches.length === n0);
 
+// ---- ลบ/แก้ที่พักหรือห้อง → แผนที่อัปเดตทันที (ไม่ต้องรอแคช 5 นาที)
+const { mapVersion, bumpMap } = await import("../lib/mapcache.js");
+let finds = 0; const realFind = Hotel.find;
+Hotel.find = (q) => { finds++; return realFind(q); };
+await hotelsForMap(); const f0 = finds;
+await hotelsForMap();
+t("unchanged data → served from cache", finds === f0);
+hotels.splice(hotels.findIndex((h) => h.slug === "rimnam"), 1); // ลบที่พัก
+bumpMap();
+const after = await hotelsForMap();
+t("after a change → recomputed, deleted hotel gone", finds === f0 + 1 && !after.some((h) => h.slug === "rimnam"), after.map((h) => h.slug));
+// middleware ที่ผูกกับโมเดลจริง
+const hooks = (M, name) => (M.schema.s.hooks._posts.get(name) || []).map((x) => x.fn).filter((fn) => fn === bumpMap || /bumpMap\(\)/.test(String(fn))); // เฉพาะของเรา (ไม่รวม plugin ของ mongoose)
+const run = (M, name, upd) => { const v = mapVersion(); for (const fn of hooks(M, name)) fn.call({ getUpdate: () => upd }, {}); return mapVersion() > v; };
+t("Hotel delete clears map cache", run(Hotel, "deleteOne") && run(Hotel, "deleteMany") && run(Hotel, "findOneAndDelete"));
+t("Hotel edit (onMap/status/approved/mapUrl) clears map cache", run(Hotel, "findOneAndUpdate", { onMap: false }) && run(Hotel, "updateOne", { $set: { status: "paused" } }) && run(Hotel, "updateMany", { $set: { approved: false } }));
+t("Hotel created/saved clears map cache", run(Hotel, "save"));
+t("map's own geo save does NOT clear cache (no loop)", !run(Hotel, "updateOne", { $set: { geo: { lat: 1, lng: 2 }, geoFrom: "x" } }));
+t("room price/visibility change clears map cache", run(RoomType, "findOneAndUpdate", { $set: { basePrice: 500 } }) && run(RoomType, "deleteOne") && run(RoomType, "save"));
+
 console.log(`geo: ${ok} passed, ${bad} failed`);
 process.exit(bad ? 1 : 0);

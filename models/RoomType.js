@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { bumpMapOnChange } from "../lib/mapcache.js";
 
 const schema = new mongoose.Schema({
   hotel:         { type: mongoose.Schema.Types.ObjectId, ref: "Hotel", required: true, index: true },
@@ -22,4 +23,5 @@ const schema = new mongoose.Schema({
   sort:          { type: Number, default: 0 },
 }, { timestamps: true });
 
+bumpMapOnChange(schema, []); // แผนที่หน้าแรกอัปเดตทันทีเมื่อห้อง/ราคาเปลี่ยน (lib/mapcache.js)
 export default mongoose.model("RoomType", schema);
