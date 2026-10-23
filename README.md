@@ -119,3 +119,4 @@ npm start                 # เปิด http://localhost:3000
   - ข้อมูล `GET /api/public/map` (`lib/geo.js`, แคช 5 นาที, rate limit) — เฉพาะที่พักที่อนุมัติ ไม่พักใช้งาน และ `onMap` ≠ false · ส่งแค่ ชื่อ slug จังหวัด คำโปรย พิกัด รูปปก (https) ราคาเริ่มต้นของห้องที่เปิดขาย
   - พิกัดอ่านจาก `Hotel.mapUrl` (`!3d!4d` / `@lat,lng` / `query=` · ลิงก์ย่อ `maps.app.goo.gl` ตามไปหาลิงก์เต็มครั้งเดียว ไปได้เฉพาะโดเมน Google) แล้วจำไว้ใน `Hotel.geo` + `geoFrom` (เปลี่ยนลิงก์ = คำนวณใหม่) · ไม่มีลิงก์ = ขึ้นในรายการแต่ไม่มีหมุด
   - เว็บหลังบ้าน → ตั้งค่า → “แสดงบนแผนที่หน้าแรก Barn Park” (`Hotel.onMap`)
+- แก้: **ลบ/ซ่อน/พักที่พักแล้วยังค้างบนแผนที่หน้าแรก** (แคช 5 นาทีทั้งในเซิร์ฟเวอร์และเบราว์เซอร์) → `lib/mapcache.js` ผูก middleware กับ `Hotel` และ `RoomType` (save / update / delete) ล้างแคชทันที (ยกเว้นตอน `lib/geo.js` บันทึกพิกัดเอง) · `/api/public/map` ส่ง `Cache-Control: no-cache`

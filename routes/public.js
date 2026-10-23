@@ -68,7 +68,7 @@ r.get("/img/:kind/:id/:i?", async (req, res) => {
 
 // ===== แผนที่ที่พักทั่วไทย (หน้าแรก) — ชื่อ จังหวัด พิกัด รูปปก ราคาเริ่มต้น · แคช 5 นาที
 r.get("/map", async (_req, res) => {
-  try { res.set("Cache-Control", "public, max-age=300").json(await hotelsForMap()); }
+  try { res.set("Cache-Control", "no-cache").json(await hotelsForMap()); } // เบราว์เซอร์ถามใหม่ทุกครั้ง (ลบ/ซ่อนที่พักแล้วหายจากแผนที่ทันที)
   catch (e) { console.error("map", e.message); res.status(500).json({ error: "โหลดแผนที่ไม่สำเร็จ" }); }
 });
 
