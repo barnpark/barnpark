@@ -34,7 +34,7 @@
 <body>
 <div class="top"><div class="in">
   <div class="logo"><img id="brandMark" src="media/barnpark-mark.svg" alt="" style="height:26px;max-width:120px;width:auto;display:block;object-fit:contain"><span id="hotelName">BARN-PARK</span></div>
-  <div class="who"><span id="uinfo"></span><button class="btn ghost sm" onclick="API.signOut()">ออกจากระบบ</button></div>
+  <div class="who"><button class="btn ghost sm" id="money-btn" style="display:none" onclick="toggleMoney()"></button><span id="uinfo"></span><button class="btn ghost sm" onclick="API.signOut()">ออกจากระบบ</button></div>
 </div></div>
 <div class="nav"><div class="in" id="nav">
   <button data-v="v-dash" class="on" onclick="go('v-dash')">📊 แดชบอร์ด</button>
@@ -312,7 +312,9 @@
 <script src="api.js"></script>
 <script>
 let PERMS={}, TEAM=[], HOTEL=null, HID=null, RT=[], BK=[], SVC=[], PROMOS=[], REVIEWS=[], winStart=new Date(), editId=null, lastRows=[];
-const esc=API.esc, money=API.money, thDate=API.thDate, nights=API.nights, ymd=API.ymd, addDays=API.addDays;
+// ยอดที่ซ่อน (null) → 🔒 · พนักงานเห็นเฉพาะยอดที่แขกยังต้องจ่าย (lib/team.js moneyView)
+const money=(v)=>v==null?'<span title="ยอดเงินซ่อนอยู่ — กด 👁 ดูยอดเงิน">🔒</span>':API.money(v);
+const esc=API.esc, thDate=API.thDate, nights=API.nights, ymd=API.ymd, addDays=API.addDays;
 function go(v){document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));document.querySelectorAll('main .view').forEach(x=>x.classList.toggle('on',x.id===v));window.scrollTo(0,0);}
 function m(k,v,a){return '<div class="m'+(a?' alert':'')+'"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';}
 function rtName(id){const t=RT.find(x=>String(x._id)===String(id));return t?t.name:'—';}
@@ -328,14 +330,14 @@ async function boot(){
   document.getElementById('hotelName').textContent=HOTEL.name; logoPreview();
   API.applyTheme(HOTEL);
   winStart=new Date();
-  fillSettings(); loadTeam(); fillChannelSelect(); API.mountSupport();
+  fillSettings(); await loadTeam(); fillChannelSelect(); API.mountSupport(); // ทีมก่อน → รู้ว่าต้องซ่อนยอดเงินไหม
   if(location.hash==='#feedback'){ go('v-feedback'); loadFeedback(); }
   await load();
 }
 async function load(){
   RT=await API.get('/hotels/'+HID+'/rooms');
   const since=ymd(addDays(new Date(),-60));
-  BK=await API.get('/hotels/'+HID+'/bookings?since='+since);
+  BK=await bkGet('/hotels/'+HID+'/bookings?since='+since);
   SVC=await API.get('/hotels/'+HID+'/services').catch(()=>[]);
   PROMOS=await API.get('/hotels/'+HID+'/promos').catch(()=>[]);
   REVIEWS=await API.get('/hotels/'+HID+'/reviews').catch(()=>[]);
@@ -359,7 +361,7 @@ function renderDash(){
   const month=today.slice(0,7);const rev=act.filter(b=>(b.checkin||'').slice(0,7)===month).reduce((s,b)=>s+Number(b.amount||0),0);
   const over=lastRows.flatMap(r=>r.bars).filter(b=>b._over).length;
   document.getElementById('dash-date').textContent='วันนี้ '+thDate(today);
-  document.getElementById('dash-metrics').innerHTML=m("🛏️ เข้าพักวันนี้",(rooms?Math.round(occ/rooms*100):0)+"%")+m("🚪 เช็คอินวันนี้",arr)+m("💰 รายได้เดือนนี้",money(rev))+m("⚠️ จองทับซ้อน",over,over>0);
+  document.getElementById('dash-metrics').innerHTML=m("🛏️ เข้าพักวันนี้",(rooms?Math.round(occ/rooms*100):0)+"%")+m("🚪 เช็คอินวันนี้",arr)+m("💰 รายได้เดือนนี้",money(moneyLocked()?null:rev))+m("⚠️ จองทับซ้อน",over,over>0);
   const up=act.filter(b=>b.checkin>=today).sort((a,b)=>a.checkin<b.checkin?-1:1).slice(0,8);
   document.getElementById('dash-arr').innerHTML='<tr><th>เช็คอิน</th><th>แขก</th><th>ห้อง</th><th>ช่องทาง</th></tr>'+(up.length?up.map(b=>'<tr><td>'+thDate(b.checkin)+'</td><td><b>'+esc(b.guestName)+'</b></td><td>'+rtName(b.roomType)+'</td><td>'+(API.CHAN[b.channel]||b.channel)+'</td></tr>').join(''):'<tr><td colspan="4" class="empty">—</td></tr>');
 }
@@ -427,7 +429,7 @@ async function loadTeam(){
   const none=!TEAM.some(u=>u.active); document.getElementById('team-setup').style.display=none?'block':'none';
   if(none&&!TEAM.length){ document.getElementById('tm-role').value='manager'; tmRole(); }
   document.getElementById('log-name').innerHTML='<option value="">ทุกคน</option>'+TEAM.map(u=>'<option>'+esc(u.name)+'</option>').join('');
-  renderTeam();
+  renderTeam(); moneyBtn();
 }
 function renderTeam(){
   document.getElementById('team-table').innerHTML='<tr><th>ชื่อ</th><th>สิทธิ์</th><th>ใช้ล่าสุด</th><th></th></tr>'+(TEAM.length?TEAM.map(u=>'<tr'+(u.active?'':' class="cx"')+'><td><b>'+esc(u.name)+'</b><br>'+(u.manager?'<span class="pill on">ผู้จัดการ</span>':'<span class="pill off">พนักงาน</span>')+(u.active?'':' <span class="pill err">ปิดรหัส</span>')+'</td>'+
@@ -463,6 +465,23 @@ async function loadLog(more){
   document.getElementById('log-more').innerHTML=LOG.length&&LOG.length%100===0?'<button class="btn ghost sm" style="margin-top:10px" onclick="loadLog(true)">ดูเก่ากว่านี้</button>':'';
 }
 const byLine=(t,n)=>n?'<br><span style="color:var(--muted);font-size:11px">'+t+' '+esc(n)+'</span>':'';
+// ---- ยอดเงิน: ตั้งทีมแล้ว → ซ่อนยอดที่จ่ายแล้ว/รายได้ จนกว่าผู้จัดการหรือคนที่มีสิทธิ์ “รายงาน” ใส่รหัส (เปิด 5 นาทีแล้วซ่อนเอง) ----
+let MONEY_PIN=null, MONEY_UNTIL=0, MONEY_T=null;
+const teamOn=()=>TEAM.some(u=>u.active);
+function moneyLocked(){ return teamOn()&&!MONEY_PIN; }
+const bkGet=(url)=>MONEY_PIN?API.getPin(url,MONEY_PIN):API.get(url);
+function moneyBtn(){ const b=document.getElementById('money-btn'); if(!b)return; b.style.display=teamOn()?'':'none';
+  b.textContent=MONEY_PIN?'🙈 ซ่อนยอดเงิน ('+Math.max(0,Math.ceil((MONEY_UNTIL-Date.now())/60000))+' นาที)':'👁 ดูยอดเงิน'; }
+async function toggleMoney(){
+  if(MONEY_PIN){ lockMoney(); return; }
+  let err='', pin;
+  for(;;){ pin=await API.askPin(err||'ใส่รหัสผู้จัดการ หรือคนที่มีสิทธิ์ “รายงาน” เพื่อดูยอดเงิน (5 นาที)', !!err); if(!pin)return;
+    try{ BK=await API.getPin('/hotels/'+HID+'/bookings?since='+ymd(addDays(new Date(),-60)),pin); break; }catch(e){ err=e.message; } }
+  MONEY_PIN=pin; MONEY_UNTIL=Date.now()+5*60e3; clearInterval(MONEY_T);
+  MONEY_T=setInterval(()=>{ if(Date.now()>=MONEY_UNTIL) lockMoney(); else moneyBtn(); },30e3);
+  moneyBtn(); load();
+}
+function lockMoney(){ MONEY_PIN=null; clearInterval(MONEY_T); moneyBtn(); load(); }
 // ---- calendar ----
 function winDays(){let a=[];for(let i=0;i<7;i++)a.push(ymd(addDays(winStart,i)));return a;}
 function moveWeek(n){winStart=addDays(winStart,n);renderCal();}
@@ -617,7 +636,7 @@ async function saveSvc(id){
   API.toast('บันทึกแล้ว','ok'); SVC=await API.get('/hotels/'+HID+'/services'); renderSvc();
 }
 let ACTBK=[];
-async function loadActBk(){ try{ ACTBK=await API.get('/hotels/'+HID+'/activity-bookings?since='+ymd(addDays(new Date(),-7))); }catch{ ACTBK=[]; } renderActBk(); }
+async function loadActBk(){ try{ ACTBK=await bkGet('/hotels/'+HID+'/activity-bookings?since='+ymd(addDays(new Date(),-7))); }catch{ ACTBK=[]; } renderActBk(); }
 function renderActBk(){ const el=document.getElementById('actbktable'); if(!el)return;
   el.innerHTML='<tr><th>วัน/รอบ</th><th>กิจกรรม</th><th>แขก</th><th>จำนวน</th><th>ยอด</th><th>ชำระ</th><th></th></tr>'+(ACTBK.length?ACTBK.map(b=>'<tr'+(b.status==='cancelled'?' style="opacity:.5"':'')+'><td>'+thDate(b.date)+(b.time?' '+esc(b.time):'')+'<br><span class="note" style="margin:0">'+esc(b.ref||'')+'</span></td><td>'+esc(b.serviceName||'')+'</td><td><b>'+esc(b.guestName||'')+'</b><br><span class="note" style="margin:0">'+esc(b.guestTel||'')+'</span></td><td>'+b.qty+'</td><td>'+money(b.amount)+'</td><td>'+(b.status==='cancelled'?'<span class="pill off">ยกเลิก</span>':b.payStatus==='paid'?'<span class="pill on">ชำระแล้ว</span>':b.payStatus==='reported'?'<span class="pill pend">แจ้งโอน'+(b.payRef?' · '+esc(b.payRef):'')+'</span>':b.payStatus==='onsite'?'<span class="pill pend">จ่ายที่เคาน์เตอร์</span>':'<span class="pill off">ยังไม่ชำระ</span>')+'</td><td style="white-space:nowrap">'+(b.status!=='cancelled'&&b.payStatus!=='paid'?'<button class="btn sm" onclick="actPaid(\''+b._id+'\')">✔ ยืนยันชำระ</button> ':'')+(b.status!=='cancelled'?'<button class="btn ghost sm" onclick="actCancel(\''+b._id+'\')">ยกเลิก</button>':'')+'</td></tr>').join(''):'<tr><td colspan="7" class="empty">ยังไม่มีการจองกิจกรรม</td></tr>'); }
 async function actPaid(id){ try{ await API.patch('/activity-bookings/'+id,{payStatus:'paid'}); API.toast('ยืนยันชำระแล้ว','ok'); loadActBk(); }catch(e){API.toast(e.message,'err');} }
@@ -628,7 +647,7 @@ function renderReport(){
   const today=new Date();const days=[];for(let i=0;i<7;i++)days.push(ymd(addDays(today,i)));const rooms=RT.reduce((s,t)=>s+(t.qty||0),0);
   const act=BK.filter(b=>b.status!=='cancelled');let rn=0;act.forEach(b=>days.forEach(d=>{if(b.checkin<=d&&b.checkout>d)rn++;}));
   const month=ymd(today).slice(0,7);const mb=act.filter(b=>(b.checkin||'').slice(0,7)===month);const rev=mb.reduce((s,b)=>s+Number(b.amount||0),0);const nts=mb.reduce((s,b)=>s+nights(b.checkin,b.checkout),0);
-  document.getElementById('rep-metrics').innerHTML=m("📅 เข้าพัก 7 วัน",(rooms?Math.round(rn/(rooms*7)*100):0)+"%")+m("💰 รายได้เดือนนี้",money(rev))+m("🧾 จองเดือนนี้",mb.length)+m("💵 ADR",money(nts?Math.round(rev/nts):0));
+  document.getElementById('rep-metrics').innerHTML=m("📅 เข้าพัก 7 วัน",(rooms?Math.round(rn/(rooms*7)*100):0)+"%")+m("💰 รายได้เดือนนี้",money(moneyLocked()?null:rev))+m("🧾 จองเดือนนี้",mb.length)+m("💵 ADR",money(moneyLocked()?null:nts?Math.round(rev/nts):0));
   const mix={};act.forEach(b=>{mix[b.channel]=(mix[b.channel]||0)+1;});const tot=Object.values(mix).reduce((a,c)=>a+c,0)||1;const cc={direct:'#0d9488',agoda:'#7c3aed',booking:'#2563eb',trip:'#d97706'};
   document.getElementById('rep-mix').innerHTML=Object.keys(mix).length?Object.entries(mix).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{const pc=Math.round(v/tot*100);return '<div style="margin:8px 0;font-size:13px">'+(API.CHAN[k]||k)+' <b>'+pc+'%</b><div style="height:9px;background:#eef2f6;border-radius:6px;margin-top:3px"><i style="display:block;height:100%;width:'+pc+'%;border-radius:6px;background:'+(cc[k]||'#64748b')+'"></i></div></div>';}).join(''):'<p class="empty">ยังไม่มีข้อมูล</p>';
   // แนวโน้ม 7 วัน
@@ -680,8 +699,8 @@ function receiptPlain(id){
 function renderGuests(){
   const g={}; BK.filter(b=>b.status!=='cancelled').forEach(b=>{ const key=(b.guestTel||b.guestEmail||b.guestName||'').trim()||b._id; if(!g[key])g[key]={name:b.guestName,tel:b.guestTel,email:b.guestEmail,stays:0,spent:0,last:''}; const e=g[key]; e.stays++; e.spent+=Number(b.amount||0); if((b.checkin||'')>e.last)e.last=b.checkin; if(!e.name&&b.guestName)e.name=b.guestName; if(!e.tel&&b.guestTel)e.tel=b.guestTel; if(!e.email&&b.guestEmail)e.email=b.guestEmail; });
   const list=Object.values(g).sort((a,b)=>b.spent-a.spent);
-  document.getElementById('crm-metrics').innerHTML=m("👥 แขกทั้งหมด",list.length)+m("🔁 ลูกค้าประจำ",list.filter(x=>x.stays>1).length)+m("💰 รายได้รวม",money(list.reduce((s,x)=>s+x.spent,0)));
-  document.getElementById('crmtable').innerHTML='<tr><th>ชื่อ</th><th>เบอร์</th><th>อีเมล</th><th>จำนวนครั้ง</th><th>ใช้จ่ายรวม</th><th>ล่าสุด</th></tr>'+(list.length?list.map(x=>'<tr><td><b>'+esc(x.name||'-')+'</b>'+(x.stays>1?' <span class="pill on" style="font-size:10px">ประจำ</span>':'')+'</td><td>'+esc(x.tel||'-')+'</td><td>'+esc(x.email||'-')+'</td><td>'+x.stays+'</td><td>'+money(x.spent)+'</td><td>'+(x.last?thDate(x.last):'-')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">ยังไม่มีแขก</td></tr>');
+  document.getElementById('crm-metrics').innerHTML=m("👥 แขกทั้งหมด",list.length)+m("🔁 ลูกค้าประจำ",list.filter(x=>x.stays>1).length)+m("💰 รายได้รวม",money(moneyLocked()?null:list.reduce((s,x)=>s+x.spent,0)));
+  document.getElementById('crmtable').innerHTML='<tr><th>ชื่อ</th><th>เบอร์</th><th>อีเมล</th><th>จำนวนครั้ง</th><th>ใช้จ่ายรวม</th><th>ล่าสุด</th></tr>'+(list.length?list.map(x=>'<tr><td><b>'+esc(x.name||'-')+'</b>'+(x.stays>1?' <span class="pill on" style="font-size:10px">ประจำ</span>':'')+'</td><td>'+esc(x.tel||'-')+'</td><td>'+esc(x.email||'-')+'</td><td>'+x.stays+'</td><td>'+money(moneyLocked()?null:x.spent)+'</td><td>'+(x.last?thDate(x.last):'-')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">ยังไม่มีแขก</td></tr>');
 }
 // ---- booking modal ----
 function fillChannelSelect(){
@@ -714,7 +733,7 @@ async function saveBk(){
   // แก้แค่ชื่อ/เบอร์ → คงยอดเดิม (ไม่ทำให้ค่าอาหารเช้า/บริการเสริม/ส่วนลดหาย)
   const same=old&&String(old.roomType)===String(rtId)&&old.checkin===din&&old.checkout===dout&&Number(old.extraBed||0)===eb;
   const extras=old?Number(old.addonTotal||0)+Number(old.breakfastTotal||0)-Number(old.discount||0):0;
-  const amount=same?Number(old.amount||0):Math.max(0,(Number(t.basePrice)+eb*Number(t.extraBedPrice||0))*nts+extras);
+  const amount=old&&old.amount==null?undefined:same?Number(old.amount||0):Math.max(0,(Number(t.basePrice)+eb*Number(t.extraBedPrice||0))*nts+extras);
   const row={roomType:rtId,guestName:document.getElementById('bk-guest').value.trim()||'(ไม่ระบุชื่อ)',guestTel:document.getElementById('bk-tel').value.trim(),guestEmail:document.getElementById('bk-email').value.trim(),channel:document.getElementById('bk-ch').value,notifyChannel:document.getElementById('bk-notify').value,checkin:din,checkout:dout,pax:+document.getElementById('bk-pax').value||1,extraBed:eb,amount,status:'confirmed'};
   try{ if(editId)await API.patch('/bookings/'+editId,row); else await API.post('/hotels/'+HID+'/bookings',row); closeBk();API.toast('บันทึกแล้ว','ok');load(); }catch(e){API.toast(e.message,'err');}
 }

@@ -146,6 +146,29 @@ r = await call("POST", `bookings/${BID}/stay`, owner, { action: "undo" }, "5555"
 t("brute force: locked even with right pin", r.status === 429, r);
 pinReset(HID);
 
+// ยอดเงิน: ตั้งทีมแล้ว → ซ่อนยอดที่จ่ายแล้ว เห็นเฉพาะยอดค้างจ่าย · รหัสผู้จัดการ/สิทธิ์รายงาน = เห็นหมด
+const fon2 = await call("PATCH", `team/${fon}`, owner, { active: true }, "5555");
+t("money: re-enable Fon", fon2.status === 200, fon2);
+const LIST = [
+  { _id: "a1", hotel: HID, status: "confirmed", payStatus: "paid", amount: 2500, discount: 100, addonTotal: 300, addons: [{ name: "นวด", price: 300, qty: 1 }] },
+  { _id: "a2", hotel: HID, status: "confirmed", payStatus: "unpaid", amount: 1800, addonTotal: 200 },
+  { _id: "a3", hotel: HID, status: "cancelled", payStatus: "", amount: 900 },
+];
+Booking.find = () => ({ sort: async () => LIST.map((x) => ({ ...x })) });
+r = await call("GET", `hotels/${HID}/bookings`, owner);
+t("money: paid hidden", r.status === 200 && r.json[0].amount === null && r.json[0].discount === null && r.json[0].addons[0].price === null && r.json[0].moneyHidden === true, r.json && r.json[0]);
+t("money: unpaid visible (to collect)", r.json[1].amount === 1800 && r.json[1].addonTotal === 200 && !r.json[1].moneyHidden, r.json && r.json[1]);
+t("money: cancelled hidden", r.json[2].amount === null, r.json && r.json[2]);
+r = await call("GET", `hotels/${HID}/bookings`, owner, null, "1111");
+t("money: desk staff cannot unlock", r.status === 403 && r.json.needPin, r);
+r = await call("GET", `hotels/${HID}/bookings`, owner, null, "5555");
+t("money: manager sees all", r.status === 200 && r.json[0].amount === 2500 && r.json[2].amount === 900, r.json && r.json[0]);
+r = await call("GET", `hotels/${HID}/bookings`, admin);
+t("money: admin sees all", r.status === 200 && r.json[0].amount === 2500, r);
+r = await call("GET", `hotels/${HID}/bookings/export`, owner, null, "1111");
+t("export: needs reports perm", r.status === 403, r);
+pinReset(HID);
+
 srv.close();
 console.log(`team: ${ok} passed, ${bad} failed`);
 process.exit(bad ? 1 : 0);

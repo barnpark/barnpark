@@ -7,14 +7,14 @@ window.API = (function () {
   const setToken = (t) => localStorage.setItem(KEY, t);
   const clear = () => localStorage.removeItem(KEY);
 
-  async function req(method, path, body, pin) {
+  async function req(method, path, body, pin, once) {
     const h = { "content-type": "application/json" };
     const t = token(); if (t) h.authorization = "Bearer " + t;
     if (pin) h["x-staff-pin"] = pin;
     const r = await fetch("/api" + path, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
     if (r.status === 401) { clear(); if (!location.pathname.endsWith("login.html")) location.href = "login.html"; }
     const data = await r.json().catch(() => ({}));
-    if (!r.ok && data.needPin) return req(method, path, body, await needPin(data.error, !!pin));
+    if (!r.ok && data.needPin && !once) return req(method, path, body, await needPin(data.error, !!pin));
     if (!r.ok) throw new Error(data.error || ("HTTP " + r.status));
     return data;
   }
@@ -211,7 +211,7 @@ window.API = (function () {
     register: (body) => req("POST", "/auth/register", body),
     verifyOtp: (email, otp) => req("POST", "/auth/verify-otp", { email, otp }),
     me: () => req("GET", "/auth/me"),
-    raw, askPin,
+    raw, askPin, getPin: (p, pin) => req("GET", p, null, pin, true), // GET พร้อมรหัสที่ถามไว้แล้ว (ผิด = error ไม่ถามซ้ำ)
     get: (p) => req("GET", p), post: (p, b) => req("POST", p, b), patch: (p, b) => req("PATCH", p, b), del: (p) => req("DELETE", p),
     pubHotel: (slug) => pub("/hotel/" + encodeURIComponent(slug)),
     pubServices: (slug) => pub("/services/" + encodeURIComponent(slug)),

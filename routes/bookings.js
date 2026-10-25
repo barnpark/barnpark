@@ -9,7 +9,7 @@ import { notifyBooking, notifyCancel, notifyGuestPaid } from "../lib/notify.js";
 import { methodTh } from "../lib/pay.js";
 import { usedPeak } from "../lib/availability.js";
 import { stayAction, STAY_TH, normRoomNo } from "../lib/frontdesk.js";
-import { actor, logAction } from "../lib/team.js";
+import { actor, logAction, moneyView, maskMoney, seesMoney } from "../lib/team.js";
 
 const r = Router();
 
@@ -20,7 +20,9 @@ r.get("/hotels/:hid/bookings", requireAuth, async (req, res) => {
   const since = req.query.since; // "YYYY-MM-DD" optional
   const q = { hotel: req.params.hid };
   if (since) q.checkout = { $gte: since };
-  res.json(await Booking.find(q).sort("checkin"));
+  const full = await moneyView(req, res, req.params.hid); if (full === null) return;
+  const list = await Booking.find(q).sort("checkin");
+  res.json(full ? list : list.map(maskMoney));
 });
 
 // ฟิลด์การจองที่หลังบ้านแก้ได้ (whitelist + ตรวจค่า) — ย้ายไปโรงแรมอื่น/แก้เลขจอง/ยอดบริการเสริม ฯลฯ ไม่ได้
@@ -64,7 +66,7 @@ r.post("/hotels/:hid/bookings", requireAuth, async (req, res) => {
   const created = await Booking.create({ ...set, amount: amount || 0, hotel: req.params.hid, ref: mkRef(), createdBy: who.name });
   await logAction(req.params.hid, who, "booking.create", created.ref, `${created.guestName || ""} ${created.checkin} → ${created.checkout}`);
   notifyBooking(created._id).catch((e) => console.error("notify", e));
-  res.json(created);
+  res.json(seesMoney(who) ? created : maskMoney(created));
 });
 
 r.patch("/bookings/:id", requireAuth, async (req, res) => {
@@ -86,7 +88,7 @@ r.patch("/bookings/:id", requireAuth, async (req, res) => {
   if (paidNow) await logAction(bk.hotel, who, "booking.paid", bk.ref, `${bk.guestName || ""} ฿${bk.amount || 0}`);
   if (changed.some((k) => k !== "payStatus")) await logAction(bk.hotel, who, "booking.edit", bk.ref, changed.join(", "));
   if (set.payStatus === "paid" && bk.payStatus !== "paid") notifyGuestPaid(bk._id).catch((e) => console.error("notifyGuestPaid", e.message));
-  res.json(out);
+  res.json(seesMoney(who) ? out : maskMoney(out));
 });
 
 // ===== หน้าเคาน์เตอร์: ให้เลขห้อง · เช็คอิน · เช็คเอาท์ · ไม่มา · ย้อนกลับ (lib/frontdesk.js) =====
@@ -114,7 +116,7 @@ r.post("/bookings/:id/stay", requireAuth, async (req, res) => {
   const saved = await Booking.findByIdAndUpdate(bk._id, upd, { new: true });
   await logAction(bk.hotel, who, "stay." + action, bk.ref, [bk.guestName, out.set.roomNo || bk.roomNo ? "ห้อง " + (out.set.roomNo || bk.roomNo) : ""].filter(Boolean).join(" · "));
   if (out.dirty && rt) await RoomType.updateOne({ _id: rt._id, "units.no": out.dirty }, { $set: { "units.$.hk": "dirty" } });
-  res.json(saved);
+  res.json(seesMoney(who) ? saved : maskMoney(saved));
 });
 
 // ===== ที่พักยกเลิกการจอง (เก็บประวัติไว้ ไม่ลบ) — ยกเลิกทุกห้องในเลขจองเดียวกัน + แจ้งแขกทางอีเมล =====
@@ -175,7 +177,7 @@ r.get("/hotels/:hid/bookings/export", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.hid)) return res.status(403).json({ error: "forbidden" });
   const from = YMD.test(String(req.query.from || "")) ? req.query.from : "2000-01-01";
   const to = YMD.test(String(req.query.to || "")) ? req.query.to : "2999-12-31";
-  const who = await actor(req, res, req.params.hid, ["bookings", "reports"]); if (!who) return; // ข้อมูลแขกทั้งหมด → ต้องใส่รหัส
+  const who = await actor(req, res, req.params.hid, "reports"); if (!who) return; // ข้อมูลแขก + ยอดเงินทั้งหมด → สิทธิ์รายงาน
   await logAction(req.params.hid, who, "booking.export", "", `${from} → ${to}`);
   const list = await Booking.find({ hotel: req.params.hid, checkin: { $gte: from, $lte: to } }).sort("checkin").lean();
   const rts = await RoomType.find({ hotel: req.params.hid }).select("name").lean();

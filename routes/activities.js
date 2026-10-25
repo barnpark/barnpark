@@ -3,7 +3,7 @@ import ActivityBooking from "../models/ActivityBooking.js";
 import Service from "../models/Service.js";
 import Hotel from "../models/Hotel.js";
 import { requireAuth, canAccessHotel } from "../lib/auth.js";
-import { actor, logAction } from "../lib/team.js";
+import { actor, logAction, moneyView, maskMoney, seesMoney } from "../lib/team.js";
 import { createActivityBooking } from "../lib/activity.js";
 import { notifyGuestPaid } from "../lib/notify.js";
 import { receiptUrl } from "../lib/receipt.js";
@@ -15,7 +15,9 @@ r.get("/hotels/:hid/activity-bookings", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.hid)) return res.status(403).json({ error: "forbidden" });
   const q = { hotel: req.params.hid };
   if (req.query.since) q.date = { $gte: String(req.query.since) };
-  res.json(await ActivityBooking.find(q).sort({ date: 1, time: 1 }).limit(500));
+  const full = await moneyView(req, res, req.params.hid); if (full === null) return;
+  const list = await ActivityBooking.find(q).sort({ date: 1, time: 1 }).limit(500);
+  res.json(full ? list : list.map(maskMoney));
 });
 // เจ้าของบันทึกการจองกิจกรรมเอง (walk-in/โทร)
 r.post("/hotels/:hid/activity-bookings", requireAuth, async (req, res) => {
@@ -40,7 +42,7 @@ r.patch("/activity-bookings/:id", requireAuth, async (req, res) => {
   const out = await ActivityBooking.findByIdAndUpdate(b._id, { $set: set }, { new: true });
   await logAction(b.hotel, who, set.payStatus === "paid" && b.payStatus !== "paid" ? "booking.paid" : "activity.edit", b.ref, Object.keys(set).join(", "));
   if (set.payStatus === "paid" && b.payStatus !== "paid") notifyGuestPaid(b._id, "act").catch((e) => console.error("notifyGuestPaid", e.message));
-  res.json(out);
+  res.json(seesMoney(who) ? out : maskMoney(out));
 });
 // ลิงก์ใบเสร็จของการจองกิจกรรม (เว็บหลังบ้าน → ปุ่ม 🧾 ใบเสร็จ)
 r.get("/activity-bookings/:id/receipt-link", requireAuth, async (req, res) => {
