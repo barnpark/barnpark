@@ -28,8 +28,8 @@ import PromoCode from "../models/PromoCode.js";
 import Review from "../models/Review.js";
 import LinkCode from "../models/LinkCode.js";
 import { CALC_KEY, cleanCalc } from "../lib/calc.js";
-import { storageReport, migrateImages } from "../lib/storage.js";
-import { storeReady, storeInfo, putImage, storeImageFields, removeByUrl, removePrefix } from "../lib/filestore.js";
+import { storageReport, migrateImages, hotelUsage, quotaError, DEFAULT_QUOTA_MB } from "../lib/storage.js";
+import { storeReady, storeInfo, putImage, storeImageFields, removeByUrl, removePrefix, dataBytes } from "../lib/filestore.js";
 import { exportData, runBackup, listBackups, backupLink } from "../lib/backup.js";
 
 const r = Router();
@@ -170,6 +170,7 @@ r.patch("/hotels/:id", requireAuth, async (req, res) => {
   if (safe.about !== undefined) safe.about = String(safe.about || "").slice(0, 1000);
   if (safe.tagline !== undefined) safe.tagline = String(safe.tagline || "").slice(0, 120);
   if (safe.amenities !== undefined) safe.amenities = (Array.isArray(safe.amenities) ? safe.amenities : []).map((a) => String(a || "").trim().slice(0, 30)).filter(Boolean).slice(0, 20);
+  const qErr = await quotaError(req.params.id, dataBytes(safe, HOTEL_IMG)); if (qErr) return res.status(413).json({ error: qErr });
   try { await storeImageFields(safe, HOTEL_IMG, `h/${req.params.id}/img`); }
   catch (e) { return res.status(502).json({ error: "อัปโหลดรูปไม่สำเร็จ: " + (e.message || e) }); }
   if (safe.holdHours !== undefined) safe.holdHours = Math.max(0, Math.min(720, parseInt(safe.holdHours, 10) || 0));
@@ -186,6 +187,7 @@ r.post("/hotels/:id/cover", requireAuth, async (req, res) => {
   const p = parseDataUrl((req.body || {}).image);
   if (!p || !/^image\/(jpe?g|png|webp)$/i.test(p.type)) return res.status(400).json({ error: "ไฟล์ต้องเป็นรูป JPG / PNG / WEBP" });
   if (p.buf.length > 8 * 1024 * 1024) return res.status(413).json({ error: "รูปใหญ่เกินไป (ไม่เกิน 8MB)" });
+  const qErr = await quotaError(req.params.id, Math.min(p.buf.length, 400 * 1024)); if (qErr) return res.status(413).json({ error: qErr }); // รูปปกถูกย่อเหลือราว ≤ 400 KB
   let dataUrl;
   try { dataUrl = await toDataUrl(p.buf, { max: 1600, quality: 82 }); }
   catch { return res.status(400).json({ error: "อ่านไฟล์รูปไม่ได้ ลองไฟล์อื่น" }); }
@@ -216,6 +218,7 @@ r.post("/hotels/:id/logo", requireAuth, async (req, res) => {
   const p = parseDataUrl((req.body || {}).image);
   if (!p || !/^image\/(jpe?g|png|webp)$/i.test(p.type)) return res.status(400).json({ error: "ไฟล์ต้องเป็นรูป PNG / JPG / WEBP" });
   if (p.buf.length > 5 * 1024 * 1024) return res.status(413).json({ error: "ไฟล์โลโก้ใหญ่เกินไป (ไม่เกิน 5MB)" });
+  const qErr = await quotaError(req.params.id, Math.min(p.buf.length, 200 * 1024)); if (qErr) return res.status(413).json({ error: qErr }); // โลโก้ถูกย่อเหลือราว ≤ 200 KB
   let lg;
   try { lg = await toLogoDataUrl(p.buf); }
   catch { return res.status(400).json({ error: "อ่านไฟล์รูปไม่ได้ ลองไฟล์อื่น" }); }
@@ -265,6 +268,21 @@ r.get("/admin/storage", requireAuth, requireAdmin, async (_req, res) => {
   catch (e) { res.status(500).json({ error: "นับพื้นที่ไม่สำเร็จ: " + (e.message || e) }); }
 });
 // ย้ายรูป data URL ในฐานข้อมูลไป Supabase — body: { dryRun, limit, after } (หน้าแอดมินเรียกซ้ำทีละชุดจนครบ)
+// โควตาพื้นที่รายที่พัก (MB) — ว่าง/0 = ค่าเริ่มต้น
+r.patch("/admin/hotels/:id/quota", requireAuth, requireAdmin, async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: "not found" });
+  const v = req.body?.mb, mb = v === "" || v == null ? 0 : Math.round(Number(v) * 10) / 10;
+  if (!Number.isFinite(mb) || mb < 0 || mb > 10240) return res.status(400).json({ error: "โควตาต้องเป็น 0–10240 MB (0 = ค่าเริ่มต้น)" });
+  const h = await Hotel.findByIdAndUpdate(req.params.id, mb ? { $set: { storageQuotaMB: mb } } : { $unset: { storageQuotaMB: 1 } }, { new: true }).select("name storageQuotaMB").lean();
+  if (!h) return res.status(404).json({ error: "not found" });
+  res.json({ ok: true, quotaMB: h.storageQuotaMB || DEFAULT_QUOTA_MB(), custom: !!h.storageQuotaMB });
+});
+// พื้นที่ที่ที่พักใช้ (เว็บหลังบ้าน → ตั้งค่า)
+r.get("/hotels/:id/storage", requireAuth, async (req, res) => {
+  if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: "not found" });
+  try { res.json(await hotelUsage(req.params.id)); } catch (e) { res.status(500).json({ error: "นับพื้นที่ไม่สำเร็จ" }); }
+});
 r.post("/admin/storage/migrate-images", requireAuth, requireAdmin, async (req, res) => {
   const { dryRun = true, limit = 10, after = {} } = req.body || {};
   try { res.json(await migrateImages({ dryRun: dryRun !== false, limit, after: after && typeof after === "object" ? after : {} })); }

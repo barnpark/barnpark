@@ -271,6 +271,7 @@
       <div style="grid-column:1/-1"><label>💬 LINE ของที่พักให้แขกทักแชท — ขึ้นเป็นปุ่ม “แชท LINE” ลอยอยู่ทุกหน้าของเว็บจอง</label><div style="display:flex;gap:8px"><input id="s-line-id" placeholder="@ID ของ LINE OA เช่น @baanbaan หรือวางลิงก์ lin.ee/xxxx" style="flex:1"><a class="btn ghost" id="s-line-test" target="_blank" rel="noopener" style="display:none">ลองกด</a></div><p class="note" style="margin:4px 0 0">หา @ID ได้ในแอป LINE OA → หน้าแรก → ใต้ชื่อบัญชี · ไม่ใส่ = ปุ่มลอยจะเป็นปุ่ม “โทรหาที่พัก” แทน</p></div>
       <div style="grid-column:1/-1"><label>🎉 แถบโปรโมชันบนสุดของหน้าจอง (ไม่บังคับ)</label><input id="s-promo" maxlength="120" placeholder="เช่น จองตรงลด 10% ใส่โค้ด DIRECT10 · ปล่อยว่าง = ไม่แสดง"></div>
     </div><button class="btn" style="margin-top:12px" onclick="saveHotel()">บันทึกข้อมูล</button></div>
+    <div class="panel" id="set-store"><h3>💾 พื้นที่ของที่พัก</h3><div id="my-store" class="sub" style="margin:0">กำลังนับ…</div></div>
     <div class="panel" id="set-pw"><h3>🔐 รหัสผ่านเข้าเว็บหลังบ้าน</h3><p class="sub" style="margin-top:0" id="pw-sub">เปลี่ยนรหัสผ่านที่ใช้เข้าสู่ระบบ</p>
       <div class="formgrid">
         <div id="pw-cur-wrap"><label>รหัสผ่านปัจจุบัน</label><input id="pw-cur" type="password" autocomplete="current-password"></div>
@@ -330,7 +331,7 @@ async function boot(){
   document.getElementById('hotelName').textContent=HOTEL.name; logoPreview();
   API.applyTheme(HOTEL);
   winStart=new Date();
-  fillSettings(); await loadTeam(); fillChannelSelect(); API.mountSupport(); // ทีมก่อน → รู้ว่าต้องซ่อนยอดเงินไหม
+  fillSettings(); loadMyStorage(); await loadTeam(); fillChannelSelect(); API.mountSupport(); // ทีมก่อน → รู้ว่าต้องซ่อนยอดเงินไหม
   if(location.hash==='#feedback'){ go('v-feedback'); loadFeedback(); }
   await load();
 }
@@ -417,6 +418,11 @@ async function editUnitsRT(id){ const t=RT.find(x=>String(x._id)===String(id)); 
   const v=prompt('เลขห้องของ “'+t.name+'” (คั่นด้วย , ) เช่น 101, 102, 103\nตั้งจำนวนห้องไว้ '+(t.qty||0)+' ห้อง',(t.units||[]).map(u=>u.no).join(', ')); if(v===null)return;
   try{ const out=await API.patch('/rooms/'+id,{units:v}); t.units=out.units||[]; renderRooms(); renderDesk();
     API.toast(t.units.length===(t.qty||0)?'บันทึกเลขห้องแล้ว':'บันทึกแล้ว — เลขห้อง '+t.units.length+' ห้อง แต่จำนวนห้องตั้งไว้ '+(t.qty||0),t.units.length===(t.qty||0)?'ok':'err'); }catch(e){API.toast(e.message,'err');} }
+// ---- พื้นที่ของที่พัก (โควตาจากทีม Barn Park — เต็มแล้วอัปรูปใหม่ไม่ได้ แต่ยังรับจองได้) ----
+async function loadMyStorage(){ const el=document.getElementById('my-store'); if(!el)return;
+  try{ const u=await API.get('/hotels/'+HID+'/storage'); const mbs=b=>(b/1048576).toFixed(1)+' MB'; const pc=Math.min(100,u.bytes/u.quotaBytes*100); const col=pc>=100?'#b91c1c':pc>=80?'#d97706':'var(--brand)';
+    el.innerHTML='ใช้ไป <b>'+mbs(u.bytes)+'</b> จาก '+mbs(u.quotaBytes)+' · เหลือ <b style="color:'+col+'">'+mbs(u.leftBytes)+'</b><div style="height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:6px"><div style="height:100%;width:'+pc.toFixed(1)+'%;background:'+col+'"></div></div>'+(u.over?'<p class="note" style="color:#b91c1c;margin:6px 0 0">พื้นที่เต็ม — อัปรูปใหม่ไม่ได้ ลบรูปที่ไม่ใช้ หรือทักทีม Barn Park เพื่อเพิ่มพื้นที่ (การจองยังรับได้ตามปกติ)</p>':'<p class="note" style="margin:6px 0 0">นับข้อมูลที่พัก การจอง และรูปทั้งหมด</p>');
+  }catch(e){ el.textContent='นับพื้นที่ไม่ได้ตอนนี้'; } }
 // ---- ทีมงาน + รหัสพนักงาน (lib/team.js) — เพิ่ม/แก้/ลบ ต้องใช้รหัสผู้จัดการ (API ถามรหัสเอง) ----
 const TM_PRESET={desk:['desk','bookings'],hk:['desk'],acc:['bookings','reports']};
 function permBoxes(on){ return Object.keys(PERMS).map(k=>'<label class="chip'+(on.includes(k)?' on':'')+'"><input type="checkbox" style="display:none" data-perm="'+k+'"'+(on.includes(k)?' checked':'')+' onchange="this.parentNode.classList.toggle(\'on\',this.checked)">'+esc(PERMS[k])+'</label>').join(''); }

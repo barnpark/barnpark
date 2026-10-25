@@ -61,6 +61,7 @@ const schema = new mongoose.Schema({
   holdHours:   { type: Number, default: 24 },         // ปล่อยห้องที่จองค้างไม่จ่ายอัตโนมัติ (ชม.) · 0 = ปิด
   ota:         { type: [otaSchema], default: [] },
   // ===== ความลับต่อโรงแรม — select:false กันหลุดออก API ปกติ =====
+  storageQuotaMB:    Number, // โควตาพื้นที่ของที่พัก (MB) — ว่าง = ค่าเริ่มต้น 20 (env HOTEL_QUOTA_MB) · แอดมินตั้ง (lib/storage.js)
   lineChannelToken:  { type: String, select: false }, // Channel access token ของ LINE OA โรงแรม
   lineChannelSecret: { type: String, select: false }, // Channel secret (ตรวจ signature webhook)
   lineForwardUrl:    { type: String, select: false }, // OA ใช้ร่วมกับระบบอื่น: ข้อความที่ไม่ใช่ของ Barn Park ส่งต่อไป Webhook นี้ (lib/lineforward.js)
