@@ -21,6 +21,8 @@ const schema = new mongoose.Schema({
   // ราคาตามฤดู/ช่วงพิเศษ — ใช้ราคาของช่วงที่ "วันเช็คอิน" ตกอยู่ (ถ้าไม่ตกช่วงไหน ใช้ basePrice)
   seasons:       { type: [{ name: String, from: String, to: String, price: Number, minNights: Number }], default: [] },
   sort:          { type: Number, default: 0 },
+  // เลขห้องจริง (หน้าเคาน์เตอร์) + สถานะทำความสะอาด clean|dirty|inspected|ooo — ไม่ใส่ก็ได้ (ห้องว่างนับจาก qty)
+  units:         { type: [{ _id: false, no: String, hk: { type: String, default: "clean" } }], default: [] },
 }, { timestamps: true });
 
 bumpMapOnChange(schema, []); // แผนที่หน้าแรกอัปเดตทันทีเมื่อห้อง/ราคาเปลี่ยน (lib/mapcache.js)

@@ -8,6 +8,7 @@ import { receiptUrl } from "../lib/receipt.js";
 import { notifyBooking, notifyCancel, notifyGuestPaid } from "../lib/notify.js";
 import { methodTh } from "../lib/pay.js";
 import { usedPeak } from "../lib/availability.js";
+import { stayAction, STAY_TH, normRoomNo } from "../lib/frontdesk.js";
 
 const r = Router();
 
@@ -76,6 +77,30 @@ r.patch("/bookings/:id", requireAuth, async (req, res) => {
   res.json(out);
 });
 
+// ===== หน้าเคาน์เตอร์: ให้เลขห้อง · เช็คอิน · เช็คเอาท์ · ไม่มา · ย้อนกลับ (lib/frontdesk.js) =====
+const todayTH = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+r.post("/bookings/:id/stay", requireAuth, async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: "not found" });
+  const bk = await Booking.findById(req.params.id).lean();
+  if (!bk) return res.status(404).json({ error: "not found" });
+  if (!canAccessHotel(req.user, bk.hotel)) return res.status(403).json({ error: "forbidden" });
+  const action = String(req.body?.action || ""), roomNo = req.body?.roomNo;
+  const rt = bk.roomType ? await RoomType.findById(bk.roomType).select("qty units").lean() : null;
+  const others = roomNo ? await Booking.find({ hotel: bk.hotel, roomNo: normRoomNo(roomNo), _id: { $ne: bk._id }, checkin: { $lt: bk.checkout }, checkout: { $gt: bk.checkin } }).select("guestName checkin checkout roomNo status stay").lean() : [];
+  const out = stayAction(bk, action, { roomNo, today: todayTH(), units: (rt && rt.units) || [], others });
+  if (out.error) return res.status(400).json({ error: out.error });
+  // ย้อน “ไม่มา” = กลับมานับห้อง → ต้องยังมีห้องว่างพอ (อาจขายคืนที่เหลือไปแล้ว)
+  if (action === "undo" && bk.stay === "noshow" && rt) {
+    const from = bk.checkin > todayTH() ? bk.checkin : todayTH();
+    if (from < bk.checkout && (await usedPeak(bk.roomType, from, bk.checkout)) + 1 > (rt.qty || 1)) return res.status(409).json({ error: "ห้องช่วงนั้นถูกจองไปแล้ว ย้อนไม่ได้" });
+  }
+  const upd = { $set: out.set };
+  if (out.unset) upd.$unset = out.unset;
+  const saved = await Booking.findByIdAndUpdate(bk._id, upd, { new: true });
+  if (out.dirty && rt) await RoomType.updateOne({ _id: rt._id, "units.no": out.dirty }, { $set: { "units.$.hk": "dirty" } });
+  res.json(saved);
+});
+
 // ===== ที่พักยกเลิกการจอง (เก็บประวัติไว้ ไม่ลบ) — ยกเลิกทุกห้องในเลขจองเดียวกัน + แจ้งแขกทางอีเมล =====
 const groupFilter = (bk) => {
   const g = /^(BP-[A-Z0-9]{6})(-\d+)?$/.exec(String(bk.ref || ""));
@@ -134,7 +159,7 @@ r.get("/hotels/:hid/bookings/export", requireAuth, async (req, res) => {
   const rts = await RoomType.find({ hotel: req.params.hid }).select("name").lean();
   const rn = {}; rts.forEach((t) => (rn[String(t._id)] = t.name));
   const nights = (a, b) => Math.max(1, Math.round((new Date(b) - new Date(a)) / 864e5));
-  const head = ["เลขจอง", "สถานะ", "ช่องทาง", "ชื่อแขก", "เบอร์โทร", "อีเมล", "ห้อง", "เช็คอิน", "เช็คเอาท์", "คืน", "จำนวนคน", "เตียงเสริม", "อาหารเช้า", "บริการเสริม", "ส่วนลด", "ยอดรวม", "การชำระ", "ช่องทางชำระ", "อ้างอิงโอน", "คำขอพิเศษ", "จองเมื่อ"];
+  const head = ["เลขจอง", "สถานะ", "ช่องทาง", "ชื่อแขก", "เบอร์โทร", "อีเมล", "ห้อง", "เช็คอิน", "เช็คเอาท์", "คืน", "จำนวนคน", "เตียงเสริม", "อาหารเช้า", "บริการเสริม", "ส่วนลด", "ยอดรวม", "การชำระ", "ช่องทางชำระ", "อ้างอิงโอน", "คำขอพิเศษ", "จองเมื่อ", "เลขห้อง", "สถานะเข้าพัก"];
   const rows = list.map((b) => [
     b.ref, b.status === "cancelled" ? "ยกเลิก" + (CX_TH[b.cancelReason] ? ` (${CX_TH[b.cancelReason]})` : "") : "ยืนยัน", CH_TH[b.channel] || b.channel || "",
     b.guestName, b.guestTel, b.guestEmail, rn[String(b.roomType)] || "", b.checkin, b.checkout, nights(b.checkin, b.checkout), b.pax || "", b.extraBed || "",
@@ -142,6 +167,7 @@ r.get("/hotels/:hid/bookings/export", requireAuth, async (req, res) => {
     (b.addons || []).map((a) => `${a.name} x${a.qty}${a.date ? " " + a.date : ""}`).join(" / "), b.discount || "", b.amount || 0,
     PAY_TH[b.payStatus || ""] ?? b.payStatus, methodTh(b.payMethod), b.payRef || "", b.note || "",
     b.createdAt ? new Date(new Date(b.createdAt).getTime() + 7 * 3600e3).toISOString().slice(0, 16).replace("T", " ") : "",
+    b.roomNo || "", b.status === "cancelled" ? "" : STAY_TH[b.stay || ""] || "",
   ]);
   const csv = "\uFEFF" + [head, ...rows].map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";
   res.set("Content-Type", "text/csv; charset=utf-8").set("Content-Disposition", `attachment; filename="bookings-${from}-to-${to}.csv"`).send(csv);

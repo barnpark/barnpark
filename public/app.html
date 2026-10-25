@@ -23,6 +23,12 @@
   .pc:has(input:checked){border-color:var(--brand);background:color-mix(in srgb,var(--brand) 5%,#fff)}
   .pcbody{padding:0 4px 4px 34px}
   tr.cx td{opacity:.5} tr.cx td:last-child{opacity:1}
+  .hkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .hk{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
+  .hk b{font-size:17px} .hk .who{font-size:12.5px;color:var(--muted);min-height:17px;margin:2px 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hk select{width:100%;font-size:12.5px;padding:4px 6px}
+  .hk.clean{border-color:#86efac} .hk.inspected{border-color:#16a34a;background:#f0fdf4} .hk.dirty{border-color:#fbbf24;background:#fffbeb} .hk.ooo{border-color:#cbd5e1;background:#f1f5f9}
+  .hk.occ{box-shadow:inset 4px 0 0 var(--brand)}
 </style>
 </head>
 <body>
@@ -32,6 +38,7 @@
 </div></div>
 <div class="nav"><div class="in" id="nav">
   <button data-v="v-dash" class="on" onclick="go('v-dash')">📊 แดชบอร์ด</button>
+  <button data-v="v-desk" onclick="go('v-desk');renderDesk()">🛎 หน้าเคาน์เตอร์</button>
   <button data-v="v-cal" onclick="go('v-cal')">📅 ปฏิทิน</button>
   <button data-v="v-book" onclick="go('v-book')">🧾 การจอง</button>
   <button data-v="v-rooms" onclick="go('v-rooms')">🛏️ ห้อง & ราคา</button>
@@ -46,6 +53,12 @@
 <main><div class="wrap">
   <section id="v-dash" class="view on"><h1>แดชบอร์ด</h1><p class="sub" id="dash-date"></p><div class="panel" id="dash-check" style="display:none"></div><div class="metrics" id="dash-metrics"></div>
     <div class="panel"><h3>กำลังจะมาถึง</h3><table id="dash-arr"></table></div></section>
+  <section id="v-desk" class="view"><h1>หน้าเคาน์เตอร์</h1><p class="sub">เช็คอิน · เช็คเอาท์ · ให้เลขห้อง · สถานะทำความสะอาด</p>
+    <div class="panel" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn ghost sm" onclick="deskMove(-1)">‹</button><button class="btn ghost sm" onclick="deskDay=ymd(new Date());renderDesk()">วันนี้</button><button class="btn ghost sm" onclick="deskMove(1)">›</button><b id="desk-date" style="margin-left:6px"></b><button class="btn ghost sm" style="margin-left:auto" onclick="load()">↻ รีเฟรช</button></div>
+    <div class="metrics" id="desk-metrics"></div>
+    <div class="panel"><h3>🚪 มาถึง</h3><div style="overflow-x:auto"><table id="desk-arr"></table></div></div>
+    <div class="panel"><h3>🛏 พักอยู่ / ออกวันนี้</h3><div style="overflow-x:auto"><table id="desk-in"></table></div></div>
+    <div class="panel"><h3>🧹 ห้องพัก</h3><p class="note" style="margin-top:0">เช็คเอาท์แล้วห้องเป็น “รอทำความสะอาด” อัตโนมัติ — แม่บ้านทำเสร็จแล้วเปลี่ยนสถานะได้ที่นี่</p><div id="desk-rooms"></div></div></section>
   <section id="v-cal" class="view"><h1>ปฏิทินห้องพัก</h1><p class="sub">คลิกช่องว่างเพื่อเพิ่ม · คลิกแถบเพื่อแก้ · แถบพาดคร่อมวัน</p>
     <div class="panel"><div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn ghost sm" onclick="moveWeek(-7)">‹</button><button class="btn ghost sm" onclick="jumpToday()">วันนี้</button><button class="btn ghost sm" onclick="moveWeek(7)">›</button><button class="btn sm" style="margin-left:auto" onclick="newBk('',null)">+ เพิ่มการจอง</button></div>
       <div class="calwrap"><div id="calbox"></div></div>
@@ -313,7 +326,7 @@ async function load(){
   SVC=await API.get('/hotels/'+HID+'/services').catch(()=>[]);
   PROMOS=await API.get('/hotels/'+HID+'/promos').catch(()=>[]);
   REVIEWS=await API.get('/hotels/'+HID+'/reviews').catch(()=>[]);
-  fillChannelSelect(); renderCal(); renderDash(); renderBook(); renderRooms(); renderReport(); renderSvc(); renderPromos(); renderGuests(); renderReviewsAdmin(); loadActBk(); loadChecklist();
+  fillChannelSelect(); renderCal(); renderDash(); renderDesk(); renderBook(); renderRooms(); renderReport(); renderSvc(); renderPromos(); renderGuests(); renderReviewsAdmin(); loadActBk(); loadChecklist();
 }
 // ---- เช็กความครบของที่พัก ----
 const FIX_AT={cover:'set-cover',about:'set-about',amen:'set-amen',pp:'set-pay',line:'s-line-id',phone:'s-tel',notify:'s-notify',times:'s-cin',map:'s-map',rules:'s-rules'};
@@ -337,6 +350,57 @@ function renderDash(){
   const up=act.filter(b=>b.checkin>=today).sort((a,b)=>a.checkin<b.checkin?-1:1).slice(0,8);
   document.getElementById('dash-arr').innerHTML='<tr><th>เช็คอิน</th><th>แขก</th><th>ห้อง</th><th>ช่องทาง</th></tr>'+(up.length?up.map(b=>'<tr><td>'+thDate(b.checkin)+'</td><td><b>'+esc(b.guestName)+'</b></td><td>'+rtName(b.roomType)+'</td><td>'+(API.CHAN[b.channel]||b.channel)+'</td></tr>').join(''):'<tr><td colspan="4" class="empty">—</td></tr>');
 }
+// ---- หน้าเคาน์เตอร์ (เลขห้อง · เช็คอิน/เอาท์ · ไม่มา · ทำความสะอาด) ----
+let deskDay=ymd(new Date());
+const HK_TH={clean:'สะอาด',dirty:'รอทำความสะอาด',inspected:'ตรวจแล้ว พร้อมขาย',ooo:'ปิดซ่อม'};
+function deskMove(n){deskDay=ymd(addDays(deskDay+'T00:00:00',n));renderDesk();}
+function unitsOf(id){const t=RT.find(x=>String(x._id)===String(id));return (t&&t.units)||[];}
+// เลขห้องที่ว่างสำหรับการจองนี้ (ไม่ปิดซ่อม และไม่มีแขกอื่นใช้ในคืนที่ทับกัน) — ตรวจซ้ำที่เซิร์ฟเวอร์
+function freeNos(b){const busy=new Set(BK.filter(o=>o._id!==b._id&&o.roomNo&&o.status!=='cancelled'&&o.stay!=='noshow'&&o.stay!=='out'&&o.checkin<b.checkout&&b.checkin<o.checkout).map(o=>o.roomNo));
+  return unitsOf(b.roomType).filter(u=>u.hk!=='ooo'&&(!busy.has(u.no)||u.no===b.roomNo));}
+function roomPick(b){const us=unitsOf(b.roomType);if(!us.length)return '<span class="note">—</span>';
+  return '<select class="rate" style="max-width:110px" id="rn-'+b._id+'" onchange="assignRoom(\''+b._id+'\',this.value)"><option value="">เลือกห้อง</option>'+freeNos(b).map(u=>'<option value="'+esc(u.no)+'"'+(u.no===b.roomNo?' selected':'')+'>'+esc(u.no)+(u.hk==='dirty'?' 🧹':'')+'</option>').join('')+'</select>';}
+function guestCell(b){return '<b>'+esc(b.guestName)+'</b><br><span style="color:var(--muted);font-size:12px">'+[esc(b.guestTel||''),rtName(b.roomType),nights(b.checkin,b.checkout)+' คืน',(b.pax||1)+' ท่าน'].filter(Boolean).join(' · ')+'</span>'+(b.note?'<br><span style="color:var(--muted);font-size:11.5px">📝 '+esc(b.note)+'</span>':'');}
+function renderDesk(){
+  if(!document.getElementById('desk-arr'))return;
+  const d=deskDay, act=BK.filter(b=>b.status!=='cancelled');
+  document.getElementById('desk-date').textContent=thDate(d+'T00:00:00')+(d===ymd(new Date())?' (วันนี้)':'');
+  const arr=act.filter(b=>!b.stay&&b.checkin<=d&&b.checkout>d).sort((a,b)=>a.checkin<b.checkin?-1:1);
+  const noshow=act.filter(b=>b.stay==='noshow'&&b.checkin===d);
+  const inh=act.filter(b=>b.stay==='in').sort((a,b)=>a.checkout<b.checkout?-1:1);
+  const outd=act.filter(b=>b.stay==='out'&&b.checkout===d);
+  const dirty=RT.reduce((n,t)=>n+(t.units||[]).filter(u=>u.hk==='dirty').length,0);
+  document.getElementById('desk-metrics').innerHTML=m('🚪 รอเช็คอิน',arr.length)+m('🛏 พักอยู่',inh.length)+m('🧳 ต้องเช็คเอาท์',inh.filter(b=>b.checkout<=d).length,inh.some(b=>b.checkout<d))+m('🧹 รอทำความสะอาด',dirty,dirty>0);
+  document.getElementById('desk-arr').innerHTML='<tr><th>แขก</th><th>เข้า–ออก</th><th>ชำระ</th><th>ห้อง</th><th></th></tr>'+(arr.length||noshow.length?arr.map(b=>'<tr><td>'+guestCell(b)+'</td><td>'+thDate(b.checkin)+' – '+thDate(b.checkout)+(b.checkin<d?'<br><span class="pill pend">มาช้ากว่ากำหนด</span>':'')+'</td><td>'+payBadge(b)+'</td><td>'+roomPick(b)+'</td><td style="white-space:nowrap"><button class="btn sm" onclick="stayDo(\''+b._id+'\',\'in\')">✅ เช็คอิน</button> <button class="btn ghost sm" onclick="stayDo(\''+b._id+'\',\'noshow\')">🚫 ไม่มา</button></td></tr>').join('')
+    +noshow.map(b=>'<tr class="cx"><td>'+guestCell(b)+'</td><td>'+thDate(b.checkin)+' – '+thDate(b.checkout)+'</td><td><span class="pill err">ไม่มา</span></td><td></td><td><button class="btn ghost sm" onclick="stayDo(\''+b._id+'\',\'undo\')">↩ ย้อน</button></td></tr>').join('')
+    :'<tr><td colspan="5" class="empty">ไม่มีแขกรอเช็คอิน</td></tr>');
+  document.getElementById('desk-in').innerHTML='<tr><th>แขก</th><th>ห้อง</th><th>ออก</th><th>ชำระ</th><th></th></tr>'+(inh.length||outd.length?inh.map(b=>{const due=b.checkout<=d;
+      return '<tr><td>'+guestCell(b)+'</td><td>'+(unitsOf(b.roomType).length?roomPick(b):'—')+'</td><td>'+thDate(b.checkout)+(b.checkout<d?'<br><span class="pill err">เลยกำหนดออก</span>':due?'<br><span class="pill pend">ออกวันนี้</span>':'')+'</td><td>'+payBadge(b)+'</td><td style="white-space:nowrap"><button class="btn '+(due?'':'ghost ')+'sm" onclick="stayDo(\''+b._id+'\',\'out\')">🧳 เช็คเอาท์</button> <button class="btn ghost sm" title="ย้อนเช็คอิน" onclick="stayDo(\''+b._id+'\',\'undo\')">↩</button> <button class="btn ghost sm" onclick="receipt(\''+b._id+'\')">🧾</button></td></tr>';}).join('')
+    +outd.map(b=>'<tr class="cx"><td>'+guestCell(b)+'</td><td>'+esc(b.roomNo||'—')+'</td><td>'+thDate(b.checkout)+'</td><td><span class="pill on">ออกแล้ว</span></td><td><button class="btn ghost sm" onclick="stayDo(\''+b._id+'\',\'undo\')">↩ ย้อน</button></td></tr>').join('')
+    :'<tr><td colspan="5" class="empty">ยังไม่มีแขกพักอยู่</td></tr>');
+  const occ={},soon={};inh.forEach(b=>{if(b.roomNo)occ[b.roomNo]=b;});arr.forEach(b=>{if(b.roomNo)soon[b.roomNo]=b;});
+  const withUnits=RT.filter(t=>(t.units||[]).length);
+  document.getElementById('desk-rooms').innerHTML=withUnits.length?withUnits.map(t=>'<h4 style="margin:12px 0 8px">'+esc(t.name)+((t.units.length!==(t.qty||0))?' <span class="pill pend">เลขห้อง '+t.units.length+' ห้อง แต่ตั้งจำนวนไว้ '+(t.qty||0)+'</span>':'')+'</h4><div class="hkgrid">'+t.units.map(u=>{const g=occ[u.no];
+      return '<div class="hk '+esc(u.hk||'clean')+(g?' occ':'')+'"><b>'+esc(u.no)+'</b><div class="who">'+(g?'🛏 '+esc(g.guestName):soon[u.no]?'🔜 '+esc(soon[u.no].guestName):'ว่าง')+'</div><select onchange="setHk(\''+t._id+'\',this.dataset.no,this.value)" data-no="'+esc(u.no)+'">'+Object.keys(HK_TH).map(k=>'<option value="'+k+'"'+(k===(u.hk||'clean')?' selected':'')+'>'+HK_TH[k]+'</option>').join('')+'</select></div>';}).join('')+'</div>').join('')
+    :'<p class="empty">ยังไม่ได้ตั้งเลขห้อง — ไปที่ <a href="#" onclick="go(\'v-rooms\');return false">ห้อง & ราคา</a> แล้วกด 🔢 ที่ห้องแต่ละประเภท</p>';
+}
+function putBk(b){const i=BK.findIndex(x=>x._id===b._id);if(i>=0)BK[i]=b;renderDesk();renderBook();}
+async function assignRoom(id,no){try{putBk(await API.post('/bookings/'+id+'/stay',{action:'assign',roomNo:no}));API.toast(no?'ให้ห้อง '+no+' แล้ว':'ยกเลิกเลขห้องแล้ว','ok');}catch(e){API.toast(e.message,'err');renderDesk();}}
+async function stayDo(id,action){
+  const b=BK.find(x=>x._id===id);if(!b)return;
+  if(action==='noshow'&&!confirm('ทำเครื่องหมาย “ไม่มา” ให้ '+b.guestName+'?\nห้องคืนที่เหลือจะกลับมาว่างให้จองได้'))return;
+  if(action==='out'&&b.payStatus!=='paid'&&!confirm(b.guestName+' ยังไม่ได้ยืนยันชำระเงิน — เช็คเอาท์เลยไหม?'))return;
+  const sel=document.getElementById('rn-'+id);
+  try{const r=await API.post('/bookings/'+id+'/stay',{action,roomNo:action==='in'&&sel?sel.value:''});putBk(r);
+    if(action==='out'&&b.roomNo){const t=RT.find(x=>String(x._id)===String(b.roomType));const u=t&&(t.units||[]).find(x=>x.no===b.roomNo);if(u)u.hk='dirty';renderDesk();}
+    API.toast({in:'เช็คอินแล้ว',out:'เช็คเอาท์แล้ว',noshow:'บันทึกว่าไม่มาแล้ว',undo:'ย้อนแล้ว'}[action],'ok');
+  }catch(e){API.toast(e.message,'err');}
+}
+async function setHk(rid,no,hk){try{await API.post('/rooms/'+rid+'/hk',{no,hk});const t=RT.find(x=>String(x._id)===String(rid));const u=t&&(t.units||[]).find(x=>x.no===no);if(u)u.hk=hk;renderDesk();API.toast('ห้อง '+no+': '+HK_TH[hk],'ok');}catch(e){API.toast(e.message,'err');}}
+async function editUnitsRT(id){ const t=RT.find(x=>String(x._id)===String(id)); if(!t)return;
+  const v=prompt('เลขห้องของ “'+t.name+'” (คั่นด้วย , ) เช่น 101, 102, 103\nตั้งจำนวนห้องไว้ '+(t.qty||0)+' ห้อง',(t.units||[]).map(u=>u.no).join(', ')); if(v===null)return;
+  try{ const out=await API.patch('/rooms/'+id,{units:v}); t.units=out.units||[]; renderRooms(); renderDesk();
+    API.toast(t.units.length===(t.qty||0)?'บันทึกเลขห้องแล้ว':'บันทึกแล้ว — เลขห้อง '+t.units.length+' ห้อง แต่จำนวนห้องตั้งไว้ '+(t.qty||0),t.units.length===(t.qty||0)?'ok':'err'); }catch(e){API.toast(e.message,'err');} }
 // ---- calendar ----
 function winDays(){let a=[];for(let i=0;i<7;i++)a.push(ymd(addDays(winStart,i)));return a;}
 function moveWeek(n){winStart=addDays(winStart,n);renderCal();}
@@ -381,7 +445,7 @@ function renderBook(){
     const cx=b.status==='cancelled';
     const canConfirm=!cx&&(b.payStatus==='reported'||b.payStatus==='unpaid'||b.payStatus==='onsite'||!b.payStatus);
     const extra=(b.breakfast==='included'?'<br><span style="color:var(--green);font-size:11.5px">🍳 รวมอาหารเช้า</span>':b.breakfast==='added'?'<br><span style="color:var(--green);font-size:11.5px">🍳 อาหารเช้า '+(b.breakfastPax||'')+' ท่าน</span>':'')+(b.note&&b.channel==='direct'?'<br><span style="color:var(--muted);font-size:11.5px">📝 '+esc(b.note)+'</span>':'');
-    return '<tr'+(cx?' class="cx"':'')+'><td>'+thDate(b.checkin)+'</td><td>'+nights(b.checkin,b.checkout)+'</td><td><b>'+esc(b.guestName)+'</b><br><span style="color:var(--muted);font-size:12px">'+esc(b.guestTel||'')+'</span>'+extra+'</td><td>'+rtName(b.roomType)+'</td><td>'+(API.CHAN[b.channel]||b.channel)+'</td><td>'+money(b.amount)+'</td><td>'+payBadge(b)+'</td><td style="white-space:nowrap">'+(canConfirm?'<button class="btn sm" onclick="markPaid(\''+b._id+'\')">✔ ยืนยันชำระ</button> ':'')+'<button class="btn ghost sm" onclick="editBk(\''+b._id+'\')">แก้</button> <button class="btn ghost sm" onclick="receipt(\''+b._id+'\')">🧾</button></td></tr>';
+    return '<tr'+(cx?' class="cx"':'')+'><td>'+thDate(b.checkin)+'</td><td>'+nights(b.checkin,b.checkout)+'</td><td><b>'+esc(b.guestName)+'</b><br><span style="color:var(--muted);font-size:12px">'+esc(b.guestTel||'')+'</span>'+extra+'</td><td>'+rtName(b.roomType)+(b.roomNo?'<br><span style="color:var(--muted);font-size:12px">ห้อง '+esc(b.roomNo)+'</span>':'')+(b.stay==='in'?'<br><span class="pill on">พักอยู่</span>':b.stay==='out'?'<br><span class="pill off">ออกแล้ว</span>':b.stay==='noshow'?'<br><span class="pill err">ไม่มา</span>':'')+'</td><td>'+(API.CHAN[b.channel]||b.channel)+'</td><td>'+money(b.amount)+'</td><td>'+payBadge(b)+'</td><td style="white-space:nowrap">'+(canConfirm?'<button class="btn sm" onclick="markPaid(\''+b._id+'\')">✔ ยืนยันชำระ</button> ':'')+'<button class="btn ghost sm" onclick="editBk(\''+b._id+'\')">แก้</button> <button class="btn ghost sm" onclick="receipt(\''+b._id+'\')">🧾</button></td></tr>';
   }).join(''):'<tr><td colspan="8" class="empty">ยังไม่มีการจอง</td></tr>')+(nCx&&!showCx?'<tr><td colspan="8" class="note" style="text-align:center">มีการจองที่ยกเลิกแล้ว '+nCx+' รายการ — ติ๊ก “แสดงที่ยกเลิก” เพื่อดู</td></tr>':'');
 }
 async function markPaid(id){ try{ await API.patch('/bookings/'+id,{payStatus:'paid'}); const b=BK.find(x=>String(x._id)===String(id)); if(b)b.payStatus='paid'; renderBook(); API.toast('ยืนยันการชำระแล้ว','ok'); }catch(e){API.toast(e.message,'err');} }
@@ -406,7 +470,7 @@ function renderRooms(){
     '<td><input class="rate" type="number" value="'+(t.otaPrice||0)+'" id="r-ota-'+t._id+'"></td>'+
     '<td><input class="rate" style="max-width:90px" type="number" value="'+(t.extraBedPrice||0)+'" id="r-eb-'+t._id+'"></td>'+
     '<td>'+bfCell(t)+'</td>'+
-    '<td style="white-space:nowrap"><button class="btn sm" onclick="saveRT(\''+t._id+'\')">บันทึก</button> <button class="btn ghost sm" onclick="openSeasons(\''+t._id+'\')">📅 ฤดู'+((t.seasons&&t.seasons.length)?' ('+t.seasons.length+')':'')+'</button> <button class="btn ghost sm" onclick="editDescRT(\''+t._id+'\')" title="คำอธิบายห้อง">📝</button> <button class="btn ghost sm" onclick="editAmenRT(\''+t._id+'\')" title="สิ่งอำนวยความสะดวก">✨</button> <button class="btn ghost sm" onclick="toggleHideRT(\''+t._id+'\')">'+(t.hidden?'▶️ เปิดขาย':'⏸ ปิดขาย')+'</button> <button class="btn danger sm" onclick="delRT(\''+t._id+'\')">ลบ</button></td></tr>').join(''):'<tr><td colspan="8" class="empty">ยังไม่มีห้อง</td></tr>');
+    '<td style="white-space:nowrap"><button class="btn sm" onclick="saveRT(\''+t._id+'\')">บันทึก</button> <button class="btn ghost sm" onclick="openSeasons(\''+t._id+'\')">📅 ฤดู'+((t.seasons&&t.seasons.length)?' ('+t.seasons.length+')':'')+'</button> <button class="btn ghost sm" onclick="editDescRT(\''+t._id+'\')" title="คำอธิบายห้อง">📝</button> <button class="btn ghost sm" onclick="editAmenRT(\''+t._id+'\')" title="สิ่งอำนวยความสะดวก">✨</button> <button class="btn ghost sm" onclick="editUnitsRT(\''+t._id+'\')" title="เลขห้อง (หน้าเคาน์เตอร์)">🔢'+((t.units&&t.units.length)?' '+t.units.length:'')+'</button> <button class="btn ghost sm" onclick="toggleHideRT(\''+t._id+'\')">'+(t.hidden?'▶️ เปิดขาย':'⏸ ปิดขาย')+'</button> <button class="btn danger sm" onclick="delRT(\''+t._id+'\')">ลบ</button></td></tr>').join(''):'<tr><td colspan="8" class="empty">ยังไม่มีห้อง</td></tr>');
 }
 async function addRoomImg(id,input){
   const f=input.files&&input.files[0]; if(!f)return;
