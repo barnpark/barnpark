@@ -148,7 +148,8 @@ r.get("/has-password", requireAuth, async (req, res) => {
 r.get("/me", requireAuth, async (req, res) => {
   const u = await User.findById(req.user.id).populate("hotel");
   if (!u) return res.status(404).json({ error: "not found" });
-  res.json(userOut(u));
+  // ต่ออายุโทเคนทุกครั้งที่เปิดเว็บหลังบ้าน → ไม่หลุดเอง (ไม่ได้เปิดเลยเกิน TOKEN_DAYS วันจึงต้องเข้าใหม่)
+  res.json({ ...userOut(u), token: sign(u) });
 });
 
 export default r;

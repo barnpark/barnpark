@@ -9,6 +9,7 @@ import { notifyBooking, notifyCancel, notifyGuestPaid } from "../lib/notify.js";
 import { methodTh } from "../lib/pay.js";
 import { usedPeak } from "../lib/availability.js";
 import { stayAction, STAY_TH, normRoomNo } from "../lib/frontdesk.js";
+import { actor, logAction } from "../lib/team.js";
 
 const r = Router();
 
@@ -59,7 +60,9 @@ r.post("/hotels/:hid/bookings", requireAuth, async (req, res) => {
     const nights = Math.max(1, Math.round((new Date(set.checkout) - new Date(set.checkin)) / 86400000));
     amount = (t.basePrice + (set.extraBed || 0) * (t.extraBedPrice || 0)) * nights;
   }
-  const created = await Booking.create({ ...set, amount: amount || 0, hotel: req.params.hid, ref: mkRef() });
+  const who = await actor(req, res, req.params.hid, "bookings"); if (!who) return;
+  const created = await Booking.create({ ...set, amount: amount || 0, hotel: req.params.hid, ref: mkRef(), createdBy: who.name });
+  await logAction(req.params.hid, who, "booking.create", created.ref, `${created.guestName || ""} ${created.checkin} → ${created.checkout}`);
   notifyBooking(created._id).catch((e) => console.error("notify", e));
   res.json(created);
 });
@@ -72,7 +75,16 @@ r.patch("/bookings/:id", requireAuth, async (req, res) => {
   if (error) return res.status(400).json({ error });
   delete set._rt;
   if ((set.checkout || bk.checkout) <= (set.checkin || bk.checkin)) return res.status(400).json({ error: "invalid dates" });
+  // แค่ยืนยันรับเงิน (เช่น ตอนเช็คเอาท์) = สิทธิ์การจอง หรือ หน้าเคาน์เตอร์ · แก้อย่างอื่น = สิทธิ์การจอง
+  const payOnly = Object.keys(set).every((k) => ["payStatus", "payMethod", "payRef"].includes(k));
+  const who = await actor(req, res, bk.hotel, payOnly ? ["bookings", "desk"] : "bookings"); if (!who) return;
+  const paidNow = set.payStatus === "paid" && bk.payStatus !== "paid";
+  if (paidNow) set.paidBy = who.name;
   const out = await Booking.findByIdAndUpdate(bk._id, { $set: set }, { new: true });
+  const PAY = ["payStatus", "payMethod", "payRef", "paidBy"];
+  const changed = Object.keys(set).filter((k) => !(paidNow ? PAY : ["paidBy"]).includes(k) && String(set[k]) !== String(bk[k] ?? ""));
+  if (paidNow) await logAction(bk.hotel, who, "booking.paid", bk.ref, `${bk.guestName || ""} ฿${bk.amount || 0}`);
+  if (changed.some((k) => k !== "payStatus")) await logAction(bk.hotel, who, "booking.edit", bk.ref, changed.join(", "));
   if (set.payStatus === "paid" && bk.payStatus !== "paid") notifyGuestPaid(bk._id).catch((e) => console.error("notifyGuestPaid", e.message));
   res.json(out);
 });
@@ -94,9 +106,13 @@ r.post("/bookings/:id/stay", requireAuth, async (req, res) => {
     const from = bk.checkin > todayTH() ? bk.checkin : todayTH();
     if (from < bk.checkout && (await usedPeak(bk.roomType, from, bk.checkout)) + 1 > (rt.qty || 1)) return res.status(409).json({ error: "ห้องช่วงนั้นถูกจองไปแล้ว ย้อนไม่ได้" });
   }
+  const who = await actor(req, res, bk.hotel, "desk"); if (!who) return;
+  if (action === "in") out.set.checkedInBy = who.name;
+  if (action === "out") out.set.checkedOutBy = who.name;
   const upd = { $set: out.set };
   if (out.unset) upd.$unset = out.unset;
   const saved = await Booking.findByIdAndUpdate(bk._id, upd, { new: true });
+  await logAction(bk.hotel, who, "stay." + action, bk.ref, [bk.guestName, out.set.roomNo || bk.roomNo ? "ห้อง " + (out.set.roomNo || bk.roomNo) : ""].filter(Boolean).join(" · "));
   if (out.dirty && rt) await RoomType.updateOne({ _id: rt._id, "units.no": out.dirty }, { $set: { "units.$.hk": "dirty" } });
   res.json(saved);
 });
@@ -124,7 +140,9 @@ r.post("/bookings/:id/cancel", requireAuth, async (req, res) => {
   const { reason = "", notify = true } = req.body || {};
   const list = await Booking.find({ ...groupFilter(bk), status: { $ne: "cancelled" } }).lean();
   if (!list.length) return res.json({ ok: true, cancelled: 0 });
-  await Booking.updateMany({ _id: { $in: list.map((b) => b._id) } }, { $set: { status: "cancelled", cancelReason: "hotel", cancelledAt: new Date() } });
+  const who = await actor(req, res, bk.hotel, "bookings"); if (!who) return;
+  await Booking.updateMany({ _id: { $in: list.map((b) => b._id) } }, { $set: { status: "cancelled", cancelReason: "hotel", cancelledAt: new Date(), cancelledBy: who.name } });
+  await logAction(bk.hotel, who, "booking.cancel", String(bk.ref || "").replace(/-\d+$/, ""), [bk.guestName, String(reason || "").slice(0, 100)].filter(Boolean).join(" · "));
   if (notify !== false) notifyCancel(bk.hotel, list, { by: "hotel", reason: String(reason || "").slice(0, 200) }).catch((e) => console.error("notifyCancel", e.message));
   res.json({ ok: true, cancelled: list.length });
 });
@@ -140,7 +158,9 @@ r.post("/bookings/:id/restore", requireAuth, async (req, res) => {
     const busy = await usedPeak(bk.roomType, bk.checkin, bk.checkout); // คืนที่แน่นที่สุดในช่วง
     if (t && busy + list.length > (t.qty || 1)) return res.status(409).json({ error: "ห้องช่วงวันนั้นถูกจองไปแล้ว กู้คืนไม่ได้ — สร้างการจองใหม่ในวัน/ห้องอื่นแทน" });
   }
-  await Booking.updateMany({ _id: { $in: list.map((b) => b._id) } }, { $set: { status: "confirmed", cancelReason: "" }, $unset: { cancelledAt: 1 } });
+  const who = await actor(req, res, bk.hotel, "bookings"); if (!who) return;
+  await Booking.updateMany({ _id: { $in: list.map((b) => b._id) } }, { $set: { status: "confirmed", cancelReason: "" }, $unset: { cancelledAt: 1, cancelledBy: 1 } });
+  await logAction(bk.hotel, who, "booking.restore", String(bk.ref || "").replace(/-\d+$/, ""), bk.guestName);
   res.json({ ok: true, restored: list.length });
 });
 
@@ -155,6 +175,8 @@ r.get("/hotels/:hid/bookings/export", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.hid)) return res.status(403).json({ error: "forbidden" });
   const from = YMD.test(String(req.query.from || "")) ? req.query.from : "2000-01-01";
   const to = YMD.test(String(req.query.to || "")) ? req.query.to : "2999-12-31";
+  const who = await actor(req, res, req.params.hid, ["bookings", "reports"]); if (!who) return; // ข้อมูลแขกทั้งหมด → ต้องใส่รหัส
+  await logAction(req.params.hid, who, "booking.export", "", `${from} → ${to}`);
   const list = await Booking.find({ hotel: req.params.hid, checkin: { $gte: from, $lte: to } }).sort("checkin").lean();
   const rts = await RoomType.find({ hotel: req.params.hid }).select("name").lean();
   const rn = {}; rts.forEach((t) => (rn[String(t._id)] = t.name));
@@ -177,7 +199,9 @@ r.delete("/bookings/:id", requireAuth, async (req, res) => {
   const bk = await Booking.findById(req.params.id);
   if (!bk) return res.status(404).json({ error: "not found" });
   if (!canAccessHotel(req.user, bk.hotel)) return res.status(403).json({ error: "forbidden" });
+  const who = await actor(req, res, bk.hotel, "bookings"); if (!who) return;
   await bk.deleteOne();
+  await logAction(bk.hotel, who, "booking.delete", bk.ref, `${bk.guestName || ""} ${bk.checkin} → ${bk.checkout}`);
   res.json({ ok: true });
 });
 

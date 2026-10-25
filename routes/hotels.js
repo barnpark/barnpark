@@ -9,6 +9,7 @@ import Service from "../models/Service.js";
 import ActivityBooking from "../models/ActivityBooking.js";
 import Feedback from "../models/Feedback.js";
 import { requireAuth, requireAdmin, canAccessHotel } from "../lib/auth.js";
+import { actor, logAction } from "../lib/team.js";
 import LineChat from "../models/LineChat.js";
 import { issueLinkCode, fmtCode, oaAddUrl, oaPrefillUrl, approveHotel } from "../lib/onboard.js";
 import { detachHotelFromChat } from "../lib/linebot.js";
@@ -37,6 +38,7 @@ const r = Router();
 // ขอรหัสเชื่อม (เจ้าของ/แอดมิน) — พิมพ์รหัสนี้ใน LINE Barn Park เพื่อเปิดเมนูจัดการที่พัก
 r.post("/hotels/:id/line-code", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const who = await actor(req, res, req.params.id, "manager"); if (!who) return; // ตั้งค่าที่พัก = รหัสผู้จัดการ
   const h = await Hotel.findById(req.params.id);
   if (!h) return res.status(404).json({ error: "not found" });
   if (h.approved === false) return res.status(400).json({ error: "ที่พักยังรออนุมัติ — อนุมัติแล้วจึงขอรหัสเชื่อม LINE ได้" });
@@ -44,6 +46,7 @@ r.post("/hotels/:id/line-code", requireAuth, async (req, res) => {
     ? await User.findOne({ hotel: h._id, role: "owner" }).sort("createdAt")
     : await User.findById(req.user.id);
   const code = await issueLinkCode(h._id, owner?._id, 7);
+  await logAction(req.params.id, who, "hotel.line", "", "ขอรหัสเชื่อม LINE Barn Park");
   res.json({ code: fmtCode(code), expiresInDays: 7, addFriendUrl: oaAddUrl(), sendCodeUrl: oaPrefillUrl("เชื่อม " + fmtCode(code)) });
 });
 // LINE ที่เชื่อมกับที่พักนี้อยู่
@@ -55,9 +58,11 @@ r.get("/hotels/:id/line-links", requireAuth, async (req, res) => {
 // ถอดสิทธิ์ LINE นั้นออกจากที่พัก
 r.delete("/hotels/:id/line-links/:cid", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const who = await actor(req, res, req.params.id, "manager"); if (!who) return; // ตั้งค่าที่พัก = รหัสผู้จัดการ
   const c = await LineChat.findOne({ _id: req.params.cid, hotels: req.params.id }).lean();
   if (!c) return res.status(404).json({ error: "not found" });
   await detachHotelFromChat(c._id, req.params.id);
+  await logAction(req.params.id, who, "hotel.line", "", "ถอด LINE ออกจากที่พัก");
   res.json({ ok: true });
 });
 // แอดมินอนุมัติที่พัก → ออกรหัสเชื่อม → ส่งให้ผู้สมัครทาง LINE (ถ้าสมัครผ่าน LINE) + อีเมล
@@ -125,6 +130,7 @@ const HOTEL_STATUS = ["active", "onboarding", "paused"], OTA_CH = ["agoda", "boo
 const COLOR_RE = /^#[0-9a-f]{3,8}$/i;
 r.patch("/hotels/:id", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const who = await actor(req, res, req.params.id, "manager"); if (!who) return; // ตั้งค่าที่พัก = รหัสผู้จัดการ
   const body = req.body || {}, isAdmin = req.user.role === "admin", safe = {};
   for (const k of isAdmin ? HOTEL_ADMIN_FIELDS : HOTEL_OWNER_FIELDS) if (body[k] !== undefined) safe[k] = body[k];
   const str = (k, n) => { if (safe[k] !== undefined) safe[k] = String(safe[k] ?? "").trim().slice(0, n); };
@@ -168,12 +174,15 @@ r.patch("/hotels/:id", requireAuth, async (req, res) => {
   catch (e) { return res.status(502).json({ error: "อัปโหลดรูปไม่สำเร็จ: " + (e.message || e) }); }
   if (safe.holdHours !== undefined) safe.holdHours = Math.max(0, Math.min(720, parseInt(safe.holdHours, 10) || 0));
   if (safe.cancelDays !== undefined) safe.cancelDays = Math.max(0, Math.min(60, parseInt(safe.cancelDays, 10) || 0));
-  res.json(await Hotel.findByIdAndUpdate(req.params.id, safe, { new: true }));
+  const out = await Hotel.findByIdAndUpdate(req.params.id, safe, { new: true });
+  await logAction(req.params.id, who, "hotel.settings", "", Object.keys(safe).join(", "));
+  res.json(out);
 });
 
 // รูปหน้าปก — อัปโหลดจากเว็บหลังบ้าน (ย่อ + แปลงเป็น JPEG ฝั่งเซิร์ฟเวอร์ เก็บแบบเดียวกับที่ส่งผ่าน LINE)
 r.post("/hotels/:id/cover", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const who = await actor(req, res, req.params.id, "manager"); if (!who) return; // ตั้งค่าที่พัก = รหัสผู้จัดการ
   const p = parseDataUrl((req.body || {}).image);
   if (!p || !/^image\/(jpe?g|png|webp)$/i.test(p.type)) return res.status(400).json({ error: "ไฟล์ต้องเป็นรูป JPG / PNG / WEBP" });
   if (p.buf.length > 8 * 1024 * 1024) return res.status(413).json({ error: "รูปใหญ่เกินไป (ไม่เกิน 8MB)" });
@@ -188,18 +197,22 @@ r.post("/hotels/:id/cover", requireAuth, async (req, res) => {
   const h = await Hotel.findByIdAndUpdate(req.params.id, { $set: { coverData: dataUrl, coverUrl } }).select("+coverData");
   if (!h) return res.status(404).json({ error: "not found" });
   if (h.coverData !== dataUrl) await removeByUrl(h.coverData, `h/${req.params.id}`); // ลบรูปปกเดิม
+  await logAction(req.params.id, who, "hotel.settings", "", "เปลี่ยนรูปปก");
   res.json({ ok: true, coverUrl });
 });
 r.delete("/hotels/:id/cover", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const who = await actor(req, res, req.params.id, "manager"); if (!who) return; // ตั้งค่าที่พัก = รหัสผู้จัดการ
   const old = await Hotel.findByIdAndUpdate(req.params.id, { $set: { coverUrl: "" }, $unset: { coverData: 1 } }).select("+coverData");
   if (old) await removeByUrl(old.coverData, `h/${req.params.id}`);
+  await logAction(req.params.id, who, "hotel.settings", "", "ลบรูปปก");
   res.json({ ok: true });
 });
 
 // โลโก้ที่พัก — อัปโหลดจากเว็บหลังบ้าน (ตัดขอบว่าง + ย่อ + เก็บเป็น PNG พื้นใส)
 r.post("/hotels/:id/logo", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const who = await actor(req, res, req.params.id, "manager"); if (!who) return; // ตั้งค่าที่พัก = รหัสผู้จัดการ
   const p = parseDataUrl((req.body || {}).image);
   if (!p || !/^image\/(jpe?g|png|webp)$/i.test(p.type)) return res.status(400).json({ error: "ไฟล์ต้องเป็นรูป PNG / JPG / WEBP" });
   if (p.buf.length > 5 * 1024 * 1024) return res.status(413).json({ error: "ไฟล์โลโก้ใหญ่เกินไป (ไม่เกิน 5MB)" });
@@ -214,12 +227,15 @@ r.post("/hotels/:id/logo", requireAuth, async (req, res) => {
   const h = await Hotel.findByIdAndUpdate(req.params.id, { $set: { logoData: lg.dataUrl, logoUrl, logoAspect: lg.aspect } }).select("+logoData");
   if (!h) return res.status(404).json({ error: "not found" });
   if (h.logoData !== lg.dataUrl) await removeByUrl(h.logoData, `h/${req.params.id}`); // ลบโลโก้เดิม
+  await logAction(req.params.id, who, "hotel.settings", "", "เปลี่ยนโลโก้");
   res.json({ ok: true, logoUrl, logoAspect: lg.aspect });
 });
 r.delete("/hotels/:id/logo", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const who = await actor(req, res, req.params.id, "manager"); if (!who) return; // ตั้งค่าที่พัก = รหัสผู้จัดการ
   const old = await Hotel.findByIdAndUpdate(req.params.id, { $set: { logoUrl: "" }, $unset: { logoData: 1, logoAspect: 1 } }).select("+logoData");
   if (old) await removeByUrl(old.logoData, `h/${req.params.id}`);
+  await logAction(req.params.id, who, "hotel.settings", "", "ลบโลโก้");
   res.json({ ok: true });
 });
 
@@ -376,6 +392,8 @@ async function lineCall(token, method, path, body) {
 }
 r.post("/hotels/:id/line/check", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const who = await actor(req, res, req.params.id, "manager"); if (!who) return; // ตั้งค่าที่พัก = รหัสผู้จัดการ
+  await logAction(req.params.id, who, "hotel.line", "", req.body && (req.body.fix || req.body.takeover) ? "ตั้งค่า LINE OA อัตโนมัติ" : "ทดสอบ LINE OA");
   if (!isOid(req.params.id)) return res.status(404).json({ error: "ไม่พบที่พัก" });
   const h = await Hotel.findById(req.params.id).select("+lineChannelToken +lineChannelSecret +lineForwardUrl slug").lean();
   if (!h) return res.status(404).json({ error: "ไม่พบที่พัก" });
@@ -424,6 +442,7 @@ r.post("/hotels/:id/line/check", requireAuth, async (req, res) => {
 
 r.patch("/hotels/:id/line", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.id)) return res.status(403).json({ error: "forbidden" });
+  const who = await actor(req, res, req.params.id, "manager"); if (!who) return; // ตั้งค่าที่พัก = รหัสผู้จัดการ
   const { lineId, lineChannelToken, lineChannelSecret, lineForwardUrl } = req.body || {};
   const set = {};
   if (lineForwardUrl !== undefined) {
@@ -451,6 +470,7 @@ r.patch("/hotels/:id/line", requireAuth, async (req, res) => {
     }
   }
   await Hotel.findByIdAndUpdate(req.params.id, set);
+  await logAction(req.params.id, who, "hotel.line", "", Object.keys(set).filter((k) => !/Token|Secret/.test(k)).concat(set.lineChannelToken !== undefined ? ["token"] : [], set.lineChannelSecret !== undefined ? ["secret"] : []).join(", "));
   res.json({ ok: true, lineId: set.lineId });
 });
 

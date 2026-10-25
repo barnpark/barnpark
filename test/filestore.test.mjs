@@ -31,6 +31,9 @@ globalThis.fetch = async (url, opt = {}) => {
 };
 
 const express = (await import("express")).default;
+// รหัสพนักงาน (lib/team.js): ที่พักยังไม่ตั้งทีม → ทำรายการได้โดยไม่ต้องใส่รหัส · ไม่บันทึกประวัติจริง
+const TeamStaff = (await import("../models/Staff.js")).default; TeamStaff.countDocuments = async () => 0;
+const TeamLog = (await import("../models/ActionLog.js")).default; TeamLog.create = async () => ({});
 const M = {};
 for (const n of ["Hotel", "RoomType", "Service", "User", "Booking", "ActivityBooking", "Feedback", "PromoCode", "Review"]) M[n] = (await import(`../models/${n}.js`)).default;
 const { sign } = await import("../lib/auth.js");

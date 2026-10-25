@@ -37,6 +37,12 @@ const schema = new mongoose.Schema({
   stay:          { type: String, default: "" },           // "" ยังไม่มา | in พักอยู่ | out เช็คเอาท์แล้ว | noshow ไม่มา (ไม่นับห้องว่าง) — lib/frontdesk.js
   checkedInAt:   Date,
   checkedOutAt:  Date,
+  // ใครทำ (ชื่อจากรหัสพนักงาน — lib/team.js) · ประวัติละเอียดอยู่ใน ActionLog
+  createdBy:     String,
+  paidBy:        String,
+  checkedInBy:   String,
+  checkedOutBy:  String,
+  cancelledBy:   String,
 }, { timestamps: true });
 
 schema.index({ hotel: 1, checkin: 1, checkout: 1 });
