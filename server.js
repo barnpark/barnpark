@@ -25,6 +25,7 @@ import lineRoutes from "./routes/line.js";
 import activityRoutes from "./routes/activities.js";
 import feedbackRoutes from "./routes/feedback.js";
 import devRoutes from "./routes/dev.js";
+import teamRoutes from "./routes/team.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -51,6 +52,9 @@ app.use("/api/dev", rateLimit({ windowMs: 10 * 60 * 1000, max: 60, message: "เ
 app.use("/api/public/book", rateLimit({ windowMs: 10 * 60 * 1000, max: 20, message: "ส่งคำขอจองบ่อยเกินไป กรุณารอสักครู่" }));
 app.use("/api/auth/register", rateLimit({ windowMs: 60 * 60 * 1000, max: 10, message: "สมัครบ่อยเกินไป กรุณารอ 1 ชั่วโมง" }));
 app.use("/api/setup", rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอ 15 นาที" }));
+// ลืมรหัสผู้จัดการ → ตรวจรหัสผ่านเจ้าของ: จำกัดครั้งกันเดารหัสผ่าน
+const recoverLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: "ลองบ่อยเกินไป กรุณารอ 15 นาที" });
+app.use("/api/hotels", (req, res, next) => (/^\/[^/]+\/team\/recover$/.test(req.path) ? recoverLimit(req, res, next) : next()));
 app.use("/api/cron", rateLimit({ windowMs: 10 * 60 * 1000, max: 20, message: "เรียกบ่อยเกินไป" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/public", publicRoutes);
@@ -65,6 +69,7 @@ app.use("/api", promoRoutes);
 app.use("/api", reviewRoutes);
 app.use("/api", activityRoutes);
 app.use("/api", feedbackRoutes);
+app.use("/api", teamRoutes); // ทีมงาน + รหัสพนักงาน + ประวัติการทำงาน (lib/team.js)
 
 // ให้ Google หาเจอ (lib/seo.js)
 app.get("/robots.txt", (req, res) => res.type("text/plain").set("Cache-Control", "public, max-age=3600").send(robotsTxt(siteBase(req))));

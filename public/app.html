@@ -34,7 +34,7 @@
 <body>
 <div class="top"><div class="in">
   <div class="logo"><img id="brandMark" src="media/barnpark-mark.svg" alt="" style="height:26px;max-width:120px;width:auto;display:block;object-fit:contain"><span id="hotelName">BARN-PARK</span></div>
-  <div class="who"><span id="uinfo"></span><button class="btn ghost sm" onclick="API.signOut()">ออกจากระบบ</button></div>
+  <div class="who"><button class="btn ghost sm" id="money-btn" style="display:none" onclick="toggleMoney()"></button><span id="uinfo"></span><button class="btn ghost sm" onclick="API.signOut()">ออกจากระบบ</button></div>
 </div></div>
 <div class="nav"><div class="in" id="nav">
   <button data-v="v-dash" class="on" onclick="go('v-dash')">📊 แดชบอร์ด</button>
@@ -48,6 +48,7 @@
   <button data-v="v-reviews" onclick="go('v-reviews')">⭐ รีวิว</button>
   <button data-v="v-report" onclick="go('v-report')">📈 รายงาน</button>
   <button data-v="v-set" onclick="go('v-set')">⚙️ ตั้งค่า</button>
+  <button data-v="v-log" onclick="go('v-log')">🕘 ประวัติ</button>
   <button data-v="v-feedback" onclick="go('v-feedback');loadFeedback()">💡 ความเห็น</button>
 </div></div>
 <main><div class="wrap">
@@ -113,7 +114,19 @@
       <button class="btn" id="fb-send" onclick="sendFeedback()">ส่งถึงทีม Barn Park</button></div>
     <div class="panel"><h3>ที่เคยส่ง</h3><div id="fb-list"><p class="note">กำลังโหลด…</p></div></div>
   </section>
+  <section id="v-log" class="view"><h1>ประวัติการทำงาน</h1><p class="sub">ใครทำอะไร เมื่อไร — ดูได้ด้วยรหัสผู้จัดการ (เก็บย้อนหลังประมาณ 1 ปี)</p>
+    <div class="panel"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input id="log-ref" placeholder="ค้นเลขจอง เช่น BP-ABC123" style="max-width:220px"><select id="log-name" style="max-width:180px"><option value="">ทุกคน</option></select><button class="btn" onclick="loadLog()">🔐 ดูประวัติ</button></div>
+      <div style="overflow-x:auto;margin-top:12px"><table id="log-table"><tr><td class="empty">กด “ดูประวัติ” แล้วใส่รหัสผู้จัดการ</td></tr></table></div><div id="log-more"></div></div></section>
   <section id="v-set" class="view"><h1>ตั้งค่า</h1>
+    <div class="panel" id="set-team"><h3>👥 ทีมงานและรหัสพนักงาน</h3><p class="sub" style="margin-top:0">เครื่องนี้เข้าระบบด้วยบัญชีของที่พักค้างไว้ได้เลย · ทุกคน (รวมผู้จัดการ) มีรหัส 4–6 หลักของตัวเอง ใส่ทุกครั้งที่เช็คอิน เพิ่มการจอง ยืนยันรับเงิน ฯลฯ — ระบบบันทึกว่าใครทำอะไร และทำได้เฉพาะสิทธิ์ของคนนั้น · ตั้งค่าที่พักและจัดการทีม = รหัสผู้จัดการเท่านั้น</p>
+      <div id="team-setup" class="note" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;margin-bottom:10px">ยังไม่ได้ตั้งทีม — ตอนนี้ทุกรายการทำได้โดยไม่ต้องใส่รหัส และบันทึกว่า “เจ้าของ” · เริ่มจากเพิ่ม <b>ผู้จัดการ</b> คนแรก (คุณเอง)</div>
+      <div style="overflow-x:auto"><table id="team-table"></table></div>
+      <h4 style="margin:16px 0 8px">+ เพิ่มคนในทีม</h4>
+      <div class="formgrid"><div><label>ชื่อ (แสดงในประวัติ)</label><input id="tm-name" maxlength="60" placeholder="เช่น น้องฝน"></div><div><label>รหัส 4–6 หลัก (ห้ามซ้ำกับคนอื่น)</label><input id="tm-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+        <div><label>บทบาท</label><select id="tm-role" onchange="tmRole()"><option value="staff">พนักงาน (เลือกสิทธิ์)</option><option value="manager">ผู้จัดการ (ทำได้ทุกอย่าง)</option></select></div></div>
+      <div id="tm-permwrap"><div style="margin:10px 0 4px"><span class="note">แบบสำเร็จรูป:</span> <button class="chip" onclick="tmPreset('tm-new','desk')">🛎 พนักงานต้อนรับ</button><button class="chip" onclick="tmPreset('tm-new','hk')">🧹 แม่บ้าน</button><button class="chip" onclick="tmPreset('tm-new','acc')">📊 บัญชี</button></div><div id="tm-new"></div></div>
+      <button class="btn" style="margin-top:10px" onclick="addMember()">เพิ่มคนในทีม</button>
+      <p class="note" style="margin-top:14px">ลืมรหัสผู้จัดการ? <a href="#" onclick="recoverPin();return false">ตั้งรหัสใหม่ด้วยรหัสผ่านบัญชีของที่พัก</a></p></div>
     <div class="panel"><h3>ลิงก์จองตรงสำหรับแขก</h3><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input id="booklink" readonly style="flex:1;min-width:220px"><button class="btn ghost" onclick="copyLink()">คัดลอก</button><a id="bookopen" class="btn" target="_blank">เปิดดู</a></div></div>
     <div class="panel" id="lbp-panel"><h3>📱 จัดการที่พักผ่าน LINE Barn Park (แนะนำ)</h3>
       <p class="sub" style="margin-top:0">เพิ่มห้อง/กิจกรรม ใส่รูป ตั้งค่าเว็บ ดูการจอง ยืนยันรับเงิน — ทำในแชท LINE ได้ทั้งหมด ไม่ต้องเปิดคอม</p>
@@ -258,6 +271,7 @@
       <div style="grid-column:1/-1"><label>💬 LINE ของที่พักให้แขกทักแชท — ขึ้นเป็นปุ่ม “แชท LINE” ลอยอยู่ทุกหน้าของเว็บจอง</label><div style="display:flex;gap:8px"><input id="s-line-id" placeholder="@ID ของ LINE OA เช่น @baanbaan หรือวางลิงก์ lin.ee/xxxx" style="flex:1"><a class="btn ghost" id="s-line-test" target="_blank" rel="noopener" style="display:none">ลองกด</a></div><p class="note" style="margin:4px 0 0">หา @ID ได้ในแอป LINE OA → หน้าแรก → ใต้ชื่อบัญชี · ไม่ใส่ = ปุ่มลอยจะเป็นปุ่ม “โทรหาที่พัก” แทน</p></div>
       <div style="grid-column:1/-1"><label>🎉 แถบโปรโมชันบนสุดของหน้าจอง (ไม่บังคับ)</label><input id="s-promo" maxlength="120" placeholder="เช่น จองตรงลด 10% ใส่โค้ด DIRECT10 · ปล่อยว่าง = ไม่แสดง"></div>
     </div><button class="btn" style="margin-top:12px" onclick="saveHotel()">บันทึกข้อมูล</button></div>
+    <div class="panel" id="set-store"><h3>💾 พื้นที่ของที่พัก</h3><div id="my-store" class="sub" style="margin:0">กำลังนับ…</div></div>
     <div class="panel" id="set-pw"><h3>🔐 รหัสผ่านเข้าเว็บหลังบ้าน</h3><p class="sub" style="margin-top:0" id="pw-sub">เปลี่ยนรหัสผ่านที่ใช้เข้าสู่ระบบ</p>
       <div class="formgrid">
         <div id="pw-cur-wrap"><label>รหัสผ่านปัจจุบัน</label><input id="pw-cur" type="password" autocomplete="current-password"></div>
@@ -298,8 +312,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="api.js"></script>
 <script>
-let HOTEL=null, HID=null, RT=[], BK=[], SVC=[], PROMOS=[], REVIEWS=[], winStart=new Date(), editId=null, lastRows=[];
-const esc=API.esc, money=API.money, thDate=API.thDate, nights=API.nights, ymd=API.ymd, addDays=API.addDays;
+let PERMS={}, TEAM=[], HOTEL=null, HID=null, RT=[], BK=[], SVC=[], PROMOS=[], REVIEWS=[], winStart=new Date(), editId=null, lastRows=[];
+// ยอดที่ซ่อน (null) → 🔒 · พนักงานเห็นเฉพาะยอดที่แขกยังต้องจ่าย (lib/team.js moneyView)
+const money=(v)=>v==null?'<span title="ยอดเงินซ่อนอยู่ — กด 👁 ดูยอดเงิน">🔒</span>':API.money(v);
+const esc=API.esc, thDate=API.thDate, nights=API.nights, ymd=API.ymd, addDays=API.addDays;
 function go(v){document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));document.querySelectorAll('main .view').forEach(x=>x.classList.toggle('on',x.id===v));window.scrollTo(0,0);}
 function m(k,v,a){return '<div class="m'+(a?' alert':'')+'"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';}
 function rtName(id){const t=RT.find(x=>String(x._id)===String(id));return t?t.name:'—';}
@@ -315,14 +331,14 @@ async function boot(){
   document.getElementById('hotelName').textContent=HOTEL.name; logoPreview();
   API.applyTheme(HOTEL);
   winStart=new Date();
-  fillSettings(); fillChannelSelect(); API.mountSupport();
+  fillSettings(); loadMyStorage(); await loadTeam(); fillChannelSelect(); API.mountSupport(); // ทีมก่อน → รู้ว่าต้องซ่อนยอดเงินไหม
   if(location.hash==='#feedback'){ go('v-feedback'); loadFeedback(); }
   await load();
 }
 async function load(){
   RT=await API.get('/hotels/'+HID+'/rooms');
   const since=ymd(addDays(new Date(),-60));
-  BK=await API.get('/hotels/'+HID+'/bookings?since='+since);
+  BK=await bkGet('/hotels/'+HID+'/bookings?since='+since);
   SVC=await API.get('/hotels/'+HID+'/services').catch(()=>[]);
   PROMOS=await API.get('/hotels/'+HID+'/promos').catch(()=>[]);
   REVIEWS=await API.get('/hotels/'+HID+'/reviews').catch(()=>[]);
@@ -346,7 +362,7 @@ function renderDash(){
   const month=today.slice(0,7);const rev=act.filter(b=>(b.checkin||'').slice(0,7)===month).reduce((s,b)=>s+Number(b.amount||0),0);
   const over=lastRows.flatMap(r=>r.bars).filter(b=>b._over).length;
   document.getElementById('dash-date').textContent='วันนี้ '+thDate(today);
-  document.getElementById('dash-metrics').innerHTML=m("🛏️ เข้าพักวันนี้",(rooms?Math.round(occ/rooms*100):0)+"%")+m("🚪 เช็คอินวันนี้",arr)+m("💰 รายได้เดือนนี้",money(rev))+m("⚠️ จองทับซ้อน",over,over>0);
+  document.getElementById('dash-metrics').innerHTML=m("🛏️ เข้าพักวันนี้",(rooms?Math.round(occ/rooms*100):0)+"%")+m("🚪 เช็คอินวันนี้",arr)+m("💰 รายได้เดือนนี้",money(moneyLocked()?null:rev))+m("⚠️ จองทับซ้อน",over,over>0);
   const up=act.filter(b=>b.checkin>=today).sort((a,b)=>a.checkin<b.checkin?-1:1).slice(0,8);
   document.getElementById('dash-arr').innerHTML='<tr><th>เช็คอิน</th><th>แขก</th><th>ห้อง</th><th>ช่องทาง</th></tr>'+(up.length?up.map(b=>'<tr><td>'+thDate(b.checkin)+'</td><td><b>'+esc(b.guestName)+'</b></td><td>'+rtName(b.roomType)+'</td><td>'+(API.CHAN[b.channel]||b.channel)+'</td></tr>').join(''):'<tr><td colspan="4" class="empty">—</td></tr>');
 }
@@ -358,8 +374,9 @@ function unitsOf(id){const t=RT.find(x=>String(x._id)===String(id));return (t&&t
 // เลขห้องที่ว่างสำหรับการจองนี้ (ไม่ปิดซ่อม และไม่มีแขกอื่นใช้ในคืนที่ทับกัน) — ตรวจซ้ำที่เซิร์ฟเวอร์
 function freeNos(b){const busy=new Set(BK.filter(o=>o._id!==b._id&&o.roomNo&&o.status!=='cancelled'&&o.stay!=='noshow'&&o.stay!=='out'&&o.checkin<b.checkout&&b.checkin<o.checkout).map(o=>o.roomNo));
   return unitsOf(b.roomType).filter(u=>u.hk!=='ooo'&&(!busy.has(u.no)||u.no===b.roomNo));}
-function roomPick(b){const us=unitsOf(b.roomType);if(!us.length)return '<span class="note">—</span>';
-  return '<select class="rate" style="max-width:110px" id="rn-'+b._id+'" onchange="assignRoom(\''+b._id+'\',this.value)"><option value="">เลือกห้อง</option>'+freeNos(b).map(u=>'<option value="'+esc(u.no)+'"'+(u.no===b.roomNo?' selected':'')+'>'+esc(u.no)+(u.hk==='dirty'?' 🧹':'')+'</option>').join('')+'</select>';}
+// แขกรอเช็คอิน: เลือกห้องไว้ แล้วบันทึกพร้อมกดเช็คอิน (ใส่รหัสครั้งเดียว) · แขกพักอยู่: เปลี่ยนห้อง = บันทึกทันที
+function roomPick(b,save){const us=unitsOf(b.roomType);if(!us.length)return '<span class="note">—</span>';
+  return '<select class="rate" style="max-width:110px" id="rn-'+b._id+'"'+(save?' onchange="assignRoom(\''+b._id+'\',this.value)"':'')+'><option value="">เลือกห้อง</option>'+freeNos(b).map(u=>'<option value="'+esc(u.no)+'"'+(u.no===b.roomNo?' selected':'')+'>'+esc(u.no)+(u.hk==='dirty'?' 🧹':'')+'</option>').join('')+'</select>';}
 function guestCell(b){return '<b>'+esc(b.guestName)+'</b><br><span style="color:var(--muted);font-size:12px">'+[esc(b.guestTel||''),rtName(b.roomType),nights(b.checkin,b.checkout)+' คืน',(b.pax||1)+' ท่าน'].filter(Boolean).join(' · ')+'</span>'+(b.note?'<br><span style="color:var(--muted);font-size:11.5px">📝 '+esc(b.note)+'</span>':'');}
 function renderDesk(){
   if(!document.getElementById('desk-arr'))return;
@@ -375,8 +392,8 @@ function renderDesk(){
     +noshow.map(b=>'<tr class="cx"><td>'+guestCell(b)+'</td><td>'+thDate(b.checkin)+' – '+thDate(b.checkout)+'</td><td><span class="pill err">ไม่มา</span></td><td></td><td><button class="btn ghost sm" onclick="stayDo(\''+b._id+'\',\'undo\')">↩ ย้อน</button></td></tr>').join('')
     :'<tr><td colspan="5" class="empty">ไม่มีแขกรอเช็คอิน</td></tr>');
   document.getElementById('desk-in').innerHTML='<tr><th>แขก</th><th>ห้อง</th><th>ออก</th><th>ชำระ</th><th></th></tr>'+(inh.length||outd.length?inh.map(b=>{const due=b.checkout<=d;
-      return '<tr><td>'+guestCell(b)+'</td><td>'+(unitsOf(b.roomType).length?roomPick(b):'—')+'</td><td>'+thDate(b.checkout)+(b.checkout<d?'<br><span class="pill err">เลยกำหนดออก</span>':due?'<br><span class="pill pend">ออกวันนี้</span>':'')+'</td><td>'+payBadge(b)+'</td><td style="white-space:nowrap"><button class="btn '+(due?'':'ghost ')+'sm" onclick="stayDo(\''+b._id+'\',\'out\')">🧳 เช็คเอาท์</button> <button class="btn ghost sm" title="ย้อนเช็คอิน" onclick="stayDo(\''+b._id+'\',\'undo\')">↩</button> <button class="btn ghost sm" onclick="receipt(\''+b._id+'\')">🧾</button></td></tr>';}).join('')
-    +outd.map(b=>'<tr class="cx"><td>'+guestCell(b)+'</td><td>'+esc(b.roomNo||'—')+'</td><td>'+thDate(b.checkout)+'</td><td><span class="pill on">ออกแล้ว</span></td><td><button class="btn ghost sm" onclick="stayDo(\''+b._id+'\',\'undo\')">↩ ย้อน</button></td></tr>').join('')
+      return '<tr><td>'+guestCell(b)+'</td><td>'+(unitsOf(b.roomType).length?roomPick(b,true):'—')+'</td><td>'+thDate(b.checkout)+(b.checkout<d?'<br><span class="pill err">เลยกำหนดออก</span>':due?'<br><span class="pill pend">ออกวันนี้</span>':'')+byLine('เช็คอินโดย',b.checkedInBy)+'</td><td>'+payBadge(b)+'</td><td style="white-space:nowrap"><button class="btn '+(due?'':'ghost ')+'sm" onclick="stayDo(\''+b._id+'\',\'out\')">🧳 เช็คเอาท์</button> <button class="btn ghost sm" title="ย้อนเช็คอิน" onclick="stayDo(\''+b._id+'\',\'undo\')">↩</button> <button class="btn ghost sm" onclick="receipt(\''+b._id+'\')">🧾</button></td></tr>';}).join('')
+    +outd.map(b=>'<tr class="cx"><td>'+guestCell(b)+'</td><td>'+esc(b.roomNo||'—')+'</td><td>'+thDate(b.checkout)+'</td><td><span class="pill on">ออกแล้ว</span>'+byLine('โดย',b.checkedOutBy)+'</td><td><button class="btn ghost sm" onclick="stayDo(\''+b._id+'\',\'undo\')">↩ ย้อน</button></td></tr>').join('')
     :'<tr><td colspan="5" class="empty">ยังไม่มีแขกพักอยู่</td></tr>');
   const occ={},soon={};inh.forEach(b=>{if(b.roomNo)occ[b.roomNo]=b;});arr.forEach(b=>{if(b.roomNo)soon[b.roomNo]=b;});
   const withUnits=RT.filter(t=>(t.units||[]).length);
@@ -401,6 +418,76 @@ async function editUnitsRT(id){ const t=RT.find(x=>String(x._id)===String(id)); 
   const v=prompt('เลขห้องของ “'+t.name+'” (คั่นด้วย , ) เช่น 101, 102, 103\nตั้งจำนวนห้องไว้ '+(t.qty||0)+' ห้อง',(t.units||[]).map(u=>u.no).join(', ')); if(v===null)return;
   try{ const out=await API.patch('/rooms/'+id,{units:v}); t.units=out.units||[]; renderRooms(); renderDesk();
     API.toast(t.units.length===(t.qty||0)?'บันทึกเลขห้องแล้ว':'บันทึกแล้ว — เลขห้อง '+t.units.length+' ห้อง แต่จำนวนห้องตั้งไว้ '+(t.qty||0),t.units.length===(t.qty||0)?'ok':'err'); }catch(e){API.toast(e.message,'err');} }
+// ---- พื้นที่ของที่พัก (โควตาจากทีม Barn Park — เต็มแล้วอัปรูปใหม่ไม่ได้ แต่ยังรับจองได้) ----
+async function loadMyStorage(){ const el=document.getElementById('my-store'); if(!el)return;
+  try{ const u=await API.get('/hotels/'+HID+'/storage'); const mbs=b=>(b/1048576).toFixed(1)+' MB'; const pc=Math.min(100,u.bytes/u.quotaBytes*100); const col=pc>=100?'#b91c1c':pc>=80?'#d97706':'var(--brand)';
+    el.innerHTML='ใช้ไป <b>'+mbs(u.bytes)+'</b> จาก '+mbs(u.quotaBytes)+' · เหลือ <b style="color:'+col+'">'+mbs(u.leftBytes)+'</b><div style="height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:6px"><div style="height:100%;width:'+pc.toFixed(1)+'%;background:'+col+'"></div></div>'+(u.over?'<p class="note" style="color:#b91c1c;margin:6px 0 0">พื้นที่เต็ม — อัปรูปใหม่ไม่ได้ ลบรูปที่ไม่ใช้ หรือทักทีม Barn Park เพื่อเพิ่มพื้นที่ (การจองยังรับได้ตามปกติ)</p>':'<p class="note" style="margin:6px 0 0">นับข้อมูลที่พัก การจอง และรูปทั้งหมด</p>');
+  }catch(e){ el.textContent='นับพื้นที่ไม่ได้ตอนนี้'; } }
+// ---- ทีมงาน + รหัสพนักงาน (lib/team.js) — เพิ่ม/แก้/ลบ ต้องใช้รหัสผู้จัดการ (API ถามรหัสเอง) ----
+const TM_PRESET={desk:['desk','bookings'],hk:['desk'],acc:['bookings','reports']};
+function permBoxes(on){ return Object.keys(PERMS).map(k=>'<label class="chip'+(on.includes(k)?' on':'')+'"><input type="checkbox" style="display:none" data-perm="'+k+'"'+(on.includes(k)?' checked':'')+' onchange="this.parentNode.classList.toggle(\'on\',this.checked)">'+esc(PERMS[k])+'</label>').join(''); }
+function permsIn(id){ return [...document.querySelectorAll('#'+id+' input[data-perm]:checked')].map(x=>x.dataset.perm); }
+function tmPreset(id,k){ document.getElementById(id).innerHTML=permBoxes(TM_PRESET[k]||[]); }
+function tmRole(){ document.getElementById('tm-permwrap').style.display=document.getElementById('tm-role').value==='manager'?'none':''; }
+async function loadTeam(){
+  try{ const p=await API.get('/team/perms'); PERMS=p.perms; ACT_TH=p.actions||{}; const t=await API.get('/hotels/'+HID+'/team'); TEAM=t.team||[]; }catch(e){ return; }
+  if(!document.getElementById('tm-new').innerHTML) tmPreset('tm-new','desk');
+  const none=!TEAM.some(u=>u.active); document.getElementById('team-setup').style.display=none?'block':'none';
+  if(none&&!TEAM.length){ document.getElementById('tm-role').value='manager'; tmRole(); }
+  document.getElementById('log-name').innerHTML='<option value="">ทุกคน</option>'+TEAM.map(u=>'<option>'+esc(u.name)+'</option>').join('');
+  renderTeam(); moneyBtn();
+}
+function renderTeam(){
+  document.getElementById('team-table').innerHTML='<tr><th>ชื่อ</th><th>สิทธิ์</th><th>ใช้ล่าสุด</th><th></th></tr>'+(TEAM.length?TEAM.map(u=>'<tr'+(u.active?'':' class="cx"')+'><td><b>'+esc(u.name)+'</b><br>'+(u.manager?'<span class="pill on">ผู้จัดการ</span>':'<span class="pill off">พนักงาน</span>')+(u.active?'':' <span class="pill err">ปิดรหัส</span>')+'</td>'+
+    '<td id="tp-'+u.id+'" style="min-width:260px">'+(u.manager?'<span class="note">ทำได้ทุกอย่าง + จัดการทีม/ตั้งค่าที่พัก</span>':permBoxes(u.perms))+'</td><td class="note">'+(u.lastUsedAt?new Date(u.lastUsedAt).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}):'—')+'</td>'+
+    '<td style="white-space:nowrap">'+(u.manager?'':'<button class="btn sm" onclick="savePerms(\''+u.id+'\')">บันทึกสิทธิ์</button> ')+'<button class="btn ghost sm" onclick="memberPin(\''+u.id+'\')">🔑 เปลี่ยนรหัส</button> <button class="btn ghost sm" onclick="memberEdit(\''+u.id+'\',{manager:'+(!u.manager)+'})">'+(u.manager?'↓ เป็นพนักงาน':'↑ เป็นผู้จัดการ')+'</button> <button class="btn ghost sm" onclick="memberEdit(\''+u.id+'\',{active:'+(!u.active)+'})">'+(u.active?'⏸ ปิดรหัส':'▶️ เปิดรหัส')+'</button> <button class="btn danger sm" onclick="delMember(\''+u.id+'\')">ลบ</button></td></tr>').join(''):'<tr><td colspan="4" class="empty">ยังไม่มีคนในทีม</td></tr>');
+}
+async function addMember(){
+  const name=document.getElementById('tm-name').value.trim(), pin=document.getElementById('tm-pin').value.trim(), manager=document.getElementById('tm-role').value==='manager';
+  if(!name){ API.toast('กรอกชื่อ','err'); return; } if(!/^\d{4,6}$/.test(pin)){ API.toast('รหัสเป็นตัวเลข 4–6 หลัก','err'); return; }
+  try{ await API.post('/hotels/'+HID+'/team',{name,pin,manager,perms:permsIn('tm-new')}); ['tm-name','tm-pin'].forEach(i=>document.getElementById(i).value=''); document.getElementById('tm-role').value='staff'; tmRole();
+    API.toast('เพิ่ม '+name+' แล้ว — บอกรหัสให้เจ้าตัวจำไว้','ok'); loadTeam(); }catch(e){ API.toast(e.message,'err'); }
+}
+async function memberEdit(id,body){ const u=TEAM.find(x=>x.id===id); if(!u)return;
+  if(body.active===false&&!confirm('ปิดรหัสของ '+u.name+'? ใช้ทำรายการไม่ได้ทันที (เปิดคืนได้)'))return;
+  try{ await API.patch('/team/'+id,body); API.toast('บันทึกแล้ว','ok'); loadTeam(); }catch(e){ API.toast(e.message,'err'); } }
+const savePerms=(id)=>memberEdit(id,{perms:permsIn('tp-'+id)});
+function memberPin(id){ const u=TEAM.find(x=>x.id===id); if(!u)return; const p=prompt('รหัสใหม่ของ '+u.name+' (ตัวเลข 4–6 หลัก)'); if(p===null)return; if(!/^\d{4,6}$/.test(p.trim())){ API.toast('รหัสเป็นตัวเลข 4–6 หลัก','err'); return; } memberEdit(id,{pin:p.trim()}); }
+async function delMember(id){ const u=TEAM.find(x=>x.id===id); if(!u||!confirm('ลบ '+u.name+' ออกจากทีม? (ประวัติที่เคยทำยังอยู่)'))return; try{ await API.del('/team/'+id); loadTeam(); }catch(e){ API.toast(e.message,'err'); } }
+async function recoverPin(){
+  const mgrs=TEAM.filter(u=>u.manager); if(!mgrs.length){ API.toast('ยังไม่มีผู้จัดการในทีม','err'); return; }
+  const who=mgrs.length===1?mgrs[0]:mgrs[(+prompt('ผู้จัดการคนไหน?\n'+mgrs.map((u,i)=>(i+1)+'. '+u.name).join('\n'),'1')||0)-1]; if(!who)return;
+  const password=prompt('รหัสผ่านบัญชีของที่พัก (ที่ใช้เข้าสู่ระบบด้วยอีเมล)'); if(!password)return;
+  const pin=prompt('รหัสใหม่ของ '+who.name+' (ตัวเลข 4–6 หลัก)'); if(!pin)return;
+  try{ await API.post('/hotels/'+HID+'/team/recover',{password,id:who.id,pin:pin.trim()}); API.toast('ตั้งรหัสใหม่ให้ '+who.name+' แล้ว','ok'); loadTeam(); }catch(e){ API.toast(e.message,'err'); }
+}
+// ---- ประวัติการทำงาน ----
+let ACT_TH={}, LOG=[];
+async function loadLog(more){
+  const ref=document.getElementById('log-ref').value.trim(), name=document.getElementById('log-name').value;
+  const q=new URLSearchParams(); if(ref)q.set('ref',ref); if(name)q.set('name',name); if(more&&LOG.length)q.set('before',LOG[LOG.length-1].at);
+  try{ const list=await API.get('/hotels/'+HID+'/actions?'+q); LOG=more?LOG.concat(list):list; }catch(e){ API.toast(e.message,'err'); return; }
+  document.getElementById('log-table').innerHTML='<tr><th>เวลา</th><th>ใคร</th><th>ทำอะไร</th><th>เลขจอง/รายการ</th><th>รายละเอียด</th></tr>'+(LOG.length?LOG.map(a=>'<tr><td style="white-space:nowrap">'+new Date(a.at).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'})+'</td><td><b>'+esc(a.name||'—')+'</b></td><td>'+esc(a.label)+'</td><td>'+esc(a.ref)+'</td><td class="note">'+esc(a.text)+'</td></tr>').join(''):'<tr><td colspan="5" class="empty">ไม่พบรายการ</td></tr>');
+  document.getElementById('log-more').innerHTML=LOG.length&&LOG.length%100===0?'<button class="btn ghost sm" style="margin-top:10px" onclick="loadLog(true)">ดูเก่ากว่านี้</button>':'';
+}
+const byLine=(t,n)=>n?'<br><span style="color:var(--muted);font-size:11px">'+t+' '+esc(n)+'</span>':'';
+// ---- ยอดเงิน: ตั้งทีมแล้ว → ซ่อนยอดที่จ่ายแล้ว/รายได้ จนกว่าผู้จัดการหรือคนที่มีสิทธิ์ “รายงาน” ใส่รหัส (เปิด 5 นาทีแล้วซ่อนเอง) ----
+let MONEY_PIN=null, MONEY_UNTIL=0, MONEY_T=null;
+const teamOn=()=>TEAM.some(u=>u.active);
+function moneyLocked(){ return teamOn()&&!MONEY_PIN; }
+const bkGet=(url)=>MONEY_PIN?API.getPin(url,MONEY_PIN):API.get(url);
+function moneyBtn(){ const b=document.getElementById('money-btn'); if(!b)return; b.style.display=teamOn()?'':'none';
+  b.textContent=MONEY_PIN?'🙈 ซ่อนยอดเงิน ('+Math.max(0,Math.ceil((MONEY_UNTIL-Date.now())/60000))+' นาที)':'👁 ดูยอดเงิน'; }
+async function toggleMoney(){
+  if(MONEY_PIN){ lockMoney(); return; }
+  let err='', pin;
+  for(;;){ pin=await API.askPin(err||'ใส่รหัสผู้จัดการ หรือคนที่มีสิทธิ์ “รายงาน” เพื่อดูยอดเงิน (5 นาที)', !!err); if(!pin)return;
+    try{ BK=await API.getPin('/hotels/'+HID+'/bookings?since='+ymd(addDays(new Date(),-60)),pin); break; }catch(e){ err=e.message; } }
+  MONEY_PIN=pin; MONEY_UNTIL=Date.now()+5*60e3; clearInterval(MONEY_T);
+  MONEY_T=setInterval(()=>{ if(Date.now()>=MONEY_UNTIL) lockMoney(); else moneyBtn(); },30e3);
+  moneyBtn(); load();
+}
+function lockMoney(){ MONEY_PIN=null; clearInterval(MONEY_T); moneyBtn(); load(); }
 // ---- calendar ----
 function winDays(){let a=[];for(let i=0;i<7;i++)a.push(ymd(addDays(winStart,i)));return a;}
 function moveWeek(n){winStart=addDays(winStart,n);renderCal();}
@@ -445,7 +532,7 @@ function renderBook(){
     const cx=b.status==='cancelled';
     const canConfirm=!cx&&(b.payStatus==='reported'||b.payStatus==='unpaid'||b.payStatus==='onsite'||!b.payStatus);
     const extra=(b.breakfast==='included'?'<br><span style="color:var(--green);font-size:11.5px">🍳 รวมอาหารเช้า</span>':b.breakfast==='added'?'<br><span style="color:var(--green);font-size:11.5px">🍳 อาหารเช้า '+(b.breakfastPax||'')+' ท่าน</span>':'')+(b.note&&b.channel==='direct'?'<br><span style="color:var(--muted);font-size:11.5px">📝 '+esc(b.note)+'</span>':'');
-    return '<tr'+(cx?' class="cx"':'')+'><td>'+thDate(b.checkin)+'</td><td>'+nights(b.checkin,b.checkout)+'</td><td><b>'+esc(b.guestName)+'</b><br><span style="color:var(--muted);font-size:12px">'+esc(b.guestTel||'')+'</span>'+extra+'</td><td>'+rtName(b.roomType)+(b.roomNo?'<br><span style="color:var(--muted);font-size:12px">ห้อง '+esc(b.roomNo)+'</span>':'')+(b.stay==='in'?'<br><span class="pill on">พักอยู่</span>':b.stay==='out'?'<br><span class="pill off">ออกแล้ว</span>':b.stay==='noshow'?'<br><span class="pill err">ไม่มา</span>':'')+'</td><td>'+(API.CHAN[b.channel]||b.channel)+'</td><td>'+money(b.amount)+'</td><td>'+payBadge(b)+'</td><td style="white-space:nowrap">'+(canConfirm?'<button class="btn sm" onclick="markPaid(\''+b._id+'\')">✔ ยืนยันชำระ</button> ':'')+'<button class="btn ghost sm" onclick="editBk(\''+b._id+'\')">แก้</button> <button class="btn ghost sm" onclick="receipt(\''+b._id+'\')">🧾</button></td></tr>';
+    return '<tr'+(cx?' class="cx"':'')+'><td>'+thDate(b.checkin)+'</td><td>'+nights(b.checkin,b.checkout)+'</td><td><b>'+esc(b.guestName)+'</b><br><span style="color:var(--muted);font-size:12px">'+esc(b.guestTel||'')+'</span>'+extra+'</td><td>'+rtName(b.roomType)+(b.roomNo?'<br><span style="color:var(--muted);font-size:12px">ห้อง '+esc(b.roomNo)+'</span>':'')+(b.stay==='in'?'<br><span class="pill on">พักอยู่</span>':b.stay==='out'?'<br><span class="pill off">ออกแล้ว</span>':b.stay==='noshow'?'<br><span class="pill err">ไม่มา</span>':'')+'</td><td>'+(API.CHAN[b.channel]||b.channel)+byLine('โดย',b.createdBy)+'</td><td>'+money(b.amount)+'</td><td>'+payBadge(b)+byLine('รับเงินโดย',b.paidBy)+byLine('ยกเลิกโดย',b.cancelledBy)+'</td><td style="white-space:nowrap">'+(canConfirm?'<button class="btn sm" onclick="markPaid(\''+b._id+'\')">✔ ยืนยันชำระ</button> ':'')+'<button class="btn ghost sm" onclick="editBk(\''+b._id+'\')">แก้</button> <button class="btn ghost sm" onclick="receipt(\''+b._id+'\')">🧾</button></td></tr>';
   }).join(''):'<tr><td colspan="8" class="empty">ยังไม่มีการจอง</td></tr>')+(nCx&&!showCx?'<tr><td colspan="8" class="note" style="text-align:center">มีการจองที่ยกเลิกแล้ว '+nCx+' รายการ — ติ๊ก “แสดงที่ยกเลิก” เพื่อดู</td></tr>':'');
 }
 async function markPaid(id){ try{ await API.patch('/bookings/'+id,{payStatus:'paid'}); const b=BK.find(x=>String(x._id)===String(id)); if(b)b.payStatus='paid'; renderBook(); API.toast('ยืนยันการชำระแล้ว','ok'); }catch(e){API.toast(e.message,'err');} }
@@ -555,7 +642,7 @@ async function saveSvc(id){
   API.toast('บันทึกแล้ว','ok'); SVC=await API.get('/hotels/'+HID+'/services'); renderSvc();
 }
 let ACTBK=[];
-async function loadActBk(){ try{ ACTBK=await API.get('/hotels/'+HID+'/activity-bookings?since='+ymd(addDays(new Date(),-7))); }catch{ ACTBK=[]; } renderActBk(); }
+async function loadActBk(){ try{ ACTBK=await bkGet('/hotels/'+HID+'/activity-bookings?since='+ymd(addDays(new Date(),-7))); }catch{ ACTBK=[]; } renderActBk(); }
 function renderActBk(){ const el=document.getElementById('actbktable'); if(!el)return;
   el.innerHTML='<tr><th>วัน/รอบ</th><th>กิจกรรม</th><th>แขก</th><th>จำนวน</th><th>ยอด</th><th>ชำระ</th><th></th></tr>'+(ACTBK.length?ACTBK.map(b=>'<tr'+(b.status==='cancelled'?' style="opacity:.5"':'')+'><td>'+thDate(b.date)+(b.time?' '+esc(b.time):'')+'<br><span class="note" style="margin:0">'+esc(b.ref||'')+'</span></td><td>'+esc(b.serviceName||'')+'</td><td><b>'+esc(b.guestName||'')+'</b><br><span class="note" style="margin:0">'+esc(b.guestTel||'')+'</span></td><td>'+b.qty+'</td><td>'+money(b.amount)+'</td><td>'+(b.status==='cancelled'?'<span class="pill off">ยกเลิก</span>':b.payStatus==='paid'?'<span class="pill on">ชำระแล้ว</span>':b.payStatus==='reported'?'<span class="pill pend">แจ้งโอน'+(b.payRef?' · '+esc(b.payRef):'')+'</span>':b.payStatus==='onsite'?'<span class="pill pend">จ่ายที่เคาน์เตอร์</span>':'<span class="pill off">ยังไม่ชำระ</span>')+'</td><td style="white-space:nowrap">'+(b.status!=='cancelled'&&b.payStatus!=='paid'?'<button class="btn sm" onclick="actPaid(\''+b._id+'\')">✔ ยืนยันชำระ</button> ':'')+(b.status!=='cancelled'?'<button class="btn ghost sm" onclick="actCancel(\''+b._id+'\')">ยกเลิก</button>':'')+'</td></tr>').join(''):'<tr><td colspan="7" class="empty">ยังไม่มีการจองกิจกรรม</td></tr>'); }
 async function actPaid(id){ try{ await API.patch('/activity-bookings/'+id,{payStatus:'paid'}); API.toast('ยืนยันชำระแล้ว','ok'); loadActBk(); }catch(e){API.toast(e.message,'err');} }
@@ -566,7 +653,7 @@ function renderReport(){
   const today=new Date();const days=[];for(let i=0;i<7;i++)days.push(ymd(addDays(today,i)));const rooms=RT.reduce((s,t)=>s+(t.qty||0),0);
   const act=BK.filter(b=>b.status!=='cancelled');let rn=0;act.forEach(b=>days.forEach(d=>{if(b.checkin<=d&&b.checkout>d)rn++;}));
   const month=ymd(today).slice(0,7);const mb=act.filter(b=>(b.checkin||'').slice(0,7)===month);const rev=mb.reduce((s,b)=>s+Number(b.amount||0),0);const nts=mb.reduce((s,b)=>s+nights(b.checkin,b.checkout),0);
-  document.getElementById('rep-metrics').innerHTML=m("📅 เข้าพัก 7 วัน",(rooms?Math.round(rn/(rooms*7)*100):0)+"%")+m("💰 รายได้เดือนนี้",money(rev))+m("🧾 จองเดือนนี้",mb.length)+m("💵 ADR",money(nts?Math.round(rev/nts):0));
+  document.getElementById('rep-metrics').innerHTML=m("📅 เข้าพัก 7 วัน",(rooms?Math.round(rn/(rooms*7)*100):0)+"%")+m("💰 รายได้เดือนนี้",money(moneyLocked()?null:rev))+m("🧾 จองเดือนนี้",mb.length)+m("💵 ADR",money(moneyLocked()?null:nts?Math.round(rev/nts):0));
   const mix={};act.forEach(b=>{mix[b.channel]=(mix[b.channel]||0)+1;});const tot=Object.values(mix).reduce((a,c)=>a+c,0)||1;const cc={direct:'#0d9488',agoda:'#7c3aed',booking:'#2563eb',trip:'#d97706'};
   document.getElementById('rep-mix').innerHTML=Object.keys(mix).length?Object.entries(mix).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{const pc=Math.round(v/tot*100);return '<div style="margin:8px 0;font-size:13px">'+(API.CHAN[k]||k)+' <b>'+pc+'%</b><div style="height:9px;background:#eef2f6;border-radius:6px;margin-top:3px"><i style="display:block;height:100%;width:'+pc+'%;border-radius:6px;background:'+(cc[k]||'#64748b')+'"></i></div></div>';}).join(''):'<p class="empty">ยังไม่มีข้อมูล</p>';
   // แนวโน้ม 7 วัน
@@ -618,8 +705,8 @@ function receiptPlain(id){
 function renderGuests(){
   const g={}; BK.filter(b=>b.status!=='cancelled').forEach(b=>{ const key=(b.guestTel||b.guestEmail||b.guestName||'').trim()||b._id; if(!g[key])g[key]={name:b.guestName,tel:b.guestTel,email:b.guestEmail,stays:0,spent:0,last:''}; const e=g[key]; e.stays++; e.spent+=Number(b.amount||0); if((b.checkin||'')>e.last)e.last=b.checkin; if(!e.name&&b.guestName)e.name=b.guestName; if(!e.tel&&b.guestTel)e.tel=b.guestTel; if(!e.email&&b.guestEmail)e.email=b.guestEmail; });
   const list=Object.values(g).sort((a,b)=>b.spent-a.spent);
-  document.getElementById('crm-metrics').innerHTML=m("👥 แขกทั้งหมด",list.length)+m("🔁 ลูกค้าประจำ",list.filter(x=>x.stays>1).length)+m("💰 รายได้รวม",money(list.reduce((s,x)=>s+x.spent,0)));
-  document.getElementById('crmtable').innerHTML='<tr><th>ชื่อ</th><th>เบอร์</th><th>อีเมล</th><th>จำนวนครั้ง</th><th>ใช้จ่ายรวม</th><th>ล่าสุด</th></tr>'+(list.length?list.map(x=>'<tr><td><b>'+esc(x.name||'-')+'</b>'+(x.stays>1?' <span class="pill on" style="font-size:10px">ประจำ</span>':'')+'</td><td>'+esc(x.tel||'-')+'</td><td>'+esc(x.email||'-')+'</td><td>'+x.stays+'</td><td>'+money(x.spent)+'</td><td>'+(x.last?thDate(x.last):'-')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">ยังไม่มีแขก</td></tr>');
+  document.getElementById('crm-metrics').innerHTML=m("👥 แขกทั้งหมด",list.length)+m("🔁 ลูกค้าประจำ",list.filter(x=>x.stays>1).length)+m("💰 รายได้รวม",money(moneyLocked()?null:list.reduce((s,x)=>s+x.spent,0)));
+  document.getElementById('crmtable').innerHTML='<tr><th>ชื่อ</th><th>เบอร์</th><th>อีเมล</th><th>จำนวนครั้ง</th><th>ใช้จ่ายรวม</th><th>ล่าสุด</th></tr>'+(list.length?list.map(x=>'<tr><td><b>'+esc(x.name||'-')+'</b>'+(x.stays>1?' <span class="pill on" style="font-size:10px">ประจำ</span>':'')+'</td><td>'+esc(x.tel||'-')+'</td><td>'+esc(x.email||'-')+'</td><td>'+x.stays+'</td><td>'+money(moneyLocked()?null:x.spent)+'</td><td>'+(x.last?thDate(x.last):'-')+'</td></tr>').join(''):'<tr><td colspan="6" class="empty">ยังไม่มีแขก</td></tr>');
 }
 // ---- booking modal ----
 function fillChannelSelect(){
@@ -652,7 +739,7 @@ async function saveBk(){
   // แก้แค่ชื่อ/เบอร์ → คงยอดเดิม (ไม่ทำให้ค่าอาหารเช้า/บริการเสริม/ส่วนลดหาย)
   const same=old&&String(old.roomType)===String(rtId)&&old.checkin===din&&old.checkout===dout&&Number(old.extraBed||0)===eb;
   const extras=old?Number(old.addonTotal||0)+Number(old.breakfastTotal||0)-Number(old.discount||0):0;
-  const amount=same?Number(old.amount||0):Math.max(0,(Number(t.basePrice)+eb*Number(t.extraBedPrice||0))*nts+extras);
+  const amount=old&&old.amount==null?undefined:same?Number(old.amount||0):Math.max(0,(Number(t.basePrice)+eb*Number(t.extraBedPrice||0))*nts+extras);
   const row={roomType:rtId,guestName:document.getElementById('bk-guest').value.trim()||'(ไม่ระบุชื่อ)',guestTel:document.getElementById('bk-tel').value.trim(),guestEmail:document.getElementById('bk-email').value.trim(),channel:document.getElementById('bk-ch').value,notifyChannel:document.getElementById('bk-notify').value,checkin:din,checkout:dout,pax:+document.getElementById('bk-pax').value||1,extraBed:eb,amount,status:'confirmed'};
   try{ if(editId)await API.patch('/bookings/'+editId,row); else await API.post('/hotels/'+HID+'/bookings',row); closeBk();API.toast('บันทึกแล้ว','ok');load(); }catch(e){API.toast(e.message,'err');}
 }
@@ -666,7 +753,7 @@ async function restoreBk(){ if(!editId)return; try{ const r=await API.post('/boo
 // ส่งออกการจองเป็น CSV (เปิดใน Excel/Google Sheets ได้) — เลือกเดือน หรือทั้งหมด
 async function exportCsv(){ const m=(document.getElementById('exp-month')||{}).value||''; let q='';
   if(m){ const [y,mo]=m.split('-').map(Number); const last=new Date(Date.UTC(y,mo,0)).getUTCDate(); q='?from='+m+'-01&to='+m+'-'+String(last).padStart(2,'0'); }
-  try{ const r=await fetch('/api/hotels/'+HID+'/bookings/export'+q,{headers:{authorization:'Bearer '+API.token()}}); if(!r.ok) throw new Error('ส่งออกไม่สำเร็จ ('+r.status+')');
+  try{ const r=await API.raw('/hotels/'+HID+'/bookings/export'+q); if(!r.ok){ const d=await r.json().catch(()=>({})); throw new Error(d.error||'ส่งออกไม่สำเร็จ ('+r.status+')'); }
     const blob=await r.blob(); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='bookings-'+(HOTEL.slug||'hotel')+'-'+(m||'all')+'.csv'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); API.toast('ดาวน์โหลดไฟล์แล้ว','ok');
   }catch(e){ API.toast(e.message,'err'); } }
 // ---- settings ----

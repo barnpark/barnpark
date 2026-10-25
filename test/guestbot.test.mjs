@@ -45,6 +45,9 @@ const { handleGuestEvent } = await import("../lib/guestbot.js");
 const { notifyGuestPaid } = await import("../lib/notify.js");
 const { todayTH } = await import("../lib/linebot.js");
 const express = (await import("express")).default;
+// รหัสพนักงาน (lib/team.js): ที่พักยังไม่ตั้งทีม → ทำรายการได้โดยไม่ต้องใส่รหัส · ไม่บันทึกประวัติจริง
+const TeamStaff = (await import("../models/Staff.js")).default; TeamStaff.countDocuments = async () => 0;
+const TeamLog = (await import("../models/ActionLog.js")).default; TeamLog.create = async () => ({});
 const lineRoutes = (await import("../routes/line.js")).default;
 const publicRoutes = (await import("../routes/public.js")).default;
 

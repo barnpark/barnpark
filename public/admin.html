@@ -140,7 +140,7 @@
       <label style="display:flex;gap:6px;align-items:center;font-weight:400;margin:0"><input type="checkbox" id="fbf-text" checked onchange="loadFb()" style="width:auto"> เฉพาะที่มีข้อความ</label></div>
       <div style="overflow-x:auto"><table id="fb-table"></table></div></div>
   </section>
-  <section id="a-store" class="view"><h1>💾 พื้นที่ฐานข้อมูล</h1><p class="sub">ขนาดจริงในฐานข้อมูลของแต่ละที่พัก เทียบกับโควตาฟรี (MongoDB Atlas M0) — รูปที่ยังเก็บในฐานข้อมูลเป็นส่วนที่ใหญ่ที่สุด (ย้ายไป Supabase ได้ด้านล่าง)</p>
+  <section id="a-store" class="view"><h1>💾 พื้นที่ฐานข้อมูล</h1><p class="sub">แต่ละที่พักมีโควตาพื้นที่ (ค่าเริ่มต้น 20 MB นับฐานข้อมูล + รูปบน Supabase) — เต็มแล้วอัปรูปใหม่ไม่ได้ แต่ยังรับจองได้ตามปกติ · ด้านบนคือขนาดรวมเทียบโควตาฟรี (MongoDB Atlas M0) — รูปที่ยังเก็บในฐานข้อมูลเป็นส่วนที่ใหญ่ที่สุด (ย้ายไป Supabase ได้ด้านล่าง)</p>
     <div class="metrics" id="st-metrics"></div>
     <div class="panel"><div id="st-bar"></div><div style="overflow-x:auto"><table id="st-table"><tr><td class="empty">กำลังโหลด…</td></tr></table></div></div>
     <div class="panel"><h3>☁️ ที่เก็บรูป (Supabase Storage)</h3><p class="sub" style="margin-top:0">ย้ายรูปห้อง บริการ รูปปก และโลโก้ ออกจากฐานข้อมูลไปเก็บบน Supabase → ฐานข้อมูลเล็กลงมาก รับที่พักได้อีกเยอะ · รูปใหม่ที่อัปโหลดจะขึ้น Supabase อัตโนมัติเมื่อตั้งค่าแล้ว</p>
@@ -246,10 +246,15 @@ async function loadStorage(){
     const top=s.hotels.length?s.hotels[0].bytes:1;
     const F=s.files||{}; document.getElementById('st-mig').disabled=!F.ready;
     document.getElementById('st-sb').innerHTML=F.ready?'✅ ตั้งค่า Supabase แล้ว · bucket รูป <b>'+esc(F.bucket)+'</b> · bucket สำรองข้อมูล <b>'+esc(F.backupBucket)+'</b>':'❌ ยังไม่ได้ตั้งค่า — ใส่ <code>SUPABASE_URL</code> และ <code>SUPABASE_SERVICE_KEY</code> ใน Render (Environment) ก่อน ตอนนี้รูปยังเก็บในฐานข้อมูลเหมือนเดิม';
-    t.innerHTML='<tr><th>ที่พัก</th><th>รวม</th><th>รูปและข้อมูลที่พัก</th><th>การจอง</th><th>อื่น ๆ</th><th>% ของโควตา</th><th></th></tr>'+(s.hotels.length?s.hotels.map(h=>'<tr><td><b>'+esc(h.name)+'</b><div class="sub" style="margin:0">'+esc(h.slug||'')+' · '+h.rooms+' ห้อง · '+h.bookingCount+' การจอง</div></td><td><b>'+mb(h.bytes)+'</b></td><td>'+mb(h.content)+'</td><td>'+mb(h.bookings)+'</td><td>'+mb(h.other)+'</td><td>'+(h.bytes/s.limitBytes*100).toFixed(2)+'%</td><td>'+sbar(h.bytes/top*100,'#4f7a5e')+'</td></tr>').join(''):'<tr><td colspan="7" class="empty">ยังไม่มีที่พัก</td></tr>');
+    const over=s.hotels.filter(h=>h.used>h.quotaBytes).length, near=s.hotels.filter(h=>h.used<=h.quotaBytes&&h.used>=h.quotaBytes*.8).length;
+    document.getElementById('st-metrics').innerHTML+=m('📦 โควตาเริ่มต้นต่อที่พัก',s.defaultQuotaMB+' MB')+m('🚫 เต็มโควตา',over,over>0)+m('⚠️ ใช้เกิน 80%',near,near>0);
+    t.innerHTML='<tr><th>ที่พัก</th><th>ใช้ไป / โควตา</th><th>เหลือ</th><th style="min-width:110px"></th><th>ฐานข้อมูล</th><th>รูปบน Supabase</th><th>การจอง</th><th></th></tr>'+(s.hotels.length?s.hotels.map(h=>{const pc=h.used/h.quotaBytes*100;const col=pc>=100?'#b91c1c':pc>=80?'#d97706':'#0d9488';
+      return '<tr><td><b>'+esc(h.name)+'</b><div class="sub" style="margin:0">'+esc(h.slug||'')+' · '+h.rooms+' ห้อง · '+h.bookingCount+' การจอง</div></td><td><b>'+mb(h.used)+'</b> / '+mb(h.quotaBytes)+(h.quotaMB?'':' <span class="sub" style="margin:0">(ค่าเริ่มต้น)</span>')+'</td><td style="color:'+col+';font-weight:700">'+(pc>=100?'เต็ม (เกิน '+mb(h.used-h.quotaBytes)+')':mb(h.left))+'</td><td>'+sbar(pc,col)+'<div class="sub" style="margin:2px 0 0">'+pc.toFixed(0)+'%</div></td><td>'+mb(h.dbBytes)+'</td><td>'+(s.filesCounted?(h.filesError?'⚠️ นับไม่ได้':mb(h.files)):'—')+'</td><td>'+mb(h.bookings)+'</td><td><button class="btn ghost sm" onclick="setQuota(\''+h.id+'\',\''+esc(h.name).replace(/'/g,'')+'\','+(h.quotaMB||0)+')">✏️ โควตา</button></td></tr>';}).join(''):'<tr><td colspan="8" class="empty">ยังไม่มีที่พัก</td></tr>');
   }catch(e){ t.innerHTML='<tr><td class="empty">โหลดไม่สำเร็จ: '+esc(e.message)+'</td></tr>'; }
 }
 
+async function setQuota(id,name,cur){ const v=prompt('โควตาพื้นที่ของ “'+name+'” (MB)\nเว้นว่าง หรือ 0 = ใช้ค่าเริ่มต้น',cur||''); if(v===null)return;
+  try{ const r=await API.patch('/admin/hotels/'+id+'/quota',{mb:v.trim()}); API.toast('ตั้งโควตา '+r.quotaMB+' MB แล้ว'+(r.custom?'':' (ค่าเริ่มต้น)'),'ok'); loadStorage(); }catch(e){ API.toast(e.message,'err'); } }
 // ย้ายรูป: นับก่อน (dry run) → ยืนยัน → ส่งทีละชุดจนครบ
 async function migrateImages(){
   const b=document.getElementById('st-mig'),msg=document.getElementById('st-mig-msg'); b.disabled=true; msg.textContent='กำลังนับรูปในฐานข้อมูล…';

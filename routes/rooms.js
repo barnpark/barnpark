@@ -4,8 +4,10 @@ import { requireAuth, canAccessHotel } from "../lib/auth.js";
 import { badImageFields } from "../lib/security.js";
 import { cleanBreakfast } from "../lib/stay.js";
 import mongoose from "mongoose";
-import { storeImageFields, imageUrlsOf, dropImages } from "../lib/filestore.js";
-import { cleanUnits, clashingNos, normRoomNo, HK } from "../lib/frontdesk.js";
+import { storeImageFields, imageUrlsOf, dropImages, dataBytes } from "../lib/filestore.js";
+import { quotaError } from "../lib/storage.js";
+import { actor, logAction } from "../lib/team.js";
+import { cleanUnits, clashingNos, normRoomNo, HK, HK_TH } from "../lib/frontdesk.js";
 // เลขห้อง (หน้าเคาน์เตอร์) — ไม่ซ้ำกันทั้งที่พัก · คืนข้อความ error หรือ null (แก้ body.units ให้สะอาด)
 async function fixUnits(body, input, hid, rt) {
   if (input === undefined) return null;
@@ -68,9 +70,13 @@ r.post("/hotels/:hid/rooms", requireAuth, async (req, res) => {
   if (!body) return res.status(400).json({ error: "ช่วงราคาตามฤดูไม่ถูกต้อง" });
   const bfErr = fixBreakfast(body); if (bfErr) return res.status(400).json({ error: bfErr });
   const unErr = await fixUnits(body, req.body.units, req.params.hid, null); if (unErr) return res.status(400).json({ error: unErr });
+  const who = await actor(req, res, req.params.hid, "rooms"); if (!who) return;
   const id = new mongoose.Types.ObjectId();
+  const qErr = await quotaError(req.params.hid, dataBytes(body, IMG)); if (qErr) return res.status(413).json({ error: qErr });
   const upErr = await storeImgs(body, req.params.hid, id); if (upErr) return res.status(502).json({ error: upErr });
-  res.json(await RoomType.create({ ...body, _id: id, hotel: req.params.hid }));
+  const created = await RoomType.create({ ...body, _id: id, hotel: req.params.hid });
+  await logAction(req.params.hid, who, "room.create", created.name);
+  res.json(created);
 });
 
 r.patch("/rooms/:id", requireAuth, async (req, res) => {
@@ -82,8 +88,11 @@ r.patch("/rooms/:id", requireAuth, async (req, res) => {
   if (badImageFields(safe, IMG)) return res.status(400).json({ error: "รูปไม่ถูกต้อง (ใช้ไฟล์รูป หรือลิงก์ https)" });
   const bfErr = fixBreakfast(safe); if (bfErr) return res.status(400).json({ error: bfErr });
   const unErr = await fixUnits(safe, req.body.units, rt.hotel, rt); if (unErr) return res.status(400).json({ error: unErr });
+  const who = await actor(req, res, rt.hotel, "rooms"); if (!who) return;
+  const qErr = await quotaError(rt.hotel, dataBytes(safe, IMG)); if (qErr) return res.status(413).json({ error: qErr });
   const upErr = await storeImgs(safe, rt.hotel, rt._id); if (upErr) return res.status(502).json({ error: upErr });
   const out = await RoomType.findByIdAndUpdate(rt._id, { $set: safe }, { new: true });
+  await logAction(rt.hotel, who, "room.edit", rt.name, Object.keys(safe).filter((k) => !IMG.includes(k) || safe[k] !== undefined).join(", "));
   if (out && IMG.some((f) => safe[f] !== undefined)) await dropImages(imageUrlsOf(rt, IMG), imageUrlsOf(out, IMG), `h/${rt.hotel}`); // ลบรูปเก่าที่เลิกใช้
   res.json(out);
 });
@@ -97,7 +106,9 @@ r.post("/rooms/:id/hk", requireAuth, async (req, res) => {
   const no = normRoomNo(req.body?.no), hk = String(req.body?.hk || "");
   if (!HK.includes(hk)) return res.status(400).json({ error: "สถานะไม่ถูกต้อง" });
   if (!(rt.units || []).some((u) => u.no === no)) return res.status(404).json({ error: "ไม่พบเลขห้องนี้" });
+  const who = await actor(req, res, rt.hotel, "desk"); if (!who) return;
   await RoomType.updateOne({ _id: rt._id, "units.no": no }, { $set: { "units.$.hk": hk } });
+  await logAction(rt.hotel, who, "room.hk", "ห้อง " + no, HK_TH[hk]);
   res.json({ ok: true, no, hk });
 });
 
@@ -105,7 +116,9 @@ r.delete("/rooms/:id", requireAuth, async (req, res) => {
   const rt = await RoomType.findById(req.params.id);
   if (!rt) return res.status(404).json({ error: "not found" });
   if (!canAccessHotel(req.user, rt.hotel)) return res.status(403).json({ error: "forbidden" });
+  const who = await actor(req, res, rt.hotel, "rooms"); if (!who) return;
   await rt.deleteOne();
+  await logAction(rt.hotel, who, "room.delete", rt.name);
   await dropImages(imageUrlsOf(rt, IMG), [], `h/${rt.hotel}`);
   res.json({ ok: true });
 });

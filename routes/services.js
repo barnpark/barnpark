@@ -1,9 +1,11 @@
 import { Router } from "express";
 import Service from "../models/Service.js";
 import { requireAuth, canAccessHotel } from "../lib/auth.js";
+import { actor, logAction } from "../lib/team.js";
 import { badImageFields } from "../lib/security.js";
 import mongoose from "mongoose";
-import { storeImageFields, imageUrlsOf, dropImages } from "../lib/filestore.js";
+import { storeImageFields, imageUrlsOf, dropImages, dataBytes } from "../lib/filestore.js";
+import { quotaError } from "../lib/storage.js";
 
 const IMG = ["imageUrl"];
 // รูปที่เป็น data URL → อัปขึ้น Supabase (ถ้าตั้งค่าไว้) แล้วเก็บแค่ลิงก์ · คืนข้อความ error หรือ null
@@ -39,9 +41,13 @@ r.post("/hotels/:hid/services", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, req.params.hid)) return res.status(403).json({ error: "forbidden" });
   if (badImageFields(req.body, ["imageUrl"])) return res.status(400).json({ error: "รูปไม่ถูกต้อง (ใช้ไฟล์รูป หรือลิงก์ https)" });
   const body = pickSvc(req.body);
+  const who = await actor(req, res, req.params.hid, "services"); if (!who) return;
   const id = new mongoose.Types.ObjectId();
+  const qErr = await quotaError(req.params.hid, dataBytes(body, IMG)); if (qErr) return res.status(413).json({ error: qErr });
   const upErr = await storeImgs(body, req.params.hid, id); if (upErr) return res.status(502).json({ error: upErr });
-  res.json(await Service.create({ ...body, _id: id, hotel: req.params.hid }));
+  const created = await Service.create({ ...body, _id: id, hotel: req.params.hid });
+  await logAction(req.params.hid, who, "service.create", created.name);
+  res.json(created);
 });
 
 r.patch("/services/:id", requireAuth, async (req, res) => {
@@ -50,8 +56,11 @@ r.patch("/services/:id", requireAuth, async (req, res) => {
   if (!canAccessHotel(req.user, sv.hotel)) return res.status(403).json({ error: "forbidden" });
   const safe = pickSvc(req.body);
   if (badImageFields(safe, ["imageUrl"])) return res.status(400).json({ error: "รูปไม่ถูกต้อง (ใช้ไฟล์รูป หรือลิงก์ https)" });
+  const who = await actor(req, res, sv.hotel, "services"); if (!who) return;
+  const qErr = await quotaError(sv.hotel, dataBytes(safe, IMG)); if (qErr) return res.status(413).json({ error: qErr });
   const upErr = await storeImgs(safe, sv.hotel, sv._id); if (upErr) return res.status(502).json({ error: upErr });
   const out = await Service.findByIdAndUpdate(sv._id, { $set: safe }, { new: true });
+  await logAction(sv.hotel, who, "service.edit", sv.name, Object.keys(safe).join(", "));
   if (out && safe.imageUrl !== undefined) await dropImages(imageUrlsOf(sv, IMG), imageUrlsOf(out, IMG), `h/${sv.hotel}`); // ลบรูปเก่าที่เลิกใช้
   res.json(out);
 });
@@ -60,7 +69,9 @@ r.delete("/services/:id", requireAuth, async (req, res) => {
   const sv = await Service.findById(req.params.id);
   if (!sv) return res.status(404).json({ error: "not found" });
   if (!canAccessHotel(req.user, sv.hotel)) return res.status(403).json({ error: "forbidden" });
+  const who = await actor(req, res, sv.hotel, "services"); if (!who) return;
   await sv.deleteOne();
+  await logAction(sv.hotel, who, "service.delete", sv.name);
   await dropImages(imageUrlsOf(sv, IMG), [], `h/${sv.hotel}`);
   res.json({ ok: true });
 });

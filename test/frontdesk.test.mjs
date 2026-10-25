@@ -2,6 +2,9 @@
 // ใช้ express จริง + แทนเมธอดของโมเดลด้วยตัวปลอม (ไม่ต้องมีฐานข้อมูล)
 process.env.JWT_SECRET = "test-secret-0123456789-abcdef";
 const express = (await import("express")).default;
+// รหัสพนักงาน (lib/team.js): ที่พักยังไม่ตั้งทีม → ทำรายการได้โดยไม่ต้องใส่รหัส · ไม่บันทึกประวัติจริง
+const TeamStaff = (await import("../models/Staff.js")).default; TeamStaff.countDocuments = async () => 0;
+const TeamLog = (await import("../models/ActionLog.js")).default; TeamLog.create = async () => ({});
 const Booking = (await import("../models/Booking.js")).default;
 const RoomType = (await import("../models/RoomType.js")).default;
 const { sign } = await import("../lib/auth.js");

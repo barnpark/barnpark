@@ -7,14 +7,50 @@ window.API = (function () {
   const setToken = (t) => localStorage.setItem(KEY, t);
   const clear = () => localStorage.removeItem(KEY);
 
-  async function req(method, path, body) {
+  async function req(method, path, body, pin, once) {
     const h = { "content-type": "application/json" };
     const t = token(); if (t) h.authorization = "Bearer " + t;
+    if (pin) h["x-staff-pin"] = pin;
     const r = await fetch("/api" + path, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
     if (r.status === 401) { clear(); if (!location.pathname.endsWith("login.html")) location.href = "login.html"; }
     const data = await r.json().catch(() => ({}));
+    if (!r.ok && data.needPin && !once) return req(method, path, body, await needPin(data.error, !!pin));
     if (!r.ok) throw new Error(data.error || ("HTTP " + r.status));
     return data;
+  }
+  // ===== รหัสพนักงาน (lib/team.js): ทำรายการแล้วเซิร์ฟเวอร์ขอรหัส → ถามในกล่องนี้ แล้วส่งซ้ำพร้อมรหัส =====
+  // ไม่จำรหัสไว้ — ทุกรายการถามใหม่ ระบบจึงรู้ว่าใครทำอะไร · กดยกเลิก = ไม่บันทึกรายการนั้น
+  async function needPin(msg, retry) {
+    const p = await askPin(msg, retry);
+    if (!p) throw new Error("ยกเลิกแล้ว — ยังไม่ได้บันทึก");
+    return p;
+  }
+  function askPin(msg, retry) {
+    return new Promise((resolve) => {
+      const w = document.createElement("div");
+      w.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px";
+      w.innerHTML = '<form style="background:#fff;border-radius:16px;padding:22px;width:100%;max-width:320px;box-shadow:0 20px 50px rgba(0,0,0,.3);text-align:center;font-family:inherit">' +
+        '<div style="font-size:30px">🔐</div><h3 style="margin:6px 0 4px">รหัสพนักงาน</h3>' +
+        '<p style="margin:0 0 12px;font-size:13.5px;color:' + (retry ? "#b91c1c" : "#64748b") + '">' + esc(retry ? msg || "รหัสไม่ถูกต้อง" : "ใส่รหัสของคุณ เพื่อบันทึกว่าใครทำรายการนี้") + "</p>" +
+        '<input type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" style="width:100%;font-size:26px;letter-spacing:10px;text-align:center;padding:10px;border:1.5px solid #cbd5e1;border-radius:12px;box-sizing:border-box">' +
+        '<div style="display:flex;gap:8px;margin-top:14px"><button type="button" data-x class="btn ghost" style="flex:1">ยกเลิก</button><button class="btn" style="flex:1">ตกลง</button></div></form>';
+      const f = w.querySelector("form"), i = w.querySelector("input");
+      const done = (v) => { w.remove(); resolve(v); };
+      f.onsubmit = (e) => { e.preventDefault(); const v = i.value.replace(/\D/g, ""); if (v.length >= 4) done(v); else i.focus(); };
+      w.querySelector("[data-x]").onclick = () => done(null);
+      w.onkeydown = (e) => { if (e.key === "Escape") done(null); };
+      document.body.appendChild(w); setTimeout(() => i.focus(), 30);
+    });
+  }
+  // ดาวน์โหลดไฟล์ (เช่น CSV) ที่ต้องใส่รหัส — คืน Response
+  async function raw(path, pin) {
+    const h = { authorization: "Bearer " + (token() || "") }; if (pin) h["x-staff-pin"] = pin;
+    const r = await fetch("/api" + path, { headers: h });
+    if (!r.ok && /json/.test(r.headers.get("content-type") || "")) {
+      const d = await r.clone().json().catch(() => ({}));
+      if (d.needPin) return raw(path, await needPin(d.error, !!pin));
+    }
+    return r;
   }
   async function pub(path) { const r = await fetch("/api/public" + path); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "error"); return d; }
 
@@ -163,6 +199,7 @@ window.API = (function () {
     if (!token()) { location.href = "login.html"; return null; }
     try {
       const me = await req("GET", "/auth/me");
+      if (me.token) { setToken(me.token); delete me.token; } // ต่ออายุการเข้าระบบ (ไม่หลุดเองถ้าใช้งานอยู่)
       if (role === "admin" && me.role !== "admin") { location.href = "app.html"; return null; }
       return me;
     } catch { location.href = "login.html"; return null; }
@@ -174,6 +211,7 @@ window.API = (function () {
     register: (body) => req("POST", "/auth/register", body),
     verifyOtp: (email, otp) => req("POST", "/auth/verify-otp", { email, otp }),
     me: () => req("GET", "/auth/me"),
+    raw, askPin, getPin: (p, pin) => req("GET", p, null, pin, true), // GET พร้อมรหัสที่ถามไว้แล้ว (ผิด = error ไม่ถามซ้ำ)
     get: (p) => req("GET", p), post: (p, b) => req("POST", p, b), patch: (p, b) => req("PATCH", p, b), del: (p) => req("DELETE", p),
     pubHotel: (slug) => pub("/hotel/" + encodeURIComponent(slug)),
     pubServices: (slug) => pub("/services/" + encodeURIComponent(slug)),
