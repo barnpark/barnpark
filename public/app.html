@@ -345,7 +345,7 @@ async function load(){
   fillChannelSelect(); renderCal(); renderDash(); renderDesk(); renderBook(); renderRooms(); renderReport(); renderSvc(); renderPromos(); renderGuests(); renderReviewsAdmin(); loadActBk(); loadChecklist();
 }
 // ---- เช็กความครบของที่พัก ----
-const FIX_AT={cover:'set-cover',about:'set-about',amen:'set-amen',pp:'set-pay',line:'s-line-id',phone:'s-tel',notify:'s-notify',times:'s-cin',map:'s-map',rules:'s-rules'};
+const FIX_AT={team:'set-team',space:'set-store',units:'roomtable',cover:'set-cover',about:'set-about',amen:'set-amen',pp:'set-pay',line:'s-line-id',phone:'s-tel',notify:'s-notify',times:'s-cin',map:'s-map',rules:'s-rules'};
 function fixGo(key,view){ go(view); const el=document.getElementById(FIX_AT[key]); if(el) setTimeout(()=>{ el.scrollIntoView({behavior:'smooth',block:'center'}); if(el.focus&&/^s-/.test(el.id)) el.focus(); },60); }
 async function loadChecklist(){ const box=document.getElementById('dash-check'); if(!box) return;
   let c; try{ c=await API.get('/hotels/'+HID+'/checklist'); }catch{ box.style.display='none'; return; }
