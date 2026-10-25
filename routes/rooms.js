@@ -5,6 +5,18 @@ import { badImageFields } from "../lib/security.js";
 import { cleanBreakfast } from "../lib/stay.js";
 import mongoose from "mongoose";
 import { storeImageFields, imageUrlsOf, dropImages } from "../lib/filestore.js";
+import { cleanUnits, clashingNos, normRoomNo, HK } from "../lib/frontdesk.js";
+// เลขห้อง (หน้าเคาน์เตอร์) — ไม่ซ้ำกันทั้งที่พัก · คืนข้อความ error หรือ null (แก้ body.units ให้สะอาด)
+async function fixUnits(body, input, hid, rt) {
+  if (input === undefined) return null;
+  const units = cleanUnits(input, rt ? rt.units : []);
+  if (!units) return "รูปแบบเลขห้องไม่ถูกต้อง";
+  const others = await RoomType.find({ hotel: hid, ...(rt ? { _id: { $ne: rt._id } } : {}) }).select("units").lean();
+  const dup = clashingNos(units, others);
+  if (dup.length) return "เลขห้องซ้ำกับห้องประเภทอื่น: " + dup.join(", ");
+  body.units = units;
+  return null;
+}
 // ตรวจค่าอาหารเช้าใน body (คืน error หรือ null) — optional ต้องมีราคา > 0
 function fixBreakfast(body) {
   if (body.breakfast === undefined && body.breakfastPrice === undefined) return null;
@@ -55,6 +67,7 @@ r.post("/hotels/:hid/rooms", requireAuth, async (req, res) => {
   const body = pickRoom(req.body);
   if (!body) return res.status(400).json({ error: "ช่วงราคาตามฤดูไม่ถูกต้อง" });
   const bfErr = fixBreakfast(body); if (bfErr) return res.status(400).json({ error: bfErr });
+  const unErr = await fixUnits(body, req.body.units, req.params.hid, null); if (unErr) return res.status(400).json({ error: unErr });
   const id = new mongoose.Types.ObjectId();
   const upErr = await storeImgs(body, req.params.hid, id); if (upErr) return res.status(502).json({ error: upErr });
   res.json(await RoomType.create({ ...body, _id: id, hotel: req.params.hid }));
@@ -68,10 +81,24 @@ r.patch("/rooms/:id", requireAuth, async (req, res) => {
   if (!safe) return res.status(400).json({ error: "ช่วงราคาตามฤดูไม่ถูกต้อง" });
   if (badImageFields(safe, IMG)) return res.status(400).json({ error: "รูปไม่ถูกต้อง (ใช้ไฟล์รูป หรือลิงก์ https)" });
   const bfErr = fixBreakfast(safe); if (bfErr) return res.status(400).json({ error: bfErr });
+  const unErr = await fixUnits(safe, req.body.units, rt.hotel, rt); if (unErr) return res.status(400).json({ error: unErr });
   const upErr = await storeImgs(safe, rt.hotel, rt._id); if (upErr) return res.status(502).json({ error: upErr });
   const out = await RoomType.findByIdAndUpdate(rt._id, { $set: safe }, { new: true });
   if (out && IMG.some((f) => safe[f] !== undefined)) await dropImages(imageUrlsOf(rt, IMG), imageUrlsOf(out, IMG), `h/${rt.hotel}`); // ลบรูปเก่าที่เลิกใช้
   res.json(out);
+});
+
+// สถานะทำความสะอาดของห้องเดียว (หน้าเคาน์เตอร์) — แก้เฉพาะเลขนั้น ไม่ทับรายการเลขห้องทั้งชุด
+r.post("/rooms/:id/hk", requireAuth, async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: "not found" });
+  const rt = await RoomType.findById(req.params.id).select("hotel units").lean();
+  if (!rt) return res.status(404).json({ error: "not found" });
+  if (!canAccessHotel(req.user, rt.hotel)) return res.status(403).json({ error: "forbidden" });
+  const no = normRoomNo(req.body?.no), hk = String(req.body?.hk || "");
+  if (!HK.includes(hk)) return res.status(400).json({ error: "สถานะไม่ถูกต้อง" });
+  if (!(rt.units || []).some((u) => u.no === no)) return res.status(404).json({ error: "ไม่พบเลขห้องนี้" });
+  await RoomType.updateOne({ _id: rt._id, "units.no": no }, { $set: { "units.$.hk": hk } });
+  res.json({ ok: true, no, hk });
 });
 
 r.delete("/rooms/:id", requireAuth, async (req, res) => {

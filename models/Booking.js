@@ -33,6 +33,10 @@ const schema = new mongoose.Schema({
   remindedAt:    Date,                                    // ส่งอีเมลเตือนก่อนเข้าพักแล้ว (กันส่งซ้ำ)
   cancelReason:  String,                                  // guest = แขกยกเลิกเอง · auto-unpaid = ระบบปล่อยห้อง (ไม่ชำระตามเวลา) · hotel = ที่พักยกเลิก
   cancelledAt:   Date,
+  roomNo:        String,                                  // เลขห้องที่ให้แขก (หน้าเคาน์เตอร์ — ตรงกับ RoomType.units.no)
+  stay:          { type: String, default: "" },           // "" ยังไม่มา | in พักอยู่ | out เช็คเอาท์แล้ว | noshow ไม่มา (ไม่นับห้องว่าง) — lib/frontdesk.js
+  checkedInAt:   Date,
+  checkedOutAt:  Date,
 }, { timestamps: true });
 
 schema.index({ hotel: 1, checkin: 1, checkout: 1 });
