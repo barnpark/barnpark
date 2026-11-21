@@ -130,6 +130,18 @@ t("seed: runSeed refuses weak pass before writing", threw && seedWrites === 0, t
 const { readFileSync } = await import("fs");
 t("seed: no hard-coded default password", !/changeme/i.test(readFileSync(new URL("../seed.js", import.meta.url), "utf8")));
 
+// ---- ลิงก์หน้าเว็บ (เพจ Facebook / LINE / Google Maps) ใช้เป็นรูปไม่ได้ · รูปบน CDN ของแอปเหล่านั้นยังใช้ได้
+const { isPageLink, showableImg, badImageFields } = await import("../lib/security.js");
+const pages = ["https://www.facebook.com/p/The-Y-Habitat-Hotel-61588588984725/", "https://m.facebook.com/somepage", "https://fb.me/x", "https://www.instagram.com/p/abc/",
+  "https://line.me/R/ti/p/@barnbarn", "https://lin.ee/TjK2193", "https://maps.app.goo.gl/AbCd", "https://www.google.com/maps/place/x", "https://www.google.co.th/maps?q=1,2", "https://youtu.be/x", "https://www.tiktok.com/@x"];
+const imgs = ["https://scontent.fbkk5-1.fna.fbcdn.net/v/t39/1.jpg", "https://scontent.cdninstagram.com/a.jpg", "https://obs.line-scdn.net/abc", "https://lh3.googleusercontent.com/p/x=w800",
+  "https://cdn.example/c.jpg", "/api/public/img/cover/64b7f0c2a1b2c3d4e5f60718/0?v=1", "data:image/png;base64,xx", "", undefined];
+t("page links detected", pages.every(isPageLink), pages.filter((u) => !isPageLink(u)));
+t("image links are not page links", !imgs.some(isPageLink), imgs.filter(isPageLink));
+t("showableImg: page link → empty", showableImg(pages[0]) === "" && showableImg("https://cdn.example/c.jpg") === "https://cdn.example/c.jpg" && showableImg(undefined) === "");
+t("image fields refuse page links", badImageFields({ coverUrl: pages[0] }, ["coverUrl"]) === "coverUrl" && badImageFields({ images: ["https://cdn.example/a.jpg", pages[4]] }, ["images"]) === "images" && badImageFields({ coverUrl: imgs[0], logoUrl: "" }, ["coverUrl", "logoUrl"]) === null);
+r = await call("PATCH", "hotels/" + H1, owner, { coverUrl: pages[0] }); t("PATCH hotel: Facebook page as cover refused with a clear message", r.status === 400 && /Facebook/.test((r.json || {}).error || ""), r);
+
 srv.close();
 console.log(`security: ${ok} passed, ${bad} failed`);
 process.exit(bad ? 1 : 0);

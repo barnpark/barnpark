@@ -37,6 +37,7 @@ const hotels = [
   { _id: "h2", name: "สวนป่า", slug: "suanpa", location: "กาญจนบุรี", mapUrl: "https://maps.app.goo.gl/AbCdEf", coverUrl: "data:image/png;base64,xx" },
   { _id: "h3", name: "ไม่มีหมุด", slug: "nopin", location: "น่าน", mapUrl: "", allowGuestCancel: false, amenities: ["🍳 อาหารเช้า"] },
   { _id: "h4", name: "จำพิกัดแล้ว", slug: "cached", mapUrl: "https://maps.app.goo.gl/Cached", geoFrom: "https://maps.app.goo.gl/Cached", geo: { lat: 12.5, lng: 99.9 } },
+  { _id: "h5", name: "เพจเฟซบุ๊ก", slug: "fbpage", mapUrl: "", coverUrl: "https://www.facebook.com/p/The-Y-Habitat-Hotel-61588588984725/" },
 ];
 let lastQuery = null; const saved = [];
 Hotel.find = (q) => { lastQuery = q; return { select() { return this; }, sort() { return this; }, lean: async () => hotels.map((h) => ({ ...h })) }; };
@@ -57,6 +58,7 @@ t("no map link → listed without pin", by.nopin.lat === null && by.nopin.lng ==
 t("remembered coords reused, no fetch", by.cached.lat === 12.5 && !fetches.slice(before).includes("https://maps.app.goo.gl/Cached"));
 t("lowest visible room price", by.rimnam.priceFrom === 900 && by.suanpa.priceFrom === 1200 && by.nopin.priceFrom === null);
 t("cover: https only (no inline data images)", by.rimnam.cover === "https://cdn.example/c.jpg" && by.suanpa.cover === "");
+t("cover: a Facebook page link is not an image → no cover (card shows the first letter)", by.fbpage.cover === "", by.fbpage);
 t("coords saved with the link they came from", saved.some(([id, s]) => id === "h2" && s.geoFrom === "https://maps.app.goo.gl/AbCdEf" && s.geo.lat === 14) && saved.some(([id, s]) => id === "h3" && s.geo === null));
 t("no private fields leak", list.every((h) => eq(Object.keys(h).sort(), ["amenities", "breakfast", "cover", "freeCancelDays", "lat", "lng", "location", "name", "priceFrom", "rating", "reviews", "slug", "tagline"])), Object.keys(list[0]));
 t("rating = average of approved reviews only", rvQuery.approved === true && by.rimnam.rating === 4.3 && by.rimnam.reviews === 3 && by.suanpa.rating === 5 && by.nopin.rating === null && by.nopin.reviews === 0, [by.rimnam, rvQuery]);
