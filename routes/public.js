@@ -19,6 +19,7 @@ import { createRoomBooking } from "../lib/booking.js";
 import { hotelsForMap, mapAvailability } from "../lib/geo.js";
 import { receiptData, receiptUrl, checkKey, findHotelBySlug } from "../lib/receipt.js";
 import { usedPeaks } from "../lib/availability.js";
+import { showableImg } from "../lib/security.js";
 
 // เลขจองต้องตรงเป๊ะ (BP-XXXXXX) — ห้ามค้นแบบขึ้นต้นด้วย ไม่งั้นใส่แค่ "BP-" ก็ยกเลิกทุกการจองของเบอร์นั้นได้
 const REF_RE = /^BP-[A-Z0-9]{6}$/;
@@ -146,9 +147,9 @@ r.get("/hotel/:slug", async (req, res) => {
     lineId: lineLabel(h.lineId), lineUrl: lineContactUrl(h.lineId), // ปุ่ม LINE ให้แขกทักแชทที่พัก
     brandColor: h.brandColor, brandColor2: h.brandColor2, accentColor: h.accentColor, accentColor2: h.accentColor2,
     fontFamily: h.fontFamily, uiStyle: h.uiStyle, template: h.template || "rich",
-    tagline: h.tagline, coverUrl: h.coverUrl, about: h.about, amenities: h.amenities || [],
-    logoUrl: h.logoUrl || "", logoAspect: h.logoAspect || null,
-    promoText: h.promoText, promoImage: h.promoImage,
+    tagline: h.tagline, coverUrl: showableImg(h.coverUrl), about: h.about, amenities: h.amenities || [],
+    logoUrl: showableImg(h.logoUrl), logoAspect: h.logoAspect || null,
+    promoText: h.promoText, promoImage: showableImg(h.promoImage),
     // วิธีรับเงินที่ที่พักเปิดไว้ (แสดงเฉพาะช่องทางที่เปิด)
     pay: { promptpay: pm.promptpay, transfer: pm.transfer, onsite: pm.onsite, fallback: pm.fallback },
     bank: pm.bank ? { name: pm.bank.name, no: pm.bank.no, noFmt: pm.bank.noFmt, acct: pm.bank.acct } : null,
