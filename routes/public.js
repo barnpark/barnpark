@@ -10,7 +10,7 @@ import mongoose from "mongoose";
 import { parseDataUrl, fitForLine } from "../lib/images.js";
 import { isStoredUrl } from "../lib/filestore.js";
 import ActivityBooking from "../models/ActivityBooking.js";
-import { sellsStandalone, availability, createActivityBooking } from "../lib/activity.js";
+import { sellsStandalone, availability, createActivityBooking, activitiesForHome } from "../lib/activity.js";
 import { notifyActivity, notifyCancel, notifyPaidReport, holdDeadline, bookingGroup, summarize } from "../lib/notify.js";
 import { breakfastOf, roomAmenities, stayInfo, lineContactUrl, lineLabel } from "../lib/stay.js";
 import { promptPayPayload, normalizePromptPayId } from "../lib/promptpay.js";
@@ -82,6 +82,21 @@ r.get("/receipt", async (req, res) => {
 r.get("/map", async (_req, res) => {
   try { res.set("Cache-Control", "no-cache").json(await hotelsForMap()); } // เบราว์เซอร์ถามใหม่ทุกครั้ง (ลบ/ซ่อนที่พักแล้วหายจากแผนที่ทันที)
   catch (e) { console.error("map", e.message); res.status(500).json({ error: "โหลดแผนที่ไม่สำเร็จ" }); }
+});
+// ===== กิจกรรมท้องถิ่นบนหน้าแรก (จองได้แม้ไม่เข้าพัก) — จากทุกที่พักที่ขึ้นแผนที่ · แคช 1 นาที
+r.get("/activities", async (_req, res) => {
+  try { res.set("Cache-Control", "public, max-age=60").json(await activitiesForHome()); }
+  catch (e) { console.error("activities", e.message); res.status(500).json({ error: "โหลดกิจกรรมไม่สำเร็จ" }); }
+});
+// ===== หน้านโยบายความเป็นส่วนตัวของที่พัก (privacy.html?h=slug) — ที่พักเป็นผู้ควบคุมข้อมูลการจอง
+// ส่งเฉพาะชื่อ + ช่องทางติดต่อที่ที่พักตั้งให้แขกเห็นอยู่แล้ว · อีเมล = อีเมลรับแจ้งเตือนจองใหม่ (เริ่มต้น = อีเมลที่ใช้สมัคร)
+const EMAIL_RE = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
+r.get("/privacy/:slug", async (req, res) => {
+  const h = await Hotel.findOne({ slug: String(req.params.slug || "") }).select("name slug phone lineId notifyEmail").lean();
+  if (!h) return res.status(404).json({ error: "ไม่พบที่พัก" });
+  const email = String(h.notifyEmail || "").trim();
+  res.set("Cache-Control", "no-cache").json({ name: h.name || "", slug: h.slug, email: EMAIL_RE.test(email) ? email : "",
+    phone: String(h.phone || "").slice(0, 30), lineUrl: lineContactUrl(h.lineId), lineLabel: lineLabel(h.lineId) });
 });
 // ห้องว่างบนแผนที่ตามวันที่ — /api/public/map/avail?din=2026-11-01&dout=2026-11-03&guests=2 · ไม่เกิน 30 คืน ล่วงหน้าไม่เกิน 2 ปี
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;

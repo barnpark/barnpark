@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BARN-PARK · จัดการการจอง</title>
+<title>Barn Park · จัดการการจอง</title>
 <link rel="icon" href="media/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="media/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="media/apple-touch-icon.png">
@@ -33,7 +33,7 @@
 </head>
 <body>
 <div class="top"><div class="in">
-  <div class="logo"><img id="brandMark" src="media/barnpark-mark.svg" alt="" style="height:26px;max-width:120px;width:auto;display:block;object-fit:contain"><span id="hotelName">BARN-PARK</span></div>
+  <div class="logo"><img id="brandMark" src="media/barnpark-mark.svg" alt="" style="height:26px;max-width:120px;width:auto;display:block;object-fit:contain"><span id="hotelName">Barn Park</span></div>
   <div class="who"><button class="btn ghost sm" id="money-btn" style="display:none" onclick="toggleMoney()"></button><span id="uinfo"></span><button class="btn ghost sm" onclick="API.signOut()">ออกจากระบบ</button></div>
 </div></div>
 <div class="nav"><div class="in" id="nav">
@@ -267,7 +267,7 @@
       <button class="btn" style="margin-top:12px" onclick="saveHotel()">บันทึกนโยบาย</button></div>
     <div class="panel" id="set-info"><h3>ข้อมูลโรงแรม & ช่องทางติดต่อของแขก</h3><div class="formgrid">
       <div><label>ชื่อโรงแรม</label><input id="s-name"></div><div><label>ทำเล</label><input id="s-loc"></div>
-      <div><label>เบอร์โทร (แสดงให้แขก)</label><input id="s-tel"></div><div><label>อีเมลรับแจ้งเตือนจองใหม่</label><input id="s-notify"></div>
+      <div><label>เบอร์โทร (แสดงให้แขก)</label><input id="s-tel"></div><div><label>อีเมลรับแจ้งเตือนจองใหม่ <span style="font-weight:400;color:#64748b">· ขึ้นเป็นอีเมลติดต่อในหน้านโยบายความเป็นส่วนตัวของที่พักด้วย</span></label><input id="s-notify"></div>
       <div style="grid-column:1/-1"><label>💬 LINE ของที่พักให้แขกทักแชท — ขึ้นเป็นปุ่ม “แชท LINE” ลอยอยู่ทุกหน้าของเว็บจอง</label><div style="display:flex;gap:8px"><input id="s-line-id" placeholder="@ID ของ LINE OA เช่น @baanbaan หรือวางลิงก์ lin.ee/xxxx" style="flex:1"><a class="btn ghost" id="s-line-test" target="_blank" rel="noopener" style="display:none">ลองกด</a></div><p class="note" style="margin:4px 0 0">หา @ID ได้ในแอป LINE OA → หน้าแรก → ใต้ชื่อบัญชี · ไม่ใส่ = ปุ่มลอยจะเป็นปุ่ม “โทรหาที่พัก” แทน</p></div>
       <div style="grid-column:1/-1"><label>🎉 แถบโปรโมชันบนสุดของหน้าจอง (ไม่บังคับ)</label><input id="s-promo" maxlength="120" placeholder="เช่น จองตรงลด 10% ใส่โค้ด DIRECT10 · ปล่อยว่าง = ไม่แสดง"></div>
     </div><button class="btn" style="margin-top:12px" onclick="saveHotel()">บันทึกข้อมูล</button></div>
@@ -699,7 +699,7 @@ function receiptPlain(id){
     '<div class="tot"><span>รวมทั้งสิ้น</span><span>'+money(b.amount)+'</span></div>'+
     '<div class="muted" style="margin-top:8px">สถานะ: '+(b.payStatus==='paid'?'ชำระแล้ว':b.payStatus==='reported'?'แจ้งชำระ':b.payStatus==='onsite'?'ชำระที่เคาน์เตอร์':'ยังไม่ชำระ')+(PM_TH[b.payMethod]?' ('+PM_TH[b.payMethod]+')':'')+'</div>'+
     '<p style="margin-top:20px;text-align:center"><button onclick="window.print()">🖨 พิมพ์</button></p>'+
-    '<p class="muted" style="text-align:center;font-size:12px">ขับเคลื่อนโดย BARN-PARK</p></body></html>'); w.document.close();
+    '<p class="muted" style="text-align:center;font-size:12px">ขับเคลื่อนโดย Barn Park</p></body></html>'); w.document.close();
 }
 // ---- guest CRM ----
 function renderGuests(){
