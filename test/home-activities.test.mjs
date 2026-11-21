@@ -9,7 +9,9 @@ const publicRoutes = (await import("../routes/public.js")).default;
 
 let ok = 0, bad = 0;
 const t = (n, c, x) => { if (c) ok++; else { bad++; console.log("FAIL", n, x !== undefined ? JSON.stringify(x).slice(0, 400) : ""); } };
-const q = (v) => ({ select() { return this; }, sort() { return this; }, lean: async () => (typeof v === "function" ? v() : v), then(a, b) { return this.lean().then(a, b); } });
+// เหมือน mongoose: .select("a b") คืนเฉพาะช่องที่เลือก (+ _id) — ถ้าโค้ดลืมเลือกช่องที่ใช้กรอง เทสต์จะเห็น
+const pick = (o, f) => { if (!o || !f) return o; const k = ["_id", ...f.split(/\s+/).filter(Boolean)]; return Object.fromEntries(Object.entries(o).filter(([x]) => k.includes(x))); };
+const q = (v) => { let f = null; return { select(s) { f = s; return this; }, sort() { return this; }, lean: async () => { const r = typeof v === "function" ? v() : v; return Array.isArray(r) ? r.map((o) => pick(o, f)) : pick(r, f); }, then(a, b) { return this.lean().then(a, b); } }; };
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 const HA = "64b7f0c2a1b2c3d4e5f60701", HB = "64b7f0c2a1b2c3d4e5f60702";
