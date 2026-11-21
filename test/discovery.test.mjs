@@ -73,6 +73,14 @@ t("paused hotel: noindex", (await page()).includes("noindex"));
 M.Review.find = () => q([]); hotel = { ...hotel, status: "active" };
 html = await page();
 t("no reviews → no rating in JSON-LD", html.includes("ld+json") && !html.includes("aggregateRating"));
+// ลิงก์เดิมของที่พักที่ slug ขึ้นต้นด้วย @ (ไอดี LINE) ต้องได้การ์ดแชร์ · รูปปกที่เป็นลิงก์เพจ Facebook ไม่ใช่รูป → ไม่ใส่ og:image
+hotel = { ...hotel, slug: "@753ctjdq", coverUrl: "https://www.facebook.com/p/The-Y-Habitat-Hotel-61588588984725/", logoUrl: "" };
+const pageFor = async (h) => { let out = ""; const res = { set() { return res; }, send(s) { out = s; } };
+  await bookPageHandler(file)({ query: { h }, get: (k) => (k === "host" ? "bp.test" : ""), protocol: "https" }, res, () => { out = "NEXT"; }); return out; };
+html = await pageFor("@753ctjdq");
+t("@-slug booking page gets share tags", html.includes("og:title") && html.includes('<link rel="canonical" href="https://bp.test/book.html?h=%40753ctjdq">'), html.slice(0, 300));
+t("Facebook page link is not used as the share image", !html.includes("og:image") && !html.includes("facebook.com") && html.includes('content="summary"'));
+t("junk slugs still skipped", (await pageFor("<script>")) === "NEXT" && (await pageFor("a b")) === "NEXT" && (await pageFor("")) === "NEXT");
 fs.rmSync(dir, { recursive: true, force: true });
 
 console.log(`discovery: ${ok} passed, ${bad} failed`);
