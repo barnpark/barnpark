@@ -1020,7 +1020,7 @@ async function boot(){
   if(pvT && TPL[pvT]){ HOTEL.template=pvT; preview=true; }
   API.applyTheme(HOTEL); document.title=HOTEL.name+" · "+T("จองตรงกับที่พัก","Book direct");
   if(HOTEL.logoUrl){ const fa=+HOTEL.logoAspect||1, fv=$("favi"); if(fv&&fa>=0.6&&fa<=1.7){ fv.type="image/png"; fv.href=HOTEL.logoUrl; } }
-  if(HOTEL.approved===false){ page.innerHTML='<div class="sec"><div class="panel" style="text-align:center;max-width:520px;margin:30px auto"><h2>'+T("ยังไม่เปิดรับจอง","Not open yet")+'</h2><p class="sub">'+T("ที่พักนี้กำลังรอการอนุมัติจากทีมงาน BARN-PARK","Awaiting approval from the BARN-PARK team.")+'</p></div></div>'; return; }
+  if(HOTEL.approved===false){ page.innerHTML='<div class="sec"><div class="panel" style="text-align:center;max-width:520px;margin:30px auto"><h2>'+T("ยังไม่เปิดรับจอง","Not open yet")+'</h2><p class="sub">'+T("ที่พักนี้กำลังรอการอนุมัติจากทีมงาน Barn Park","Awaiting approval from the Barn Park team.")+'</p></div></div>'; return; }
   try{ SVC=await API.pubServices(slug); }catch{ SVC=[]; }
   ACT=SVC.filter(s=>s.saleMode==="standalone"||s.saleMode==="both"); SVC=SVC.filter(s=>(s.saleMode||"addon")!=="standalone");
   const tpl=(TPL[HOTEL.template]?HOTEL.template:"rich");
@@ -1036,6 +1036,8 @@ async function boot(){
   if(qg>=1&&qg<=12&&$("g-pax")) $("g-pax").value=String(qg);
   await gSearch();
   if(QS.get("find")) openFind();
+  // มาจาก "กิจกรรมท้องถิ่น" บนหน้าแรก Barn Park (?act=<id>) → เลื่อนไปที่กิจกรรม แล้วเปิดหน้าต่างจองกิจกรรมนั้นเลย
+  const qa=QS.get("act"); if(qa&&ACT.some(s=>s._id===qa)){ const sa=$("sec-act"); if(sa) sa.scrollIntoView({block:"start"}); openAct(qa); }
 }
 function promoBar(){ const t=String(HOTEL.promoText||"").trim(); if(!t) return ""; try{ if(sessionStorage.getItem("bp_promo_x_"+slug)) return ""; }catch{} return '<div class="promo" id="g-promo">🎉 '+esc(t)+'<button type="button" aria-label="'+T("ปิด","Close")+'" onclick="hidePromo()">✕</button></div>'; }
 function hidePromo(){ const e=$("g-promo"); if(e) e.remove(); try{ sessionStorage.setItem("bp_promo_x_"+slug,"1"); }catch{} }
@@ -1088,8 +1090,8 @@ function renderContact(){ const el=$("sec-contact"); if(!el) return; const lu=li
 function renderFoot(){ const f=$("footer"); if(!f) return; const H=HOTEL, lu=lineHref(), tel=telHref();
   f.innerHTML='<div class="in"><div><span class="logo'+logoCls(H)+'">'+logoMark(H)+'<span class="nm">'+esc(H.name)+'</span></span><div>'+esc(H.address||H.location||"")+'</div></div>'+
     '<div><b>'+T("ติดต่อที่พัก","Contact")+'</b>'+(tel?'<a href="'+tel+'">📞 '+esc(H.phone)+'</a>':'')+(lu?'<a href="'+esc(lu)+'" target="_blank" rel="noopener">💬 LINE'+(lineName()?' '+esc(lineName()):'')+'</a>':'')+(H.mapUrl?'<a href="'+esc(H.mapUrl)+'" target="_blank" rel="noopener">📍 '+T("แผนที่","Map")+'</a>':'')+'</div>'+
-    '<div><b>'+T("การจองของฉัน","My booking")+'</b><a href="#" onclick="openFind();return false">🔎 '+T("เช็กการจอง / แจ้งโอน","Find booking / report payment")+'</a>'+(H.allowGuestCancel!==false?'<a href="#" onclick="openCancel();return false">↩️ '+T("ยกเลิกการจอง","Cancel a booking")+'</a>':'')+'<a href="#" onclick="openReview();return false">✍️ '+T("เขียนรีวิว","Write a review")+'</a><a href="privacy.html" target="_blank">📄 '+T("นโยบายความเป็นส่วนตัว","Privacy policy")+'</a></div></div>'+
-    '<div class="pw"><span>© '+new Date().getFullYear()+' '+esc(H.name)+'</span><span>'+T("ระบบจองโดย","Booking system by")+' BARN-PARK</span></div>'; }
+    '<div><b>'+T("การจองของฉัน","My booking")+'</b><a href="#" onclick="openFind();return false">🔎 '+T("เช็กการจอง / แจ้งโอน","Find booking / report payment")+'</a>'+(H.allowGuestCancel!==false?'<a href="#" onclick="openCancel();return false">↩️ '+T("ยกเลิกการจอง","Cancel a booking")+'</a>':'')+'<a href="#" onclick="openReview();return false">✍️ '+T("เขียนรีวิว","Write a review")+'</a><a href="privacy.html?h='+encodeURIComponent(slug)+'" target="_blank">📄 '+T("นโยบายความเป็นส่วนตัว","Privacy policy")+'</a></div></div>'+
+    '<div class="pw"><span>© '+new Date().getFullYear()+' '+esc(H.name)+'</span><span>'+T("ระบบจองโดย","Booking system by")+' Barn Park</span></div>'; }
 function renderSvc(){ const sec=$("sec-amen"); if(!sec) return; if(!SVC.length){ sec.style.display="none"; return; } sec.style.display="block";
   $("g-amen").innerHTML=SVC.map(s=>'<div class="am"><div class="ic" style="'+(s.imageUrl?"background-image:url('"+cu(s.imageUrl)+"')":"")+'">'+(s.imageUrl?"":svcIcon(s.name))+'</div><div class="tx"><div class="t">'+esc(s.name)+'</div>'+(s.description?'<div class="d">'+esc(s.description)+'</div>':'')+(s.price!=null?'<div class="p">'+(s.price?money(s.price):T("ฟรี","Free"))+'</div>':'')+'</div></div>').join(""); }
 function renderGallery(){ const sec=$("sec-gal"); if(!sec) return; const list=[]; const add=(u)=>{ if(u&&!list.includes(u)&&list.length<9) list.push(u); };
@@ -1217,7 +1219,7 @@ function renderSum(){
      '<p class="note" style="margin:0">📧 '+T("ใส่อีเมลเพื่อรับใบยืนยัน · เช็กการจองภายหลังได้ด้วยเลขจอง + เบอร์โทร","Add an email to get your confirmation · look it up later with booking no. + phone")+'</p></div>'+
     '<div class="grp"><h4>💳 '+T("วิธีชำระเงิน","Payment")+'</h4>'+payOptsHtml(opts,gPay,"setP","g-pay")+'<div class="holdnote" id="g-holdnote" style="display:none"></div>'+
      '<div class="polbox" id="g-policy"></div>'+
-     '<label class="consent"><input type="checkbox" id="g-consent"><span>'+T("ยินยอมให้ที่พักเก็บและใช้ข้อมูลการจองตาม ","I agree to the ")+'<a href="privacy.html" target="_blank">'+T("นโยบายความเป็นส่วนตัว","privacy policy")+'</a></span></label></div>'+
+     '<label class="consent"><input type="checkbox" id="g-consent"><span>'+T("ยินยอมให้ที่พักเก็บและใช้ข้อมูลการจองตาม ","I agree to the ")+'<a href="privacy.html?h='+encodeURIComponent(slug)+'" target="_blank">'+T("นโยบายความเป็นส่วนตัว","privacy policy")+'</a></span></label></div>'+
    '</div>'+
    '<div class="bk-foot"><div class="tot"><small id="g-tot-sub"></small><b id="g-foot-total"></b></div><button class="btn lg" id="g-confirm" onclick="confirmBk()"></button></div>';
   recalc(); setP(document.querySelector('#g-pay .opt[data-p="'+gPay+'"]'));
@@ -1315,7 +1317,7 @@ function openAct(id){ actSel=ACT.find(s=>s._id===id); if(!actSel) return;
     '<div class="field" style="margin-top:10px"><label for="a-name">'+T("ชื่อ-นามสกุล","Full name")+' *</label><input id="a-name" autocomplete="name"></div>'+
     '<div class="row2"><div class="field"><label for="a-tel">'+T("เบอร์โทร","Phone")+' *</label><input id="a-tel" type="tel" inputmode="tel" placeholder="08x-xxx-xxxx"></div><div class="field"><label for="a-mail">'+T("อีเมล","Email")+'</label><input id="a-mail" type="email"></div></div>'+
     (paid?'<label style="margin-top:4px">'+T("วิธีชำระเงิน","Payment")+'</label>'+payOptsHtml(opts,aPay,"setAP","a-pay"):'')+
-    '<label class="consent" style="margin-bottom:12px"><input type="checkbox" id="a-consent"><span>'+T("ยินยอมให้ที่พักใช้ข้อมูลนี้เพื่อการจอง ตาม","I agree to the")+' <a href="privacy.html" target="_blank">'+T("นโยบายความเป็นส่วนตัว","privacy policy")+'</a></span></label>'+
+    '<label class="consent" style="margin-bottom:12px"><input type="checkbox" id="a-consent"><span>'+T("ยินยอมให้ที่พักใช้ข้อมูลนี้เพื่อการจอง ตาม","I agree to the")+' <a href="privacy.html?h='+encodeURIComponent(slug)+'" target="_blank">'+T("นโยบายความเป็นส่วนตัว","privacy policy")+'</a></span></label>'+
     '<button class="btn block lg" id="a-go" onclick="confirmAct()"></button>';
   openModal("actModal"); setAP(document.querySelector('#a-pay .opt[data-p="'+aPay+'"]')); actAvail(); }
 function setAP(el){ const b=$("a-go"); if(el){ el.parentElement.querySelectorAll(".opt").forEach(o=>{ const on=o===el; o.classList.toggle("on",on); o.setAttribute("aria-checked",on?"true":"false"); }); aPay=el.dataset.p; }

@@ -236,7 +236,7 @@ window.API = (function () {
     a.id = "bp-support";
     a.href = href;
     a.target = "_blank"; a.rel = "noopener";
-    a.title = "ติดต่อทีมงาน BARN-PARK ทาง LINE";
+    a.title = "ติดต่อทีมงาน Barn Park ทาง LINE";
     a.innerHTML = '<span style="font-size:20px">💬</span><span>ช่วยเหลือ</span>';
     a.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:9999;display:flex;align-items:center;gap:8px;background:#06C755;color:#fff;font-family:inherit;font-weight:700;font-size:14px;text-decoration:none;padding:11px 16px;border-radius:999px;box-shadow:0 8px 24px rgba(6,199,85,.4)";
     const add = () => document.body && document.body.appendChild(a);

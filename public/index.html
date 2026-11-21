@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BARN-PARK · ที่พักชุมชนและโฮมสเตย์ทั่วไทย จองตรงกับเจ้าของ</title>
+<title>Barn Park · ที่พักชุมชนและโฮมสเตย์ทั่วไทย จองตรงกับเจ้าของ</title>
 <meta name="description" content="ค้นหาที่พักชุมชน โฮมสเตย์ และที่พักเล็ก ๆ ทั่วไทยบนแผนที่ เช็กห้องว่างตามวันที่ แล้วจองตรงกับเจ้าของ — ราคาจากที่พัก ไม่มีค่าธรรมเนียมแอบแฝง · ระบบจองตรงสำหรับเจ้าของที่พัก จัดการใน LINE">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="BARN-PARK">
+<meta property="og:site_name" content="Barn Park">
 <meta property="og:image" content="https://barnpark.onrender.com/media/barnpark-ad.jpg">
 <meta property="og:image:width" content="1280">
 <meta property="og:image:height" content="720">
 <meta name="twitter:card" content="summary_large_image">
-<meta property="og:title" content="BARN-PARK · ที่พักชุมชนและโฮมสเตย์ทั่วไทย จองตรงกับเจ้าของ">
+<meta property="og:title" content="Barn Park · ที่พักชุมชนและโฮมสเตย์ทั่วไทย จองตรงกับเจ้าของ">
 <meta property="og:description" content="ค้นหาที่พักบนแผนที่ เช็กห้องว่างตามวันที่ แล้วจองตรงกับเจ้าของที่พัก">
 <link rel="icon" href="media/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="media/favicon-32.png" sizes="32x32" type="image/png">
@@ -99,12 +99,31 @@
   .pin.off{background:#9aa5b1}
   .owners-tag{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;font-weight:700;font-size:13px;padding:6px 14px;border-radius:999px;margin-bottom:14px}
   #owners{scroll-margin-top:62px}
+  /* กิจกรรมท้องถิ่น (จองได้แม้ไม่เข้าพัก) */
+  .acts{padding:10px 0 44px;scroll-margin-top:62px}
+  .acts .head{text-align:center;max-width:720px;margin:0 auto 20px}
+  .acts .tag{display:inline-block;background:#e3f1e6;color:var(--brand);font-weight:700;font-size:13px;padding:6px 14px;border-radius:999px;margin-bottom:10px}
+  .acts h2{font-size:clamp(22px,3.2vw,30px);line-height:1.4;font-weight:800;color:var(--brand);margin:0 0 6px}
+  .acts .head p{color:var(--muted);margin:0;font-size:15px;line-height:1.7}
+  .agrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,280px));justify-content:center;gap:14px}
+  .acard{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .15s,border-color .15s}
+  .acard:hover{border-color:var(--brand2);box-shadow:0 8px 22px -14px rgba(14,75,46,.6)}
+  .acard .im{height:140px;background:#dfeee2 center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-size:42px}
+  .acard .bd{padding:12px 14px 14px;display:flex;flex-direction:column;gap:5px;flex:1}
+  .acard h3{font-size:16px;line-height:1.45;margin:0;color:var(--navy,#0f2540)}
+  .acard .where{font-size:13px;color:var(--muted)}
+  .acard .ds{font-size:13.5px;color:#475569;margin:0;line-height:1.55}
+  .acard .tm{font-size:12.5px;color:var(--brand)}
+  .acard .ft{margin-top:auto;padding-top:6px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .acard .pr{font-weight:800;color:var(--brand);font-size:16px}
+  .acard .pr small{font-weight:500;color:var(--muted);font-size:12.5px}
+  @media(max-width:640px){.agrid{grid-template-columns:1fr}.acard{flex-direction:row}.acard .im{width:96px;height:auto;min-height:118px;flex:none;font-size:32px}.acard .bd{padding:10px 12px}}
   @media(max-width:860px){.xgrid{grid-template-columns:1fr}.xmap{position:relative;top:0;height:320px;order:-1}}
 </style>
 </head>
 <body>
-<div class="lnav"><div class="in"><a class="bp-logo" href="/" aria-label="BARNPARK หน้าแรก"><img src="media/barnpark-logo.svg" alt="BARNPARK"></a>
-  <div class="links"><a class="tx" href="#explore" data-th="ค้นหาที่พัก" data-en="Find a stay">ค้นหาที่พัก</a><a class="tx" href="#owners" data-th="สำหรับเจ้าของที่พัก" data-en="For hosts">สำหรับเจ้าของที่พัก</a>
+<div class="lnav"><div class="in"><a class="bp-logo" href="/" aria-label="Barn Park หน้าแรก"><img src="media/barnpark-logo.svg" alt="Barn Park"></a>
+  <div class="links"><a class="tx" href="#explore" data-th="ค้นหาที่พัก" data-en="Find a stay">ค้นหาที่พัก</a><a class="tx" href="#activities" id="nav-acts" hidden data-th="กิจกรรม" data-en="Activities">กิจกรรม</a><a class="tx" href="#owners" data-th="สำหรับเจ้าของที่พัก" data-en="For hosts">สำหรับเจ้าของที่พัก</a>
   <a class="btn ghost sm" href="login.html" data-th="เข้าสู่ระบบโรงแรม" data-en="Hotel login">เข้าสู่ระบบโรงแรม</a></div></div></div>
 <section class="explore" id="explore" aria-label="แผนที่ที่พัก"><div class="wrap">
   <div class="head">
@@ -130,13 +149,21 @@
     <div class="xmap"><div id="hmap" role="region" aria-label="แผนที่ประเทศไทย"></div></div>
   </div>
 </div></section>
+<section class="acts" id="activities" aria-label="กิจกรรมท้องถิ่น" hidden><div class="wrap">
+  <div class="head">
+    <span class="tag" data-th="🌿 กิจกรรมท้องถิ่น" data-en="🌿 Local activities">🌿 กิจกรรมท้องถิ่น</span>
+    <h2 data-th="ลองทำแบบคนท้องถิ่น" data-en="Do it the local way">ลองทำแบบคนท้องถิ่น</h2>
+    <p data-th="เวิร์กช็อป นวด และประสบการณ์จากที่พักในเครือข่าย — จองได้แม้ไม่ได้เข้าพัก" data-en="Workshops, massage and experiences from our hosts — book even without staying">เวิร์กช็อป นวด และประสบการณ์จากที่พักในเครือข่าย — จองได้แม้ไม่ได้เข้าพัก</p>
+  </div>
+  <div class="agrid" id="agrid"></div>
+</div></section>
 <div class="hero2" id="owners"><div class="wrap">
   <span class="owners-tag" data-th="สำหรับเจ้าของที่พัก" data-en="For property owners">สำหรับเจ้าของที่พัก</span>
-  <img class="hero-logo" src="media/barnpark-logo-white.svg" alt="BARNPARK">
+  <img class="hero-logo" src="media/barnpark-logo-white.svg" alt="Barn Park">
   <h1 data-th="เว็บจองตรงของที่พักคุณ · จัดการทั้งหมดใน LINE" data-en="Your own direct-booking website · managed in LINE">เว็บจองตรงของที่พักคุณ · จัดการทั้งหมดใน LINE</h1>
   <p data-th="ระบบจองที่พัก สำหรับที่พักชุมชนและ SME — รับจองตรง กันจองซ้อน พร้อมหน้าเว็บของโรงแรมในตัว" data-en="A booking system for community stays & SMEs — take direct bookings, prevent double-booking, with a built-in website for your property.">ระบบจองที่พัก สำหรับที่พักชุมชนและ SME — รับจองตรง กันจองซ้อน พร้อมหน้าเว็บของโรงแรมในตัว</p>
   <div class="cta"><a class="btn white lg" href="book.html?h=barnbarn" data-th="ทดลองหน้าจอง (มุมมองลูกค้า)" data-en="Try the booking page (guest view)">ทดลองหน้าจอง (มุมมองลูกค้า)</a>
-    <a class="btn white lg" href="login.html?mode=register" data-th="ลงทะเบียนเชื่อมที่พักกับ Barn-Park" data-en="Register your property with Barn-Park">ลงทะเบียนเชื่อมที่พักกับ Barn-Park</a></div>
+    <a class="btn white lg" href="login.html?mode=register" data-th="ลงทะเบียนเชื่อมที่พักกับ Barn Park" data-en="Register your property with Barn Park">ลงทะเบียนเชื่อมที่พักกับ Barn Park</a></div>
   <a class="vlink" href="#video" onclick="var v=document.querySelector('#video video'); if(v){ var p=v.play(); if(p&&p.catch) p.catch(function(){}); }" data-th="▶ ดูวิดีโอแนะนำ 1 นาที" data-en="▶ Watch the 1-minute intro">▶ ดูวิดีโอแนะนำ 1 นาที</a>
 </div></div>
 <section class="vid" id="video" aria-label="วิดีโอแนะนำ Barn Park">
@@ -151,7 +178,7 @@
     <div class="scard"><div class="ic">💬</div><h3>LINE OA</h3><p data-th="ตั้งค่า Rich Menu ข้อความอัตโนมัติ" data-en="Rich Menu & auto-reply setup">ตั้งค่า Rich Menu ข้อความอัตโนมัติ</p><div class="from" data-th="เริ่ม ฿3,900" data-en="From ฿3,900">เริ่ม ฿3,900</div></div>
   </div>
 </div></div>
-<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:13px">© BARN-PARK · <a href="privacy.html" data-th="นโยบายความเป็นส่วนตัว" data-en="Privacy policy">นโยบายความเป็นส่วนตัว</a></div>
+<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:13px">© Barn Park · <a href="privacy.html" data-th="นโยบายความเป็นส่วนตัว" data-en="Privacy policy">นโยบายความเป็นส่วนตัว</a></div>
 <script src="api.js"></script>
 <script src="vendor/leaflet/leaflet.js"></script>
 <script>API.applyI18n(); API.mountLangToggle(); API.mountSupport();
@@ -292,5 +319,25 @@
     .then(function (d) { HOTELS = Array.isArray(d) ? d : []; renderChips(); render(); })
     .catch(function () { cards.innerHTML = '<div class="xempty">' + T("โหลดรายชื่อที่พักไม่สำเร็จ ลองรีเฟรชอีกครั้ง", "Couldn't load stays — please refresh") + "</div>"; });
 })();</script>
+<script>
+// ===== กิจกรรมท้องถิ่น — กิจกรรมที่จองได้แม้ไม่เข้าพัก จากทุกที่พักในเครือข่าย (/api/public/activities) · ไม่มีกิจกรรม = ซ่อนทั้งส่วน
+(function () {
+  var T = API.t, esc = API.esc;
+  var money = function (n) { return "฿" + Number(n || 0).toLocaleString("en-US"); };
+  var icon = function (n) { n = String(n || ""); return /นวด|สปา|massage|spa/i.test(n) ? "💆" : /อาหาร|ขนม|ทำกับข้าว|cook|food/i.test(n) ? "🍳" : /ย้อม|ปั้น|สาน|เวิร์ก|workshop|craft/i.test(n) ? "🏺" : "🌿"; };
+  fetch("/api/public/activities").then(function (r) { return r.ok ? r.json() : []; }).then(function (list) {
+    if (!Array.isArray(list) || !list.length) return;
+    document.getElementById("agrid").innerHTML = list.map(function (a) {
+      var h = a.hotel || {}, pic = a.image ? '<div class="im" style="background-image:url(\'' + esc(a.image).replace(/'/g, "%27") + '\')"></div>' : '<div class="im" aria-hidden="true">' + icon(a.name) + "</div>";
+      return '<article class="acard">' + pic + '<div class="bd"><h3>' + esc(a.name) + '</h3><div class="where">📍 ' + esc(h.name) + (h.location ? " · " + esc(h.location) : "") + "</div>" +
+        (a.description ? '<p class="ds">' + esc(a.description) + "</p>" : "") + ((a.times || []).length ? '<div class="tm">🕘 ' + a.times.map(esc).join(" · ") + "</div>" : "") +
+        '<div class="ft"><span class="pr">' + (a.price ? money(a.price) + " <small>" + esc(T(a.unit || "ต่อท่าน", "per person")) + "</small>" : T("ฟรี", "Free")) + "</span>" +
+        '<a class="btn sm" href="book.html?h=' + encodeURIComponent(h.slug || "") + "&act=" + encodeURIComponent(a.id) + '">' + T("จองกิจกรรม", "Book") + "</a></div></div></article>";
+    }).join("");
+    document.getElementById("activities").hidden = false;
+    var nv = document.getElementById("nav-acts"); if (nv) nv.hidden = false;
+  }).catch(function () {});
+})();
+</script>
 </body>
 </html>
