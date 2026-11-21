@@ -15,17 +15,21 @@ const q = (v) => ({ select() { return this; }, sort() { return this; }, lean: as
 
 const HID = "64b7f0c2a1b2c3d4e5f60718", OTHER = "64b7f0c2a1b2c3d4e5f60719";
 const hotel = { _id: HID, name: "บ้านทดสอบ", slug: "test-home", taxId: "0105555000000", phone: "0811111111", address: "1 ถ.ทดสอบ", brandColor: "#7c2d12", accentColor: "#d97706", fontFamily: "Prompt", uiStyle: "soft", template: "classic", lineChannelToken: "SECRET-TOKEN" };
+// วันที่ในเทสต์อิง "วันนี้" ตามเวลาไทย — เดิมเขียนวันจริง 1–5 พ.ย. 2026 ไว้ตายตัว พอเลยวันนั้นไป เทสต์รีวิวก็พังตามปฏิทิน ทั้งที่โค้ดไม่ได้ผิด
+const day = (n) => new Date(Date.now() + 7 * 3600e3 + n * 864e5).toISOString().slice(0, 10);
+const D1 = day(30), D2 = day(31), D3 = day(32), D5 = day(34); // เข้าพักในอนาคต
+const P1 = day(-30), P3 = day(-28); // เข้าพักไปแล้ว
 const rooms = [
-  { _id: "b1", hotel: HID, ref: "BP-ABC123", roomType: "rt1", checkin: "2026-11-01", checkout: "2026-11-03", status: "confirmed", payStatus: "paid", payMethod: "promptpay", guestName: "สมชาย", guestTel: "0899999999", guestEmail: "x@y.z",
-    amount: 2400 - 200 + 600 + 500, discount: 200, promoCode: "SAVE", breakfastTotal: 600, breakfastPax: 2, breakfastDates: ["2026-11-02", "2026-11-03"], addonTotal: 500, addons: [{ name: "นวด", price: 500, qty: 1, date: "2026-11-02" }], extraBed: 1, pax: 3 },
-  { _id: "b2", hotel: HID, ref: "BP-ABC123-1", roomType: "rt1", checkin: "2026-11-01", checkout: "2026-11-03", status: "confirmed", payStatus: "paid", amount: 2400 - 200, discount: 200 },
+  { _id: "b1", hotel: HID, ref: "BP-ABC123", roomType: "rt1", checkin: D1, checkout: D3, status: "confirmed", payStatus: "paid", payMethod: "promptpay", guestName: "สมชาย", guestTel: "0899999999", guestEmail: "x@y.z",
+    amount: 2400 - 200 + 600 + 500, discount: 200, promoCode: "SAVE", breakfastTotal: 600, breakfastPax: 2, breakfastDates: [D2, D3], addonTotal: 500, addons: [{ name: "นวด", price: 500, qty: 1, date: D2 }], extraBed: 1, pax: 3 },
+  { _id: "b2", hotel: HID, ref: "BP-ABC123-1", roomType: "rt1", checkin: D1, checkout: D3, status: "confirmed", payStatus: "paid", amount: 2400 - 200, discount: 200 },
 ];
 M.Hotel.findOne = (f) => q(() => (f.slug === "test-home" ? { ...hotel } : null));
 M.Hotel.findById = (id) => q(() => (String(id) === HID ? { ...hotel } : null));
 M.RoomType.findById = () => q({ name: "ห้องริมน้ำ" });
 M.Booking.find = (f) => q(() => rooms.filter((b) => b.hotel === f.hotel && f.ref.test(b.ref)));
 M.Booking.findById = (id) => q(() => rooms.find((b) => b._id === id) || null);
-M.ActivityBooking.findOne = (f) => q(() => (f.ref === "BA-XYZ789" ? { hotel: HID, ref: "BA-XYZ789", serviceName: "คลาสทำอาหาร", date: "2026-11-05", time: "09:00", qty: 2, amount: 1200, status: "confirmed", payStatus: "unpaid", guestName: "Anna", guestTel: "0811" } : null));
+M.ActivityBooking.findOne = (f) => q(() => (f.ref === "BA-XYZ789" ? { hotel: HID, ref: "BA-XYZ789", serviceName: "คลาสทำอาหาร", date: D5, time: "09:00", qty: 2, amount: 1200, status: "confirmed", payStatus: "unpaid", guestName: "Anna", guestTel: "0811" } : null));
 
 const reviews = [];
 M.Review.findOne = (f) => q(() => reviews.find((x) => String(x.hotel) === String(f.hotel) && f.ref.test(x.ref)) || null);
@@ -40,7 +44,7 @@ t("receipt URL built from PUBLIC_URL", receiptUrl(hotel, "BP-ABC123") === `https
 // ---- ข้อมูลใบเสร็จ
 const d = await receiptData(hotel, "BP-ABC123");
 t("room receipt totals: 2 rooms 4,800 − discount 400 + breakfast 600 + massage 500 = 5,500", d.total === 5500 && d.discount === 400 && d.lines[0].amount === 4800 && d.lines[0].qty === 2, d);
-t("lines: room, breakfast with mornings, dated extra", d.lines.length === 3 && d.lines[1].detail.dates.length === 2 && d.lines[2].th === "นวด" && d.lines[2].detail.date === "2026-11-02", d.lines);
+t("lines: room, breakfast with mornings, dated extra", d.lines.length === 3 && d.lines[1].detail.dates.length === 2 && d.lines[2].th === "นวด" && d.lines[2].detail.date === D2, d.lines);
 t("hotel theme passed to the page (template, colours, font)", d.hotel.template === "classic" && d.hotel.brandColor === "#7c2d12" && d.hotel.fontFamily === "Prompt" && d.hotel.taxId === "0105555000000");
 t("no secrets / contact details leak", !JSON.stringify(d).includes("SECRET-TOKEN") && !JSON.stringify(d).includes("0899999999") && !JSON.stringify(d).includes("x@y.z"));
 t("paid status", d.payStatus === "paid" && d.status === "confirmed" && d.kind === "room");
@@ -75,7 +79,7 @@ t("other hotel's owner refused", r.status === 403);
 const post = (body) => realFetch(`${base}/api/public/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(async (x) => ({ status: x.status, json: await x.json() }));
 let p = await post({ slug: "test-home", ref: "BP-ABC123", k, rating: 5, text: "ดีมาก" });
 t("review before check-in refused", p.status === 400 && /หลังวันเข้าพัก/.test(p.json.error) && !reviews.length, p);
-for (const b of rooms) { b.checkin = "2026-10-01"; b.checkout = "2026-10-03"; }
+for (const b of rooms) { b.checkin = P1; b.checkout = P3; }
 t("receipt offers a review after the stay", (await receiptData(hotel, "BP-ABC123")).review === "open");
 p = await post({ slug: "test-home", ref: "BP-ABC123", k: "wrong-key-wrong-key-xx", rating: 5 });
 t("review with a wrong key refused", p.status === 400 && !reviews.length, p);
