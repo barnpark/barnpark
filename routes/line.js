@@ -31,8 +31,8 @@ r.post("/webhook/:slug", async (req, res) => {
       const uid = ev?.source?.userId, gid = ev?.source?.groupId;
       if (ev.type !== "message" || !ev.replyToken) continue;
       const msg = gid
-        ? `groupId ของกลุ่มนี้คือ:\n${gid}\nนำไปวางในช่อง "LINE ผู้รับแจ้งเตือน" ในหน้าตั้งค่า BARN-PARK`
-        : `userId ของคุณคือ:\n${uid}\nนำไปวางในช่อง "LINE ผู้รับแจ้งเตือน" ในหน้าตั้งค่า BARN-PARK เพื่อรับแจ้งเตือนเมื่อมีจองใหม่\n\n(ใส่ Channel secret ในหน้าตั้งค่าด้วย เพื่อเปิดให้แขกจองห้องผ่านแชทนี้)`;
+        ? `groupId ของกลุ่มนี้คือ:\n${gid}\nนำไปวางในช่อง "LINE ผู้รับแจ้งเตือน" ในหน้าตั้งค่า Barn Park`
+        : `userId ของคุณคือ:\n${uid}\nนำไปวางในช่อง "LINE ผู้รับแจ้งเตือน" ในหน้าตั้งค่า Barn Park เพื่อรับแจ้งเตือนเมื่อมีจองใหม่\n\n(ใส่ Channel secret ในหน้าตั้งค่าด้วย เพื่อเปิดให้แขกจองห้องผ่านแชทนี้)`;
       await L.replyAs(h.lineChannelToken, ev.replyToken, [{ type: "text", text: msg }]).catch((e) => console.error("line reply", e.message));
     }
     return res.sendStatus(200);
