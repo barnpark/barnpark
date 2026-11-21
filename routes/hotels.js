@@ -114,7 +114,7 @@ r.get("/hotels/:id", requireAuth, async (req, res) => {
 });
 
 r.post("/hotels", requireAuth, requireAdmin, async (req, res) => {
-  if (badImageFields(req.body, ["coverUrl", "promoImage", "logoUrl"])) return res.status(400).json({ error: "ลิงก์รูปไม่ถูกต้อง" });
+  if (badImageFields(req.body, ["coverUrl", "promoImage", "logoUrl"])) return res.status(400).json({ error: "ลิงก์รูปไม่ถูกต้อง — ใช้ลิงก์ไฟล์รูป https (ลิงก์เพจ Facebook / LINE / Google Maps ใช้แทนรูปไม่ได้ ให้อัปโหลดรูปแทน)" });
   try { const id = new mongoose.Types.ObjectId(); const body = { ...req.body, _id: id }; await storeImageFields(body, HOTEL_IMG, `h/${id}/img`); res.json(await Hotel.create(body)); }
   catch (e) { res.status(400).json({ error: String(e.message || e) }); }
 });
@@ -153,7 +153,7 @@ r.patch("/hotels/:id", requireAuth, async (req, res) => {
     if (safe.ota !== undefined) safe.ota = (Array.isArray(safe.ota) ? safe.ota : []).filter((o) => o && OTA_CH.includes(o.channel)).slice(0, OTA_CH.length)
       .map((o) => ({ channel: o.channel, status: Math.max(0, Math.min(3, parseInt(o.status, 10) || 0)), propertyId: String(o.propertyId || "").slice(0, 60), ...(o.requestedAt && !isNaN(new Date(o.requestedAt)) ? { requestedAt: new Date(o.requestedAt) } : {}) }));
   }
-  if (badImageFields(safe, ["coverUrl", "promoImage", "logoUrl"])) return res.status(400).json({ error: "ลิงก์รูปไม่ถูกต้อง (ใช้ลิงก์ https)" });
+  if (badImageFields(safe, ["coverUrl", "promoImage", "logoUrl"])) return res.status(400).json({ error: "ลิงก์รูปไม่ถูกต้อง — ใช้ลิงก์ไฟล์รูป https (ลิงก์เพจ Facebook / LINE / Google Maps ใช้แทนรูปไม่ได้ ให้อัปโหลดรูปแทน)" });
   if (safe.promptpayId !== undefined && String(safe.promptpayId).trim() !== "") {
     const pp = normalizePromptPayId(safe.promptpayId);
     if (!pp) return res.status(400).json({ error: "เบอร์พร้อมเพย์ไม่ถูกต้อง — ใช้เบอร์มือถือ 10 หลัก หรือเลขบัตรประชาชน/เลขนิติบุคคล 13 หลัก" });
