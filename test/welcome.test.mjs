@@ -75,5 +75,32 @@ t("Skip with no language yet → English", eq(press("skip"), { bp_welcomed: "1",
 t("Skip keeps a language chosen before", eq(press("skip", { bp_lang: "th" }), { bp_welcomed: "1", bp_lang: "th" }));
 t("English chosen on the welcome page wins over an old Thai choice", eq(press("en", { bp_lang: "th" }), { bp_welcomed: "1", bp_lang: "en" }));
 
+// รูปที่พัก: ลิงก์รูปปกแบบเดียวกับที่ /api/public/map ส่งจริง (มี ?v=…)
+const photos = async (list) => {
+  const figs = ["barnbarn", "kok-eden-farm-kabin-buri", "paleo-pateo"].map((slug) => ({ slug, ph: { style: {} }, removed: false }));
+  const box = {
+    removed: false, remove() { this.removed = true; },
+    querySelectorAll: () => figs.map((f) => ({ getAttribute: () => f.slug, querySelector: () => f.ph, remove: () => { f.removed = true; } })),
+  };
+  vm.runInNewContext(wcode, {
+    document: { querySelectorAll: () => [], getElementById: (id) => (id === "photos" ? box : { hidden: true }) },
+    localStorage: { getItem: () => null, setItem() {} }, window: {},
+    fetch: () => Promise.resolve({ ok: true, json: () => Promise.resolve(list) }),
+  });
+  for (let i = 0; i < 5; i++) await new Promise((res) => setTimeout(res, 0));
+  return { figs: figs.map((f) => (f.removed ? "-" : f.ph.style.backgroundImage || "")), boxRemoved: box.removed };
+};
+const ID = "6ad04dbf825e5bef1fbabb67";
+let ph = await photos([
+  { slug: "barnbarn", cover: `/api/public/img/cover/${ID}/0?v=1732170000000` },
+  { slug: "kok-eden-farm-kabin-buri", cover: "https://abc.supabase.co/storage/v1/object/public/covers/k.jpg" },
+  { slug: "paleo-pateo", cover: `/api/public/img/cover/${ID}/0?v=1") url("https://evil.example/x.png` },
+]);
+t("cover link with ?v=… (as the map API sends it) is shown", ph.figs[0] === `url("/api/public/img/cover/${ID}/0?v=1732170000000")`, ph);
+t("https cover is shown", ph.figs[1] === 'url("https://abc.supabase.co/storage/v1/object/public/covers/k.jpg")', ph);
+t("a cover link that could break out of url(\"…\") is dropped, the rest stay", ph.figs[2] === "-" && !ph.boxRemoved, ph);
+ph = await photos([{ slug: "barnbarn", cover: "" }, { slug: "@753ctjdq", cover: `/api/public/img/cover/${ID}/0?v=1` }]);
+t("no usable cover → the whole photo block is hidden", ph.boxRemoved && ph.figs.every((f) => f === "-"), ph);
+
 console.log(`welcome: ${ok} passed, ${bad} failed`);
 process.exit(bad ? 1 : 0);

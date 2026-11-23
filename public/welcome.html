@@ -229,7 +229,7 @@
 
   // รูปปกจริงของที่พักจากแผนที่ (/api/public/map) · ที่พักไหนไม่มีรูปปก/ไม่อยู่บนแผนที่ = ซ่อนรูปนั้น
   var box = document.getElementById("photos");
-  var okUrl = function (u) { u = String(u || ""); return /^https:\/\/[^\s"'()\\]+$/.test(u) || /^\/api\/public\/img\/cover\/[\w-]+\/\d+$/.test(u) ? u : ""; };
+  var okUrl = function (u) { u = String(u || ""); return /^https:\/\/[^\s"'()\\]+$/.test(u) || /^\/api\/public\/img\/cover\/[\w-]+\/\d+(\?[\w=&.-]*)?$/.test(u) ? u : ""; };
   fetch("/api/public/map").then(function (r) { return r.ok ? r.json() : []; }).then(function (list) {
     var by = {}, shown = 0;
     (Array.isArray(list) ? list : []).forEach(function (h) { if (h && h.slug) by[h.slug] = h; });
