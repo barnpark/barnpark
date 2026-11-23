@@ -73,6 +73,14 @@ t("paused hotel: noindex", (await page()).includes("noindex"));
 M.Review.find = () => q([]); hotel = { ...hotel, status: "active" };
 html = await page();
 t("no reviews → no rating in JSON-LD", html.includes("ld+json") && !html.includes("aggregateRating"));
+// แอดมินยืนยันหมุดแล้ว → JSON-LD ใช้หมุดนี้แทนพิกัดจากลิงก์ (mock เลือกเฉพาะฟิลด์ที่ select เหมือนฐานข้อมูลจริง)
+const findOne0 = M.Hotel.findOne;
+const pick = (o, f) => { if (!f) return o; const k = ["_id", ...f.split(/\s+/).filter(Boolean)]; return Object.fromEntries(Object.entries(o).filter(([x]) => k.includes(x))); };
+M.Hotel.findOne = () => { let f = null; return { select(x) { f = x; return this; }, lean: async () => pick({ ...hotel, pin: { lat: 13.864854, lng: 101.782413, at: new Date() } }, f) }; };
+html = await page();
+const ld2 = (() => { try { return JSON.parse((html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/) || [])[1] || "null"); } catch { return null; } })();
+t("JSON-LD: admin-confirmed pin beats the link's coordinates", ld2 && ld2.geo && ld2.geo.latitude === 13.864854 && ld2.geo.longitude === 101.782413, ld2 && ld2.geo);
+M.Hotel.findOne = findOne0;
 // ลิงก์เดิมของที่พักที่ slug ขึ้นต้นด้วย @ (ไอดี LINE) ต้องได้การ์ดแชร์ · รูปปกที่เป็นลิงก์เพจ Facebook ไม่ใช่รูป → ไม่ใส่ og:image
 hotel = { ...hotel, slug: "@753ctjdq", coverUrl: "https://www.facebook.com/p/The-Y-Habitat-Hotel-61588588984725/", logoUrl: "" };
 const pageFor = async (h) => { let out = ""; const res = { set() { return res; }, send(s) { out = s; } };

@@ -57,6 +57,7 @@ const schema = new mongoose.Schema({
   onMap:       { type: Boolean, default: true },      // แสดงบนแผนที่หน้าแรก Barn Park (ปิดได้ในเว็บหลังบ้าน)
   geo:         { lat: Number, lng: Number },          // พิกัดจาก mapUrl (lib/geo.js คำนวณให้เอง)
   geoFrom:     String,                                // mapUrl ที่ใช้คำนวณ geo ล่าสุด (เปลี่ยนลิงก์ = คำนวณใหม่)
+  pin:         { lat: Number, lng: Number, at: Date }, // หมุดบนแผนที่หน้าแรกที่แอดมิน Barn Park ยืนยัน — ใช้แทน geo · ตั้งได้ที่หน้าแอดมินเท่านั้น (PATCH /api/admin/hotels/:id/pin)
   cancelDays:  { type: Number, default: 3 },          // ยกเลิกฟรีก่อนเช็คอินกี่วัน
   holdHours:   { type: Number, default: 24 },         // ปล่อยห้องที่จองค้างไม่จ่ายอัตโนมัติ (ชม.) · 0 = ปิด
   ota:         { type: [otaSchema], default: [] },

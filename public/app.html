@@ -252,13 +252,13 @@
       <div class="formgrid">
         <div><label>เช็คอินได้ตั้งแต่</label><input id="s-cin" type="time" placeholder="14:00"></div>
         <div><label>เช็คเอาท์ก่อน</label><input id="s-cout" type="time" placeholder="12:00"></div>
-        <div style="grid-column:1/-1"><label>ลิงก์แผนที่ (Google Maps)</label><input id="s-map" placeholder="วางลิงก์จากปุ่ม “แชร์” ใน Google Maps หรือพิกัด เช่น 13.7563, 100.5018"></div>
+        <div style="grid-column:1/-1"><label>ลิงก์แผนที่ (Google Maps)</label><input id="s-map" placeholder="วางลิงก์จากปุ่ม “แชร์” ใน Google Maps หรือพิกัด เช่น 13.7563, 100.5018"><p class="note" id="s-pin" style="display:none;margin:4px 0 0"></p></div>
         <div style="grid-column:1/-1"><label>กฎที่พัก / ข้อควรรู้ (บรรทัดละข้อ)</label><textarea id="s-rules" rows="4" placeholder="🚭 ห้ามสูบบุหรี่ในห้องพัก&#10;🔇 งดใช้เสียงดังหลัง 22:00 น.&#10;🐶 ไม่อนุญาตให้นำสัตว์เลี้ยงเข้าพัก"></textarea></div>
       </div><p class="note" style="margin:6px 0 0">ที่อยู่ที่พัก ใส่ได้ในกล่อง “💳 วิธีรับเงินจากแขก” ด้านบน · ทำผ่าน LINE ได้ที่ 🎨 ตั้งค่าเว็บ → 🛎 ข้อมูลการเข้าพัก (ส่งตำแหน่งจากมือถือได้เลย)</p>
       <button class="btn" style="margin-top:12px" onclick="saveHotel()">บันทึกข้อมูลการเข้าพัก</button></div>
     <div class="panel"><h3>นโยบายการยกเลิก</h3><p class="sub" style="margin-top:0">กำหนดเองว่าจะให้แขกยกเลิกออนไลน์ได้ไหม และยกเลิกฟรีก่อนเช็คอินกี่วัน</p>
       <div class="formgrid">
-        <div><label>แสดงบนแผนที่หน้าแรก Barn Park</label><select id="s-onmap"><option value="yes">แสดง (ใช้ตำแหน่งจากลิงก์แผนที่)</option><option value="no">ไม่แสดง</option></select></div>
+        <div><label>แสดงบนแผนที่หน้าแรก Barn Park</label><select id="s-onmap"><option value="yes">แสดง (ตำแหน่งที่ Barn Park ยืนยัน หรือจากลิงก์แผนที่)</option><option value="no">ไม่แสดง</option></select></div>
         <div><label>ให้แขกยกเลิกออนไลน์</label><select id="s-cancel-allow"><option value="yes">อนุญาต</option><option value="no">ไม่อนุญาต (ติดต่อโรงแรมเท่านั้น)</option></select></div>
         <div><label>ยกเลิกฟรีก่อนเช็คอิน (วัน)</label><input id="s-cancel-days" type="number" value="3" min="0"></div>
         <div><label>“จองไว้ก่อน โอนทีหลัง” ต้องโอนภายใน (ชม.)</label><input id="s-hold-hours" type="number" value="24" min="0" placeholder="0 = ปิด"></div>
@@ -773,6 +773,9 @@ function prevTheme(){ // ดูตัวอย่างสด (ยังไม�
   ['s-c1|s-c1x','s-c2|s-c2x','s-a1|s-a1x','s-a2|s-a2x'].forEach(p=>{const[a,b]=p.split('|');document.getElementById(b).value=document.getElementById(a).value;});
   API.applyTheme(themeFromForm());
 }
+// หมุดบนแผนที่หน้าแรก Barn Park: ถ้าทีมงานยืนยันตำแหน่งให้แล้ว (Hotel.pin) บอกไว้ใต้ช่องลิงก์แผนที่
+function pinNote(){const p=HOTEL.pin,el=document.getElementById('s-pin');if(!el)return;const ok=!!p&&typeof p.lat==='number'&&typeof p.lng==='number';
+  el.style.display=ok?'':'none';el.textContent=ok?'📍 ทีมงาน Barn Park ยืนยันตำแหน่งบนแผนที่หน้าแรกให้แล้ว — ลิงก์นี้ยังใช้ให้แขกกดเปิด Google Maps จากหน้าจองเหมือนเดิม':'';}
 async function fillSettings(){
   document.getElementById('s-name').value=HOTEL.name||'';document.getElementById('s-loc').value=HOTEL.location||'';document.getElementById('s-tel').value=HOTEL.phone||'';document.getElementById('s-notify').value=HOTEL.notifyEmail||'';
   document.getElementById('s-tagline').value=HOTEL.tagline||'';
@@ -793,7 +796,7 @@ async function fillSettings(){
   document.getElementById('s-cancel-days').value=HOTEL.cancelDays??3;
   document.getElementById('s-hold-hours').value=HOTEL.holdHours??24;
   document.getElementById('s-cin').value=HOTEL.checkInTime||''; document.getElementById('s-cout').value=HOTEL.checkOutTime||'';
-  document.getElementById('s-map').value=HOTEL.mapUrl||''; document.getElementById('s-rules').value=HOTEL.houseRules||'';
+  document.getElementById('s-map').value=HOTEL.mapUrl||''; document.getElementById('s-rules').value=HOTEL.houseRules||''; pinNote();
   // PromptPay + LINE + ลิงก์
   const link=location.origin+'/book.html?h='+encodeURIComponent(HOTEL.slug);document.getElementById('booklink').value=link;document.getElementById('bookopen').href=link;
   document.getElementById('s-line-id').value=HOTEL.lineId||''; lineTest();
@@ -883,7 +886,7 @@ async function saveHotel(){
   if(upd.payTransfer&&(!upd.bankAccountNo||!upd.bankName)){ API.toast('เปิดรับโอนแล้ว แต่ยังไม่ได้เลือกธนาคาร/ใส่เลขบัญชี','err'); document.getElementById(upd.bankName?'s-bank-no':'s-bank').focus(); return; }
   try{
     const updated=await API.patch('/hotels/'+HID,upd); Object.assign(HOTEL,updated);
-    document.getElementById('hotelName').textContent=HOTEL.name; API.applyTheme(HOTEL); API.toast('บันทึกแล้ว','ok'); ppPreview(); document.getElementById('s-pp-id').value=HOTEL.promptpayId||''; document.getElementById('s-map').value=HOTEL.mapUrl||''; document.getElementById('s-line-id').value=HOTEL.lineId||''; document.getElementById('s-bank-no').value=HOTEL.bankAccountNo||''; lineTest(); payUi(); loadChecklist();
+    document.getElementById('hotelName').textContent=HOTEL.name; API.applyTheme(HOTEL); API.toast('บันทึกแล้ว','ok'); ppPreview(); document.getElementById('s-pp-id').value=HOTEL.promptpayId||''; document.getElementById('s-map').value=HOTEL.mapUrl||''; document.getElementById('s-line-id').value=HOTEL.lineId||''; document.getElementById('s-bank-no').value=HOTEL.bankAccountNo||''; lineTest(); payUi(); loadChecklist(); pinNote();
   }catch(e){API.toast(e.message,'err');}
 }
 // ---- วิธีรับเงิน / LINE ให้แขกทัก / รหัสผ่าน ----

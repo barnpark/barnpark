@@ -17,6 +17,7 @@ import { rememberBase, baseUrl } from "../lib/baseurl.js";
 import { badImageFields } from "../lib/security.js";
 import { normalizePromptPayId } from "../lib/promptpay.js";
 import { cleanStayFields, cleanLineId } from "../lib/stay.js";
+import { cleanPin } from "../lib/geo.js";
 import { cleanPayFields } from "../lib/pay.js";
 import { parseDataUrl, toDataUrl, toLogoDataUrl } from "../lib/images.js";
 import { checklist } from "../lib/checklist.js";
@@ -371,6 +372,25 @@ r.post("/admin/hotels/:id/delete", requireAuth, requireAdmin, async (req, res) =
   deleted.files = await removePrefix(`h/${hid}`); // รูปของที่พักนี้บน Supabase (ถ้ามี)
   console.log("admin deleted hotel", h.slug, "by", req.user.id, JSON.stringify(deleted));
   res.json({ ok: true, name: h.name, deleted });
+});
+
+// ===== แอดมิน: ยืนยันหมุดที่พักบนแผนที่หน้าแรก Barn Park (Hotel.pin) =====
+// ใช้แทนพิกัดที่อ่านจากลิงก์แผนที่ของที่พัก (lib/geo.js) · ลิงก์แผนที่ของที่พัก (mapUrl) ไม่เปลี่ยน — แขกยังกดเปิด Google Maps จากหน้าจองได้
+r.patch("/admin/hotels/:id/pin", requireAuth, requireAdmin, async (req, res) => {
+  if (!isOid(req.params.id)) return res.status(404).json({ error: "ไม่พบที่พัก" });
+  const p = cleanPin(req.body);
+  if (!p) return res.status(400).json({ error: "พิกัดไม่ถูกต้อง — คลิกเลือกจุดบนแผนที่ หรือใส่พิกัด เช่น 13.7563, 100.5018" });
+  const h = await Hotel.findByIdAndUpdate(req.params.id, { $set: { pin: { ...p, at: new Date() } } }, { new: true }).select("name slug pin").lean();
+  if (!h) return res.status(404).json({ error: "ไม่พบที่พัก" });
+  console.log("admin pin", h.slug, p.lat, p.lng, "by", req.user.id);
+  res.json({ ok: true, pin: h.pin });
+});
+r.delete("/admin/hotels/:id/pin", requireAuth, requireAdmin, async (req, res) => {
+  if (!isOid(req.params.id)) return res.status(404).json({ error: "ไม่พบที่พัก" });
+  const h = await Hotel.findByIdAndUpdate(req.params.id, { $unset: { pin: 1 } }, { new: true }).select("name slug").lean();
+  if (!h) return res.status(404).json({ error: "ไม่พบที่พัก" });
+  console.log("admin pin cleared", h.slug, "by", req.user.id);
+  res.json({ ok: true, pin: null });
 });
 
 // ===== แอดมิน: ตัวคำนวณต้นทุน Channex — ค่าที่กรอกเก็บไว้ให้ทีมเห็นตรงกัน =====

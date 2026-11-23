@@ -1,4 +1,4 @@
-// API แอดมิน: ตัวคำนวณ Channex (/admin/calc/channex) + ลบที่พักถาวร (/admin/hotels/:id/delete)
+// API แอดมิน: ตัวคำนวณ Channex (/admin/calc/channex) + หมุดบนแผนที่หน้าแรก (/admin/hotels/:id/pin) + ลบที่พักถาวร (/admin/hotels/:id/delete)
 // ใช้ express จริง + แทนเมธอดของโมเดลด้วยตัวปลอม (ไม่ต้องมีฐานข้อมูล)
 process.env.JWT_SECRET = "test-secret-0123456789-abcdef";
 const express = (await import("express")).default;
@@ -51,6 +51,29 @@ r = await call("GET", "calc/channex", admin); t("calc: read back", r.status === 
 r = await call("POST", "calc/channex", admin, { fx: 33, $where: "1" }); t("calc: operator key blocked", r.status === 400, r);
 r = await call("POST", "calc/channex", admin, { prices: Array.from({ length: 40 }, (_, i) => ({ label: "p" + i, thb: i + 1 })) }); t("calc: max 12 prices", r.status === 200 && r.json.prices.length === 12);
 r = await call("POST", "calc/channex", admin, { fx: "", hotels: "" }); t("calc: blank -> null", r.status === 200 && r.json.fx === null && r.json.hotels === null, r.json);
+
+// ---- หมุดบนแผนที่หน้าแรก (แอดมินยืนยัน)
+const pinUpd = [];
+M.Hotel.findByIdAndUpdate = (id, upd) => ({ select: () => ({ lean: async () => {
+  if (String(id) !== HID) return null;
+  pinUpd.push(upd);
+  return { _id: HID, name: "Test Inn", slug: "test-inn", ...(upd.$set ? { pin: upd.$set.pin } : {}) };
+} }) });
+r = await call("PATCH", `hotels/${HID}/pin`, null, { lat: 13.8, lng: 101.7 }); t("pin: no token 401", r.status === 401, r);
+r = await call("PATCH", `hotels/${HID}/pin`, owner, { lat: 13.8, lng: 101.7 }); t("pin: owner 403", r.status === 403, r);
+r = await call("DELETE", `hotels/${HID}/pin`, owner); t("pin clear: owner 403", r.status === 403, r);
+r = await call("PATCH", "hotels/nothex/pin", admin, { lat: 13.8, lng: 101.7 }); t("pin: bad id 404", r.status === 404, r);
+r = await call("PATCH", "hotels/64b7f0c2a1b2c3d4e5f60799/pin", admin, { lat: 13.8, lng: 101.7 }); t("pin: unknown hotel 404", r.status === 404, r);
+for (const [n, b] of [["out of range", { lat: 95, lng: 101 }], ["0,0", { lat: 0, lng: 0 }], ["text", { lat: "abc", lng: 101 }], ["missing", {}], ["swapped lat/lng", { lat: 101.7, lng: 13.8 }]]) {
+  r = await call("PATCH", `hotels/${HID}/pin`, admin, b); t("pin: rejects " + n, r.status === 400, r);
+}
+r = await call("PATCH", `hotels/${HID}/pin`, admin, { lat: { $gt: 0 }, lng: 101 }); t("pin: operator blocked", r.status === 400, r);
+t("pin: nothing saved by refused calls", pinUpd.length === 0, pinUpd);
+r = await call("PATCH", `hotels/${HID}/pin`, admin, { lat: "13.8648544", lng: 101.782413, at: "1999-01-01", mapUrl: "https://evil.example" });
+t("pin: saved — 6 decimals, server time, no other fields", r.status === 200 && r.json.ok && r.json.pin.lat === 13.864854 && r.json.pin.lng === 101.782413
+  && Object.keys(pinUpd[0]).join() === "$set" && Object.keys(pinUpd[0].$set).join() === "pin" && Object.keys(pinUpd[0].$set.pin).join() === "lat,lng,at" && pinUpd[0].$set.pin.at.getFullYear() >= 2026, [r.json, pinUpd[0]]);
+r = await call("DELETE", `hotels/${HID}/pin`, admin); t("pin: cleared", r.status === 200 && r.json.ok && r.json.pin === null && JSON.stringify(pinUpd[1]) === '{"$unset":{"pin":1}}', [r.json, pinUpd[1]]);
+r = await call("DELETE", "hotels/64b7f0c2a1b2c3d4e5f60799/pin", admin); t("pin clear: unknown hotel 404", r.status === 404, r);
 
 // ---- ลบที่พัก
 r = await call("GET", `hotels/${HID}/delete-preview`); t("delete: preview no token 401", r.status === 401, r);
