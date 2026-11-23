@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barn Park = บ้านพัก · a home to rest in</title>
+<meta name="description" content="Barn Park comes from the Thai word บ้านพัก (bâan-pák), a home to rest in. Homestays and local experiences across Thailand, booked directly with local hosts.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Barn Park">
+<meta property="og:title" content="Barn Park = บ้านพัก, a home to rest in">
+<meta property="og:description" content="Homestays and local experiences across Thailand. Stay a night or just come for the day.">
+<meta property="og:image" content="https://barnpark.onrender.com/media/barnpark-ad-en.jpg">
+<link rel="icon" href="media/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="media/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="media/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* หน้าต้อนรับ Barn Park = บ้านพัก (แบบหน้าเดียว) — แสดงครั้งแรกที่เข้าเว็บ ก่อนหน้าแรก · ภาษาอังกฤษสำหรับแขกต่างชาติ */
+  :root{--board:#0E4B2E;--amber:#f59e0b;--amber-ink:#b45309;--ink:#0f2540;--muted:#4a6176;--sage:#2E6B40}
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{min-height:100vh;overflow-x:hidden;background:var(--board);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Sarabun,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  [lang="th"]{font-family:Sarabun,sans-serif}
+  a:focus-visible,button:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+  .in{max-width:1200px;margin:0 auto;padding-left:clamp(20px,3vw,32px);padding-right:clamp(20px,3vw,32px)}
+  .top{padding-top:24px;padding-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px 16px}
+  .top .logo{display:block;line-height:0} .top .logo img{height:40px;width:auto;display:block}
+  .top nav{display:flex;flex-wrap:wrap;gap:8px}
+  .pill{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:999px;border:1.5px solid rgba(255,255,255,.4);color:#fff;font-size:15px;font-weight:600;text-decoration:none}
+  .pill:hover{background:rgba(255,255,255,.1)}
+  .eyebrow{margin:0;font-size:14px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--amber)}
+
+  .hero{padding-top:16px;padding-bottom:clamp(48px,6vw,80px);display:flex;flex-wrap:wrap;align-items:center;gap:clamp(40px,5vw,72px)}
+  .name{flex:1 1 520px;min-width:0;display:flex;flex-direction:column;gap:20px}
+  h1{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;font-size:clamp(50px,6vw,96px);line-height:.95;font-weight:800;letter-spacing:.03em}
+  .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .card{min-width:0;padding:clamp(14px,1.8vw,20px);border-radius:18px;background:#fff;color:var(--ink);display:flex;flex-direction:column;gap:12px;box-shadow:0 18px 40px rgba(0,0,0,.18)}
+  .card .en{display:flex;flex-direction:column;gap:4px}
+  .card .th{display:flex;flex-direction:column;gap:2px;padding-top:12px;border-top:1px solid #e6eef5}
+  .lbl{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)} .lbl.g{color:var(--sage)}
+  .mean{font-size:clamp(15px,1.3vw,18px);line-height:1.45}
+  .row{display:flex;align-items:center;gap:10px}
+  .tw{font-size:clamp(30px,3vw,42px);line-height:1.25;font-weight:800;white-space:nowrap}
+  .together{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;padding-top:4px}
+  .together .lbl2{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.78)}
+  .together .bp{font-size:clamp(36px,3.6vw,52px);line-height:1.2;font-weight:800;white-space:nowrap}
+  .together .rom{font-size:clamp(17px,1.6vw,22px);line-height:1.4;font-weight:700}
+  .amb{color:var(--amber)}
+  .novoice{margin:0;font-size:13px;line-height:1.5;color:rgba(255,255,255,.72)}
+
+  /* ปุ่มฟังเสียง (เสียงภาษาไทยของเครื่อง) */
+  .spk{flex:0 0 auto;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:none;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;cursor:pointer}
+  .spk.light{background:#eef6f0;color:var(--board)}
+  .spk.big{width:48px;height:48px}
+  .spk.on{background:var(--amber);color:var(--ink)}
+  .spk svg{width:20px;height:20px} .spk.big svg{width:22px;height:22px}
+
+  /* รูปที่พัก (โพลารอยด์ปักหมุด) — รูปปกจริงของที่พัก */
+  .photos{flex:1 1 400px;min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 18px;padding:10px 6px}
+  .pol{position:relative;margin:0;padding:10px 10px 12px;border-radius:6px;background:#fff;box-shadow:0 18px 36px rgba(0,0,0,.3)}
+  .pol:before{content:"";position:absolute;top:-7px;left:50%;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--amber);box-shadow:0 2px 4px rgba(0,0,0,.35)}
+  .pol .ph{width:100%;aspect-ratio:1/1;border-radius:3px;background:#dfeee2 center/cover no-repeat}
+  .pol.wide{grid-column:1/3;transform:rotate(-1.5deg)} .pol.wide .ph{aspect-ratio:16/9}
+  .pol.r2{transform:rotate(2deg)} .pol.r3{transform:rotate(-2.5deg)}
+  .pol figcaption{padding-top:8px;font-size:14px;font-weight:700;color:var(--ink)}
+
+  .rule{height:1px;background:rgba(255,255,255,.16)}
+  .more{padding-top:clamp(48px,6vw,80px);padding-bottom:clamp(48px,6vw,80px);display:flex;flex-wrap:wrap;align-items:flex-start;gap:clamp(32px,5vw,72px)}
+  .more .l{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:18px}
+  .more h2{margin:0;font-size:clamp(36px,4vw,56px);line-height:1.08;font-weight:800;letter-spacing:-.01em}
+  .more .l p{margin:0;max-width:30em;font-size:clamp(17px,1.4vw,19px);line-height:1.6;color:rgba(255,255,255,.88)}
+  .more .acts{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;min-height:44px;color:var(--amber);font-size:17px;font-weight:700;text-decoration:none;border-bottom:2px solid rgba(245,158,11,.45)}
+  .more .acts:hover{border-bottom-color:var(--amber)} .more .acts svg{width:18px;height:18px}
+  .more .r{flex:1.2 1 440px;min-width:0;display:flex;flex-direction:column;gap:14px}
+  .words{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(16px,3vw,40px)}
+  .word{min-width:0;display:flex;flex-direction:column;gap:6px}
+  .word .row{gap:12px;flex-wrap:wrap}
+  .word .big{font-size:clamp(44px,4.6vw,60px);line-height:1.15;font-weight:800;white-space:nowrap}
+  .word .rom{font-size:clamp(16px,1.5vw,20px);font-weight:700;color:var(--amber)}
+  .word .d{font-size:clamp(15px,1.4vw,18px);line-height:1.5;color:rgba(255,255,255,.86)}
+  .note{margin:0;font-size:14px;line-height:1.5;color:rgba(255,255,255,.78)}
+  .note span{font-size:18px;font-weight:800;color:var(--amber)}
+
+  .go{padding-bottom:clamp(40px,5vw,64px)}
+  .gocard{border-radius:28px;background:#fff;color:var(--ink);padding:clamp(32px,5vw,64px) clamp(20px,4vw,48px);display:flex;flex-direction:column;align-items:center;gap:24px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.25)}
+  .gocard h2{margin:0;font-size:clamp(30px,3.6vw,52px);line-height:1.15;font-weight:800;letter-spacing:-.01em;color:var(--board)}
+  .gocard h2 span{color:var(--amber-ink)}
+  .btns{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+  .b1{display:inline-flex;align-items:center;gap:10px;min-height:56px;padding:0 30px;border-radius:999px;background:var(--board);color:#fff;font-size:17px;font-weight:800;text-decoration:none}
+  .b1 svg{width:18px;height:18px}
+  .b2{display:inline-flex;align-items:center;min-height:56px;padding:0 28px;border-radius:999px;border:1.5px solid var(--board);color:var(--board);font-size:17px;font-weight:700;text-decoration:none}
+  .b1:hover{background:#163B2A} .b2:hover{background:#eef6f0}
+
+  .foot{padding-bottom:32px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 24px;font-size:14px;color:rgba(255,255,255,.72)}
+  .foot p{margin:0} .foot a{display:inline-flex;align-items:center;min-height:44px;color:#fff;font-weight:600}
+
+  @media(max-width:560px){ .words{grid-template-columns:1fr} }
+  @media(prefers-reduced-motion:reduce){ .pol{transform:none!important} }
+</style>
+</head>
+<body>
+<header class="top in">
+  <a class="logo" href="/" data-go="skip" aria-label="Barn Park home"><img src="media/barnpark-logo-white.svg" alt="Barn Park"></a>
+  <nav aria-label="Skip the welcome page">
+    <a class="pill" href="/" data-go="skip">Skip to site</a>
+    <a class="pill" href="/" data-go="th" lang="th">ภาษาไทย</a>
+  </nav>
+</header>
+
+<main>
+<section class="hero in" aria-labelledby="bp-name">
+  <div class="name">
+    <p class="eyebrow">One name, two languages</p>
+    <h1 id="bp-name"><span>BARN</span><span>PARK</span></h1>
+    <div class="cards">
+      <div class="card">
+        <div class="en"><span class="lbl">In English</span><span class="mean">the countryside, farm life</span></div>
+        <div class="th"><span class="lbl g">In Thai</span>
+          <div class="row"><span class="tw" lang="th" style="color:#0E4B2E">บ้าน</span><button type="button" class="spk light" data-say="บ้าน" data-rate="0.8" aria-label="Hear บ้าน"></button></div>
+          <span class="mean"><strong>bâan</strong> · home</span></div>
+      </div>
+      <div class="card">
+        <div class="en"><span class="lbl">In English</span><span class="mean">green space, a place to stop for a while</span></div>
+        <div class="th"><span class="lbl g">In Thai</span>
+          <div class="row"><span class="tw" lang="th" style="color:#b45309">พัก</span><button type="button" class="spk light" data-say="พัก" data-rate="0.8" aria-label="Hear พัก"></button></div>
+          <span class="mean"><strong>pák</strong> · to rest, to stay</span></div>
+      </div>
+    </div>
+    <div class="together">
+      <span class="lbl2">Put together in Thai</span>
+      <span class="row"><span class="bp" lang="th">บ้าน<span class="amb">พัก</span></span><button type="button" class="spk" data-say="บ้านพัก" data-rate="0.8" aria-label="Hear บ้านพัก"></button></span>
+      <span class="rom">bâan-<span class="amb">pák</span> · a home to rest in</span>
+    </div>
+    <p class="novoice" id="novoice" hidden>This browser has no Thai voice installed, so the speaker buttons may stay silent.</p>
+  </div>
+
+  <div class="photos" id="photos">
+    <figure class="pol wide" data-slug="barnbarn"><div class="ph" role="img" aria-label="Wooden Thai houses and a garden pavilion beside green rice fields at Barn-Barn Homestay, with misty mountains behind" style="background-position:50% 70%"></div><figcaption>Homestay · Chachoengsao</figcaption></figure>
+    <figure class="pol r2" data-slug="kok-eden-farm-kabin-buri"><div class="ph" role="img" aria-label="A pond and a red-roofed wooden house among trees at a farm stay in Prachin Buri" style="background-position:50% 45%"></div><figcaption>Farm stay · Prachin Buri</figcaption></figure>
+    <figure class="pol r3" data-slug="paleo-pateo"><div class="ph" role="img" aria-label="A bright green rice paddy in front of tall trees in Sukhothai" style="background-position:50% 60%"></div><figcaption>Rice fields · Sukhothai</figcaption></figure>
+  </div>
+</section>
+
+<div class="in" aria-hidden="true"><div class="rule"></div></div>
+
+<section class="more in" aria-labelledby="bp-more">
+  <div class="l">
+    <h2 id="bp-more">Not just a place to stay.</h2>
+    <p>Stay a night or just come for the day. Our hosts share local experiences that are hard to find anywhere else.</p>
+    <a class="acts" href="/#activities" data-go="en">See local experiences<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></a>
+  </div>
+  <div class="r">
+    <p class="eyebrow">Two more Thai words</p>
+    <div class="words">
+      <div class="word">
+        <div class="row"><span class="big" lang="th">บ้าน <span class="amb">ๆ</span></span><button type="button" class="spk big" data-say="บ้านบ้าน" data-rate="1" aria-label="Hear บ้าน ๆ"></button></div>
+        <span class="rom">bâan-bâan</span>
+        <span class="d">Homey, simple, real. How local people actually live.</span>
+      </div>
+      <div class="word">
+        <div class="row"><span class="big" lang="th">สบาย <span class="amb">ๆ</span></span><button type="button" class="spk big" data-say="สบายสบาย" data-rate="1" aria-label="Hear สบาย ๆ"></button></div>
+        <span class="rom">sabai sabai</span>
+        <span class="d">Relaxed and easy. No rush.</span>
+      </div>
+    </div>
+    <p class="note"><span lang="th">ๆ</span> means “say it again”.</p>
+  </div>
+</section>
+
+<section class="go in" aria-labelledby="bp-go">
+  <div class="gocard">
+    <h2 id="bp-go">Want the real Thailand?<br><span>This is the place.</span></h2>
+    <div class="btns">
+      <a class="b1" href="/" data-go="en">Enter Barn Park<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></a>
+      <a class="b2" href="/" data-go="th" lang="th">เข้าสู่เว็บไซต์ภาษาไทย</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="foot in">
+  <p>© Barn Park · Homestays and local experiences across Thailand</p>
+  <a href="privacy.html">Privacy policy</a>
+</footer>
+
+<script>
+(function () {
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+  // ปุ่มเข้าเว็บ: จำว่าเห็นหน้านี้แล้ว (bp_welcomed) + ภาษาของเว็บหลัก (bp_lang เดียวกับ api.js)
+  // en = อังกฤษ · th = ไทย · skip = ไม่เปลี่ยนภาษาที่ตั้งไว้ (ยังไม่เคยตั้ง = อังกฤษ เพราะอ่านหน้านี้เป็นภาษาอังกฤษ)
+  [].forEach.call(document.querySelectorAll("[data-go]"), function (a) {
+    a.addEventListener("click", function () {
+      var go = a.getAttribute("data-go");
+      store.set("bp_welcomed", "1");
+      if (go === "th") store.set("bp_lang", "th");
+      else if (go === "en" || !store.get("bp_lang")) store.set("bp_lang", "en");
+    });
+  });
+
+  // ปุ่มฟังเสียง: เสียงภาษาไทยของเครื่อง (th-TH) · เครื่องที่ไม่มีเสียงไทยขึ้นข้อความบอก
+  var ICON = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
+  var synth = window.speechSynthesis, can = !!synth && typeof SpeechSynthesisUtterance !== "undefined";
+  var note = document.getElementById("novoice"), thai = null, cur = null;
+  function pick() {
+    var v = synth.getVoices() || [];
+    thai = v.filter(function (x) { return /^th/i.test(x.lang || ""); })[0] || null;
+    if (v.length) note.hidden = !!thai;
+  }
+  if (!can) note.hidden = false;
+  else { pick(); if (synth.addEventListener) synth.addEventListener("voiceschanged", pick); else synth.onvoiceschanged = pick; }
+  [].forEach.call(document.querySelectorAll(".spk"), function (b) {
+    b.innerHTML = ICON;
+    b.addEventListener("click", function () {
+      if (!can) { note.hidden = false; return; }
+      synth.cancel();
+      if (cur) cur.classList.remove("on");
+      var u = new SpeechSynthesisUtterance(b.getAttribute("data-say"));
+      u.lang = "th-TH"; if (thai) u.voice = thai; u.rate = Number(b.getAttribute("data-rate")) || 0.8;
+      u.onend = u.onerror = function () { b.classList.remove("on"); if (cur === b) cur = null; };
+      cur = b; b.classList.add("on");
+      synth.speak(u);
+    });
+  });
+
+  // รูปปกจริงของที่พักจากแผนที่ (/api/public/map) · ที่พักไหนไม่มีรูปปก/ไม่อยู่บนแผนที่ = ซ่อนรูปนั้น
+  var box = document.getElementById("photos");
+  var okUrl = function (u) { u = String(u || ""); return /^https:\/\/[^\s"'()\\]+$/.test(u) || /^\/api\/public\/img\/cover\/[\w-]+\/\d+$/.test(u) ? u : ""; };
+  fetch("/api/public/map").then(function (r) { return r.ok ? r.json() : []; }).then(function (list) {
+    var by = {}, shown = 0;
+    (Array.isArray(list) ? list : []).forEach(function (h) { if (h && h.slug) by[h.slug] = h; });
+    [].forEach.call(box.querySelectorAll("figure[data-slug]"), function (f) {
+      var h = by[f.getAttribute("data-slug")], u = h && okUrl(h.cover);
+      if (u) { f.querySelector(".ph").style.backgroundImage = 'url("' + u + '")'; shown++; } else f.remove();
+    });
+    if (!shown) box.remove();
+  }).catch(function () { box.remove(); });
+})();
+</script>
+</body>
+</html>
