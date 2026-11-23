@@ -3,6 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+// หน้าต้อนรับ Barn Park = บ้านพัก (welcome.html) — แสดงครั้งแรกที่เปิดหน้าแรกตรง ๆ
+// ไม่แสดงถ้าเคยเห็นแล้วหรือเคยเลือกภาษาแล้ว · มาจากหน้าอื่นในเว็บ · ลิงก์มี ?… หรือ #… (เช่น #owners) · บอท/เครื่องมืออัตโนมัติ
+(function () { try {
+  var p = location.pathname;
+  if ((p !== "/" && p !== "/index.html") || localStorage.getItem("bp_welcomed") || localStorage.getItem("bp_lang")) return;
+  if (document.referrer.indexOf(location.origin + "/") === 0) { localStorage.setItem("bp_welcomed", "1"); return; }
+  if (location.search || location.hash || navigator.webdriver || /bot|crawl|spider|slurp|facebookexternalhit|preview|lighthouse/i.test(navigator.userAgent || "")) return;
+  location.replace("/welcome.html");
+} catch (e) {} })();
+</script>
 <title>Barn Park · ที่พักชุมชนและโฮมสเตย์ทั่วไทย จองตรงกับเจ้าของ</title>
 <meta name="description" content="ค้นหาที่พักชุมชน โฮมสเตย์ และที่พักเล็ก ๆ ทั่วไทยบนแผนที่ เช็กห้องว่างตามวันที่ แล้วจองตรงกับเจ้าของ — ราคาจากที่พัก ไม่มีค่าธรรมเนียมแอบแฝง · ระบบจองตรงสำหรับเจ้าของที่พัก จัดการใน LINE">
 <meta property="og:type" content="website">
@@ -178,7 +189,7 @@
     <div class="scard"><div class="ic">💬</div><h3>LINE OA</h3><p data-th="ตั้งค่า Rich Menu ข้อความอัตโนมัติ" data-en="Rich Menu & auto-reply setup">ตั้งค่า Rich Menu ข้อความอัตโนมัติ</p><div class="from" data-th="เริ่ม ฿3,900" data-en="From ฿3,900">เริ่ม ฿3,900</div></div>
   </div>
 </div></div>
-<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:13px">© Barn Park · <a href="privacy.html" data-th="นโยบายความเป็นส่วนตัว" data-en="Privacy policy">นโยบายความเป็นส่วนตัว</a></div>
+<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:13px">© Barn Park · <a href="welcome.html" data-th="ชื่อ Barn Park มาจากไหน" data-en="What does Barn Park mean?">ชื่อ Barn Park มาจากไหน</a> · <a href="privacy.html" data-th="นโยบายความเป็นส่วนตัว" data-en="Privacy policy">นโยบายความเป็นส่วนตัว</a></div>
 <script src="api.js"></script>
 <script src="vendor/leaflet/leaflet.js"></script>
 <script>API.applyI18n(); API.mountLangToggle(); API.mountSupport();
