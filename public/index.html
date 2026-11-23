@@ -4,13 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>
-// หน้าต้อนรับ Barn Park = บ้านพัก (welcome.html) — แสดงครั้งแรกที่เปิดหน้าแรกตรง ๆ
-// ไม่แสดงถ้าเคยเห็นแล้วหรือเคยเลือกภาษาแล้ว · มาจากหน้าอื่นในเว็บ · ลิงก์มี ?… หรือ #… (เช่น #owners) · บอท/เครื่องมืออัตโนมัติ
+// หน้าต้อนรับ Barn Park = บ้านพัก (welcome.html) — ขึ้นก่อนหน้าแรกทุกครั้งที่เปิดหน้าแรกจากข้างนอก (พิมพ์ที่อยู่เว็บ / กดลิงก์ / บุ๊กมาร์ก)
+// ไม่ขึ้นเมื่อ: มาจากหน้าอื่นในเว็บ · เพิ่งกดเข้าเว็บจากหน้าต้อนรับในแท็บนี้ (bp_entered) · ลิงก์ไปส่วนในหน้า (#owners ฯลฯ) · บอท/พรีวิวลิงก์/เครื่องมืออัตโนมัติ
+// ลิงก์ที่มี ?… (fbclid / utm จาก Facebook, LINE, โฆษณา) ยังขึ้นหน้าต้อนรับตามปกติ
 (function () { try {
   var p = location.pathname;
-  if ((p !== "/" && p !== "/index.html") || localStorage.getItem("bp_welcomed") || localStorage.getItem("bp_lang")) return;
-  if (document.referrer.indexOf(location.origin + "/") === 0) { localStorage.setItem("bp_welcomed", "1"); return; }
-  if (location.search || location.hash || navigator.webdriver || /bot|crawl|spider|slurp|facebookexternalhit|preview|lighthouse/i.test(navigator.userAgent || "")) return;
+  if ((p !== "/" && p !== "/index.html") || location.hash) return;
+  if (document.referrer.indexOf(location.origin + "/") === 0 || sessionStorage.getItem("bp_entered")) return;
+  if (navigator.webdriver || /bot|crawl|spider|slurp|facebookexternalhit|preview|lighthouse/i.test(navigator.userAgent || "")) return;
   location.replace("/welcome.html");
 } catch (e) {} })();
 </script>
