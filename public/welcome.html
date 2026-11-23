@@ -191,12 +191,12 @@
     get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   };
-  // ปุ่มเข้าเว็บ: จำว่าเห็นหน้านี้แล้ว (bp_welcomed) + ภาษาของเว็บหลัก (bp_lang เดียวกับ api.js)
+  // ปุ่มเข้าเว็บ: บอกหน้าแรกว่าเพิ่งเข้ามาจากหน้านี้ (bp_entered ในแท็บนี้ กันวนกลับมาหน้านี้) + ภาษาของเว็บหลัก (bp_lang เดียวกับ api.js)
   // en = อังกฤษ · th = ไทย · skip = ไม่เปลี่ยนภาษาที่ตั้งไว้ (ยังไม่เคยตั้ง = อังกฤษ เพราะอ่านหน้านี้เป็นภาษาอังกฤษ)
   [].forEach.call(document.querySelectorAll("[data-go]"), function (a) {
     a.addEventListener("click", function () {
       var go = a.getAttribute("data-go");
-      store.set("bp_welcomed", "1");
+      try { sessionStorage.setItem("bp_entered", "1"); } catch (e) {}
       if (go === "th") store.set("bp_lang", "th");
       else if (go === "en" || !store.get("bp_lang")) store.set("bp_lang", "en");
     });

@@ -18,25 +18,28 @@ const code = m ? m[1] : "";
 t("index.html has the welcome redirect in <head>", code.includes('location.replace("/welcome.html")'));
 t("it runs before the page's stylesheets", head.indexOf("/welcome.html") > 0 && head.indexOf("/welcome.html") < head.indexOf('rel="stylesheet"'));
 
-const run = ({ path = "/", search = "", hash = "", ls = {}, ref = "", ua = "Mozilla/5.0 (iPhone)", webdriver = false } = {}) => {
-  const store = { ...ls }, went = [];
+const run = ({ path = "/", search = "", hash = "", ls = {}, ss = {}, ref = "", ua = "Mozilla/5.0 (iPhone)", webdriver = false } = {}) => {
+  const store = { ...ls }, sess = { ...ss }, went = [];
+  const mem = (o) => ({ getItem: (k) => (k in o ? o[k] : null), setItem: (k, v) => { o[k] = String(v); } });
   vm.runInNewContext(code, {
     location: { pathname: path, search, hash, origin: "https://barnpark.onrender.com", replace: (u) => went.push(u) },
-    localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } },
+    localStorage: mem(store), sessionStorage: mem(sess),
     document: { referrer: ref },
     navigator: { userAgent: ua, webdriver },
   });
-  return { went, store };
+  return { went, store, sess };
 };
 let r = run();
-t("first visit to / → welcome.html", eq(r.went, ["/welcome.html"]), r);
+t("opening / from outside → welcome.html", eq(r.went, ["/welcome.html"]), r);
 t("/index.html too", run({ path: "/index.html" }).went.length === 1);
-t("seen it before → stays on the homepage", run({ ls: { bp_welcomed: "1" } }).went.length === 0);
-t("chose a language before → stays", run({ ls: { bp_lang: "th" } }).went.length === 0);
+t("every time: seen it on an earlier day → welcome again", run({ ls: { bp_welcomed: "1" } }).went.length === 1);
+t("every time: chose a language before → welcome again", run({ ls: { bp_lang: "th" } }).went.length === 1);
 t("link to a section (#owners) → stays", run({ hash: "#owners" }).went.length === 0);
-t("link with ?… → stays", run({ search: "?utm_source=line" }).went.length === 0);
+t("link from Facebook (?fbclid=…) → welcome", run({ search: "?fbclid=IwAR0abc" }).went.length === 1);
+t("link with utm tags (LINE / ads) → welcome", run({ search: "?utm_source=line&utm_medium=oa" }).went.length === 1);
 r = run({ ref: "https://barnpark.onrender.com/book.html?h=barnbarn" });
-t("came from another page of the site → stays and remembers", r.went.length === 0 && r.store.bp_welcomed === "1", r);
+t("came from another page of the site → stays", r.went.length === 0, r);
+t("just pressed Enter on the welcome page in this tab → stays (no loop, even with no referrer)", run({ ss: { bp_entered: "1" } }).went.length === 0);
 t("came from another website → welcome", run({ ref: "https://www.google.com/" }).went.length === 1);
 t("look-alike domain is not our site", run({ ref: "https://barnpark.onrender.com.example.net/" }).went.length === 1);
 t("search engine bot → stays", run({ ua: "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" }).went.length === 0);
@@ -45,7 +48,8 @@ t("automated browser → stays", run({ webdriver: true }).went.length === 0);
 t("other paths served by the catch-all → stays", run({ path: "/some/page" }).went.length === 0);
 let threw = false;
 try {
-  vm.runInNewContext(code, { location: { pathname: "/", search: "", hash: "", origin: "x", replace() {} }, localStorage: { getItem() { throw new Error("blocked"); } }, document: { referrer: "" }, navigator: {} });
+  const blocked = { getItem() { throw new Error("blocked"); }, setItem() { throw new Error("blocked"); } };
+  vm.runInNewContext(code, { location: { pathname: "/", search: "", hash: "", origin: "x", replace() {} }, localStorage: blocked, sessionStorage: blocked, document: { referrer: "" }, navigator: {} });
 } catch { threw = true; }
 t("storage blocked (private mode) → no error, homepage still loads", !threw);
 
@@ -55,25 +59,29 @@ t("photos come from the map API through a URL check", welcome.includes('fetch("/
 t("no redirect of its own", !welcome.includes("location.replace"));
 t("links back into the site: Enter, ภาษาไทย, Skip, activities", ["en", "th", "skip"].every((g) => welcome.includes(`data-go="${g}"`)) && welcome.includes('href="/#activities"'));
 
-// ปุ่มเข้าเว็บ: จำว่าเห็นแล้ว + ภาษา
+// ปุ่มเข้าเว็บ: ภาษา (localStorage) + บอกหน้าแรกว่าเพิ่งเข้ามาจากหน้านี้ (sessionStorage ของแท็บนี้)
 const wcode = (/<script>([\s\S]*?)<\/script>/.exec(welcome) || [])[1] || "";
 const press = (go, ls = {}) => {
-  const store = { ...ls }; let onClick = null;
+  const store = { ...ls }, sess = {}; let onClick = null;
   const el = (g) => ({ getAttribute: (k) => (k === "data-go" ? g : null), addEventListener: (_e, fn) => { if (g === go) onClick = fn; } });
   const box = { hidden: true, remove() {}, querySelectorAll: () => [] };
+  const mem = (o) => ({ getItem: (k) => (k in o ? o[k] : null), setItem: (k, v) => { o[k] = String(v); } });
   vm.runInNewContext(wcode, {
     document: { querySelectorAll: (s) => (s === "[data-go]" ? ["skip", "th", "en"].map(el) : []), getElementById: () => box },
-    localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } },
+    localStorage: mem(store), sessionStorage: mem(sess),
     window: {}, fetch: () => Promise.reject(new Error("offline")),
   });
   if (onClick) onClick();
-  return store;
+  return { ...store, entered: sess.bp_entered };
 };
-t("Enter Barn Park → English site", eq(press("en"), { bp_welcomed: "1", bp_lang: "en" }), press("en"));
-t("ภาษาไทย → Thai site", eq(press("th"), { bp_welcomed: "1", bp_lang: "th" }));
-t("Skip with no language yet → English", eq(press("skip"), { bp_welcomed: "1", bp_lang: "en" }));
-t("Skip keeps a language chosen before", eq(press("skip", { bp_lang: "th" }), { bp_welcomed: "1", bp_lang: "th" }));
-t("English chosen on the welcome page wins over an old Thai choice", eq(press("en", { bp_lang: "th" }), { bp_welcomed: "1", bp_lang: "en" }));
+t("Enter Barn Park → English site", eq(press("en"), { bp_lang: "en", entered: "1" }), press("en"));
+t("ภาษาไทย → Thai site", eq(press("th"), { bp_lang: "th", entered: "1" }));
+t("Skip with no language yet → English", eq(press("skip"), { bp_lang: "en", entered: "1" }));
+t("Skip keeps a language chosen before", eq(press("skip", { bp_lang: "th" }), { bp_lang: "th", entered: "1" }));
+t("English chosen on the welcome page wins over an old Thai choice", eq(press("en", { bp_lang: "th" }), { bp_lang: "en", entered: "1" }));
+// หน้าต้อนรับ → กดเข้าเว็บ → หน้าแรก: ไม่วนกลับมาหน้าต้อนรับ แม้เบราว์เซอร์ไม่ส่ง referrer
+const entered = press("en");
+t("after pressing Enter the homepage stays put (no redirect loop)", run({ ss: { bp_entered: entered.entered }, ls: { bp_lang: entered.bp_lang } }).went.length === 0);
 
 // รูปที่พัก: ลิงก์รูปปกแบบเดียวกับที่ /api/public/map ส่งจริง (มี ?v=…)
 const photos = async (list) => {
@@ -84,7 +92,7 @@ const photos = async (list) => {
   };
   vm.runInNewContext(wcode, {
     document: { querySelectorAll: () => [], getElementById: (id) => (id === "photos" ? box : { hidden: true }) },
-    localStorage: { getItem: () => null, setItem() {} }, window: {},
+    localStorage: { getItem: () => null, setItem() {} }, sessionStorage: { getItem: () => null, setItem() {} }, window: {},
     fetch: () => Promise.resolve({ ok: true, json: () => Promise.resolve(list) }),
   });
   for (let i = 0; i < 5; i++) await new Promise((res) => setTimeout(res, 0));
