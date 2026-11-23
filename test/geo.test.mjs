@@ -10,7 +10,9 @@ const Hotel = (await import("../models/Hotel.js")).default;
 const RoomType = (await import("../models/RoomType.js")).default;
 const Review = (await import("../models/Review.js")).default;
 const Booking = (await import("../models/Booking.js")).default;
-const { latLngFromUrl, expandShortMapUrl, hotelsForMap, mapAvailability } = await import("../lib/geo.js");
+const { latLngFromUrl, expandShortMapUrl, hotelsForMap, mapAvailability, cleanPin, pinOf } = await import("../lib/geo.js");
+const fs = await import("fs");
+const vm = await import("vm");
 
 let ok = 0, bad = 0;
 const t = (n, c, x) => { if (c) ok++; else { bad++; console.log("FAIL", n, x !== undefined ? JSON.stringify(x).slice(0, 300) : ""); } };
@@ -23,6 +25,22 @@ t("!3d!4d pin beats @ viewport", eq(latLngFromUrl("https://www.google.com/maps/p
 t("?q=lat,lng with spaces / encoded comma", eq(latLngFromUrl("https://maps.google.com/?q=7.8804%2C%2098.3923"), { lat: 7.8804, lng: 98.3923 }));
 t("no coordinates → null", latLngFromUrl("https://maps.app.goo.gl/AbCdEf") === null && latLngFromUrl("") === null && latLngFromUrl("https://www.google.com/maps/place/Bangkok") === null);
 t("out-of-range rejected", latLngFromUrl("https://x/?q=95.1,100.2") === null);
+
+// ---- หมุดที่แอดมินยืนยัน (Hotel.pin)
+t("cleanPin: numbers or numeric strings, 6 decimals", eq(cleanPin({ lat: "13.864854", lng: 101.7824131 }), { lat: 13.864854, lng: 101.782413 }) && eq(cleanPin({ lat: -33.8, lng: " 151.2 " }), { lat: -33.8, lng: 151.2 }));
+t("cleanPin: rejects out of range, 0,0, junk, missing, arrays, booleans", [{ lat: 95, lng: 100 }, { lat: 13, lng: 190 }, { lat: 0, lng: 0 }, { lat: "13,5", lng: "100" }, { lat: "abc", lng: 100 }, { lat: 13 }, { lat: [13], lng: [100] }, { lat: true, lng: 100 }, { lat: "1e1", lng: "100" }, null, "13.7, 100.5", 5].every((b) => cleanPin(b) === null));
+t("pinOf: only a valid pin counts", eq(pinOf({ pin: { lat: 13.5, lng: 100.5, at: new Date() } }), { lat: 13.5, lng: 100.5 }) && pinOf({ pin: { lat: null, lng: null } }) === null && pinOf({}) === null && pinOf(null) === null);
+// ตัวอ่านพิกัดในหน้าแอดมิน (public/admin.html → pinParse) ต้องอ่านลิงก์ได้เหมือนเซิร์ฟเวอร์
+const adminSrc = fs.readFileSync(new URL("../public/admin.html", import.meta.url), "utf8");
+const pi = adminSrc.indexOf("function pinParse(");
+let pj = adminSrc.indexOf("{", pi); for (let d = 0; pj < adminSrc.length; pj++) { if (adminSrc[pj] === "{") d++; else if (adminSrc[pj] === "}" && !--d) break; }
+const pinParse = vm.runInNewContext("(" + adminSrc.slice(pi, pj + 1) + ")");
+for (const u of ["https://www.google.com/maps/search/?api=1&query=13.756331,100.501765", "https://www.google.com/maps/place/Foo/@18.7883,98.9853,15z/data=x",
+  "https://www.google.com/maps/place/X/@18.70,98.90,12z/data=!3m1!4b1!4m6!3m5!8m2!3d18.7883!4d98.9853", "https://maps.google.com/?q=7.8804%2C%2098.3923",
+  "https://maps.app.goo.gl/AbCdEf?g_st=il", "https://www.google.com/maps/place/Bangkok", "https://x/?q=95.1,100.2", ""])
+  t("admin page parser = server parser: " + (u.slice(8, 60) || "(empty)"), eq(pinParse(u), latLngFromUrl(u)), [pinParse(u), latLngFromUrl(u)]);
+t("admin page parser: coordinates copied from Google Maps", eq(pinParse(" 13.864854, 101.782413 "), { lat: 13.864854, lng: 101.782413 }) && eq(pinParse("17.131967 99.41093"), { lat: 17.131967, lng: 99.41093 }));
+t("admin page parser: rejects junk / 0,0 / out of range", pinParse("ไม่มีพิกัด") === null && pinParse("0.0, 0.0") === null && pinParse("100.5, 13.7") === null && pinParse("13.7, 100.5, 3") === null);
 
 // ---- ลิงก์ย่อ
 redirects = { "https://maps.app.goo.gl/AbCdEf": "https://www.google.com/maps/place/Home/@14.0,99.5,15z" };
@@ -38,9 +56,13 @@ const hotels = [
   { _id: "h3", name: "ไม่มีหมุด", slug: "nopin", location: "น่าน", mapUrl: "", allowGuestCancel: false, amenities: ["🍳 อาหารเช้า"] },
   { _id: "h4", name: "จำพิกัดแล้ว", slug: "cached", mapUrl: "https://maps.app.goo.gl/Cached", geoFrom: "https://maps.app.goo.gl/Cached", geo: { lat: 12.5, lng: 99.9 } },
   { _id: "h5", name: "เพจเฟซบุ๊ก", slug: "fbpage", mapUrl: "", coverUrl: "https://www.facebook.com/p/The-Y-Habitat-Hotel-61588588984725/" },
+  { _id: "h6", name: "แอดมินยืนยันหมุด", slug: "pinned", mapUrl: "https://maps.app.goo.gl/IphoneShare?g_st=il", pin: { lat: 13.864854, lng: 101.782413, at: new Date("2026-11-23T08:00:00Z") } },
+  { _id: "h7", name: "หมุดเสีย", slug: "badpin", mapUrl: "https://www.google.com/maps/search/?api=1&query=15.1,100.2", pin: { lat: 200, lng: 5 } },
+  { _id: "h8", name: "หมุดแต่ไม่มีลิงก์", slug: "pinonly", mapUrl: "", pin: { lat: 9.5, lng: 99.9 } },
 ];
 let lastQuery = null; const saved = [];
-Hotel.find = (q) => { lastQuery = q; return { select() { return this; }, sort() { return this; }, lean: async () => hotels.map((h) => ({ ...h })) }; };
+const pick = (o, f) => { if (!f) return o; const k = ["_id", ...f.split(/\s+/).filter(Boolean)]; return Object.fromEntries(Object.entries(o).filter(([x]) => k.includes(x))); };
+Hotel.find = (q) => { lastQuery = q; let f = null; return { select(x) { f = x; return this; }, sort() { return this; }, lean: async () => hotels.map((h) => pick({ ...h }, f)) }; };
 Hotel.updateOne = async (q, u) => { saved.push([q._id, u.$set]); return { modifiedCount: 1 }; };
 let rtQuery = null;
 RoomType.find = (q) => { rtQuery = q; return { select() { return this; }, lean: async () => [
@@ -59,6 +81,9 @@ t("remembered coords reused, no fetch", by.cached.lat === 12.5 && !fetches.slice
 t("lowest visible room price", by.rimnam.priceFrom === 900 && by.suanpa.priceFrom === 1200 && by.nopin.priceFrom === null);
 t("cover: https only (no inline data images)", by.rimnam.cover === "https://cdn.example/c.jpg" && by.suanpa.cover === "");
 t("cover: a Facebook page link is not an image → no cover (card shows the first letter)", by.fbpage.cover === "", by.fbpage);
+t("admin pin beats the owner's link (iPhone share link not even fetched)", by.pinned.lat === 13.864854 && by.pinned.lng === 101.782413 && !fetches.includes("https://maps.app.goo.gl/IphoneShare?g_st=il") && !saved.some(([id]) => id === "h6"), by.pinned);
+t("admin pin works without any map link", by.pinonly.lat === 9.5 && by.pinonly.lng === 99.9, by.pinonly);
+t("invalid pin ignored → link coordinates used", by.badpin.lat === 15.1 && by.badpin.lng === 100.2, by.badpin);
 t("coords saved with the link they came from", saved.some(([id, s]) => id === "h2" && s.geoFrom === "https://maps.app.goo.gl/AbCdEf" && s.geo.lat === 14) && saved.some(([id, s]) => id === "h3" && s.geo === null));
 t("no private fields leak", list.every((h) => eq(Object.keys(h).sort(), ["amenities", "breakfast", "cover", "freeCancelDays", "lat", "lng", "location", "name", "priceFrom", "rating", "reviews", "slug", "tagline"])), Object.keys(list[0]));
 t("rating = average of approved reviews only", rvQuery.approved === true && by.rimnam.rating === 4.3 && by.rimnam.reviews === 3 && by.suanpa.rating === 5 && by.nopin.rating === null && by.nopin.reviews === 0, [by.rimnam, rvQuery]);
@@ -87,6 +112,7 @@ const run = (M, name, upd) => { const v = mapVersion(); for (const fn of hooks(M
 t("Hotel delete clears map cache", run(Hotel, "deleteOne") && run(Hotel, "deleteMany") && run(Hotel, "findOneAndDelete"));
 t("Hotel edit (onMap/status/approved/mapUrl) clears map cache", run(Hotel, "findOneAndUpdate", { onMap: false }) && run(Hotel, "updateOne", { $set: { status: "paused" } }) && run(Hotel, "updateMany", { $set: { approved: false } }));
 t("Hotel created/saved clears map cache", run(Hotel, "save"));
+t("admin pin set / cleared clears map cache", run(Hotel, "findOneAndUpdate", { $set: { pin: { lat: 13.8, lng: 101.7, at: new Date() } } }) && run(Hotel, "findOneAndUpdate", { $unset: { pin: 1 } }));
 t("map's own geo save does NOT clear cache (no loop)", !run(Hotel, "updateOne", { $set: { geo: { lat: 1, lng: 2 }, geoFrom: "x" } }));
 t("room price/visibility change clears map cache", run(RoomType, "findOneAndUpdate", { $set: { basePrice: 500 } }) && run(RoomType, "deleteOne") && run(RoomType, "save"));
 
